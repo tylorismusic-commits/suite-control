@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -O3 -DNDEBUG -shared -Wl,--dependency-file=CMakeFiles/suite_control.dir/link.d  -o SuiteControl.so CMakeFiles/suite_control.dir/src/clap/suite_control_clap.cpp.o CMakeFiles/suite_control.dir/src/ui/panel.cpp.o "CMakeFiles/suite_control.dir/third_party/dusk-4k/FourKEQDSP.cpp.o"  -ldl /usr/lib/libcairo.so /usr/lib/libfreetype.so /usr/lib/libX11.so

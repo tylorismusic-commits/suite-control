@@ -1,6 +1,6 @@
 # Suite Control
 
-**Version 0.1.0** · GPL-3.0-or-later · CLAP + LV2 · Linux
+**Suite 0.4.0** · GPL-3.0-or-later · CLAP + LV2 · Linux
 
 Suite Control lives on a folder or group track. It does two jobs:
 
@@ -14,6 +14,24 @@ Suite Control lives on a folder or group track. It does two jobs:
 
 The host already sums the folder; Suite Control only shapes that bus and never
 touches per-channel audio.
+
+## The Suite bundle
+
+Suite Control and **Suite Channel Plus** (`channel-plus/`) ship together as one
+distribution:
+
+```
+./install.sh          # ~/.lv2/suite.lv2 + two CLAP bundles
+./uninstall.sh
+```
+
+`suite.lv2` contains both plug-ins, one manifest and one set of shared
+resources, so hosts discover each plug-in URI exactly once. Building:
+
+```
+cmake -S . -B build && cmake --build build -j
+(cd build && ctest)
+```
 
 ## Peer link
 

@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -O3 -DNDEBUG -shared -Wl,--dependency-file=CMakeFiles/suite_control_lv2_ui.dir/link.d  -o lv2/suite-control.lv2/suite_control_ui.so CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o CMakeFiles/suite_control_lv2_ui.dir/src/ui/panel.cpp.o  /usr/lib/libcairo.so /usr/lib/libfreetype.so /usr/lib/libX11.so

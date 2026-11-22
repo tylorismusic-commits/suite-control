@@ -9,20 +9,22 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 include(GNUInstallDirs)
 
-set(HEARTH_DSP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/hearth-dsp"
+get_filename_component(SUITE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
+
+set(HEARTH_DSP_DIR "${SUITE_ROOT}/third_party/hearth-dsp"
     CACHE PATH "Path to the hearth-dsp checkout")
 if(NOT EXISTS "${HEARTH_DSP_DIR}/include/hdsp/hdsp.hpp")
   message(FATAL_ERROR "hearth-dsp not found at ${HEARTH_DSP_DIR}")
 endif()
 
-set(DUSK_EQ_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/dusk-4k"
+set(DUSK_EQ_DIR "${SUITE_ROOT}/third_party/dusk-4k"
     CACHE PATH "Path to the vendored Dusk 4K EQ core")
 if(NOT EXISTS "${DUSK_EQ_DIR}/FourKEQDSP.hpp")
   message(FATAL_ERROR "Dusk 4K EQ core not found at ${DUSK_EQ_DIR}")
 endif()
 
 include_directories(
-  "${CMAKE_SOURCE_DIR}/src"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src"
   "${HEARTH_DSP_DIR}/include"
   "${DUSK_EQ_DIR}")
 
@@ -30,11 +32,13 @@ include_directories(
 # visibility the dynamic linker can bind suite::Panel/kParamSpecs/Shared to a
 # different plug-in's copy (REAPER dlopens with global scope), so hide
 # everything except the entry points, which the export macros mark.
-function(suite_hide_symbols target)
-  set_target_properties(${target} PROPERTIES
-    CXX_VISIBILITY_PRESET hidden
-    VISIBILITY_INLINES_HIDDEN YES)
-endfunction()
+if(NOT COMMAND suite_hide_symbols)
+  function(suite_hide_symbols target)
+    set_target_properties(${target} PROPERTIES
+      CXX_VISIBILITY_PRESET hidden
+      VISIBILITY_INLINES_HIDDEN YES)
+  endfunction()
+endif()
 
 enable_testing()
 
@@ -59,14 +63,14 @@ else()
 endif()
 
 set(SUITE_UI_SOURCES src/ui/panel.cpp)
-set(SUITE_DSP_SOURCES third_party/dusk-4k/FourKEQDSP.cpp)
+set(SUITE_DSP_SOURCES ${SUITE_ROOT}/third_party/dusk-4k/FourKEQDSP.cpp)
 
 # ---------------------------------------------------------------------------
 # CLAP plugin: one cairo editor (X11 on Linux, Cocoa on macOS).
 # ---------------------------------------------------------------------------
 set(SUITE_RESOURCE_FILES
-  "${CMAKE_SOURCE_DIR}/assets/fonts/Jost-ExtraBold.ttf"
-  "${CMAKE_SOURCE_DIR}/assets/fonts/OFL.txt")
+  "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Jost-ExtraBold.ttf"
+  "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL.txt")
 
 if(APPLE)
 enable_language(OBJCXX)
@@ -76,8 +80,8 @@ add_library(suite_channel_plus MODULE
   ${SUITE_DSP_SOURCES}
   src/ui/cocoa_view.mm)
 target_include_directories(suite_channel_plus PRIVATE
-  "${CMAKE_SOURCE_DIR}/src"
-  "${CMAKE_SOURCE_DIR}/third_party/clap/include"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src"
+  "${SUITE_ROOT}/third_party/clap/include"
   "${HEARTH_DSP_DIR}/include"
   "${DUSK_EQ_DIR}"
   ${CAIRO_INCLUDE_DIRS})
@@ -107,7 +111,7 @@ add_custom_target(suite_channel_plus_bundle ALL
           "$<TARGET_FILE:suite_channel_plus>"
           "${SUITE_CLAP_BUNDLE}/Contents/MacOS/SuiteChannelPlus"
   COMMAND ${CMAKE_COMMAND} -E copy
-          "${CMAKE_SOURCE_DIR}/packaging/macos/Info.plist"
+          "${CMAKE_CURRENT_SOURCE_DIR}/packaging/macos/Info.plist"
           "${SUITE_CLAP_BUNDLE}/Contents/Info.plist"
   COMMAND ${CMAKE_COMMAND} -E make_directory
           "${SUITE_CLAP_BUNDLE}/Contents/Resources/SuiteChannelPlus.resources"
@@ -129,7 +133,7 @@ endif()
 # installed for the wrapper to work.
 # ---------------------------------------------------------------------------
 set(CLAP_WRAPPER_DOWNLOAD_DEPENDENCIES ON)
-add_subdirectory(third_party/clap-wrapper EXCLUDE_FROM_ALL)
+add_subdirectory(${SUITE_ROOT}/third_party/clap-wrapper EXCLUDE_FROM_ALL)
 
 set(SUITE_VST3_BUNDLE "${CMAKE_BINARY_DIR}/vst3/SuiteChannelPlus.vst3")
 set(SUITE_AUV2_BUNDLE "${CMAKE_BINARY_DIR}/au/SuiteChannelPlus.component")
@@ -200,8 +204,8 @@ add_library(suite_channel_plus MODULE
   ${SUITE_UI_SOURCES}
   ${SUITE_DSP_SOURCES})
 target_include_directories(suite_channel_plus PRIVATE
-  "${CMAKE_SOURCE_DIR}/src"
-  "${CMAKE_SOURCE_DIR}/third_party/clap/include"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src"
+  "${SUITE_ROOT}/third_party/clap/include"
   "${HEARTH_DSP_DIR}/include"
   "${DUSK_EQ_DIR}")
 target_link_libraries(suite_channel_plus PRIVATE
@@ -237,7 +241,7 @@ add_library(suite_channel_plus_lv2 MODULE
   src/suite_channel_plus_lv2.cpp
   ${SUITE_DSP_SOURCES})
 target_include_directories(suite_channel_plus_lv2 PRIVATE
-  "${CMAKE_SOURCE_DIR}/src"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src"
   "${HEARTH_DSP_DIR}/include"
   "${DUSK_EQ_DIR}")
 target_link_libraries(suite_channel_plus_lv2 PRIVATE PkgConfig::LV2)
@@ -252,7 +256,7 @@ add_library(suite_channel_plus_lv2_ui MODULE
   src/ui/lv2_ui.cpp
   ${SUITE_UI_SOURCES})
 target_include_directories(suite_channel_plus_lv2_ui PRIVATE
-  "${CMAKE_SOURCE_DIR}/src"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src"
   "${HEARTH_DSP_DIR}/include"
   "${DUSK_EQ_DIR}")
 target_link_libraries(suite_channel_plus_lv2_ui PRIVATE
@@ -266,16 +270,16 @@ set_target_properties(suite_channel_plus_lv2_ui PROPERTIES
 add_custom_target(suite_channel_plus_lv2_bundle ALL
   COMMAND ${CMAKE_COMMAND} -E make_directory "${LV2_BUNDLE_DIR}"
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
-          "${CMAKE_SOURCE_DIR}/lv2/manifest.ttl"
-          "${CMAKE_SOURCE_DIR}/lv2/suite_channel_plus.ttl"
-          "${CMAKE_SOURCE_DIR}/lv2/presets.ttl"
+          "${CMAKE_CURRENT_SOURCE_DIR}/lv2/manifest.ttl"
+          "${CMAKE_CURRENT_SOURCE_DIR}/lv2/suite_channel_plus.ttl"
+          "${CMAKE_CURRENT_SOURCE_DIR}/lv2/presets.ttl"
           "${LV2_BUNDLE_DIR}/"
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SUITE_RESOURCE_FILES}
           "${LV2_BUNDLE_DIR}/"
   DEPENDS suite_channel_plus_lv2 suite_channel_plus_lv2_ui
-          "${CMAKE_SOURCE_DIR}/lv2/manifest.ttl"
-          "${CMAKE_SOURCE_DIR}/lv2/suite_channel_plus.ttl"
-          "${CMAKE_SOURCE_DIR}/lv2/presets.ttl"
+          "${CMAKE_CURRENT_SOURCE_DIR}/lv2/manifest.ttl"
+          "${CMAKE_CURRENT_SOURCE_DIR}/lv2/suite_channel_plus.ttl"
+          "${CMAKE_CURRENT_SOURCE_DIR}/lv2/presets.ttl"
           ${SUITE_RESOURCE_FILES})
 endif()  # SUITE_X11
 
@@ -295,42 +299,42 @@ install(FILES
 # Tools
 # ---------------------------------------------------------------------------
 add_executable(suite_ttl_gen tools/gen_ttl.cpp)
-target_include_directories(suite_ttl_gen PRIVATE "${CMAKE_SOURCE_DIR}/src")
+target_include_directories(suite_ttl_gen PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_compile_features(suite_ttl_gen PRIVATE cxx_std_17)
 add_test(NAME suite_ttl
-  COMMAND suite_ttl_gen --check --root "${CMAKE_SOURCE_DIR}")
+  COMMAND suite_ttl_gen --check --root "${CMAKE_CURRENT_SOURCE_DIR}")
 
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
 add_executable(suite_dsp_test test/test_dsp.cpp ${SUITE_DSP_SOURCES})
 target_include_directories(suite_dsp_test PRIVATE
-  "${CMAKE_SOURCE_DIR}/src"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src"
   "${HEARTH_DSP_DIR}/include"
   "${DUSK_EQ_DIR}")
 target_compile_features(suite_dsp_test PRIVATE cxx_std_17)
 add_test(NAME suite_dsp COMMAND suite_dsp_test)
 
 add_executable(suite_peer_test test/peer_test.cpp)
-target_include_directories(suite_peer_test PRIVATE "${CMAKE_SOURCE_DIR}/src")
+target_include_directories(suite_peer_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_compile_features(suite_peer_test PRIVATE cxx_std_17)
 add_test(NAME suite_peer COMMAND suite_peer_test)
 
 add_executable(suite_panel_test test/test_panel.cpp ${SUITE_UI_SOURCES})
-target_include_directories(suite_panel_test PRIVATE "${CMAKE_SOURCE_DIR}/src")
+target_include_directories(suite_panel_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(suite_panel_test PRIVATE PkgConfig::CAIRO PkgConfig::FREETYPE)
 target_compile_features(suite_panel_test PRIVATE cxx_std_17)
 add_test(NAME suite_panel COMMAND suite_panel_test)
 
 add_executable(suite_ui_preview test/ui_preview.cpp ${SUITE_UI_SOURCES})
-target_include_directories(suite_ui_preview PRIVATE "${CMAKE_SOURCE_DIR}/src")
+target_include_directories(suite_ui_preview PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(suite_ui_preview PRIVATE PkgConfig::CAIRO PkgConfig::FREETYPE)
 target_compile_features(suite_ui_preview PRIVATE cxx_std_17)
 
 if(SUITE_X11)
 add_executable(suite_clap_host_test test/clap_host_test.cpp)
 target_include_directories(suite_clap_host_test PRIVATE
-  "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/third_party/clap/include")
+  "${CMAKE_CURRENT_SOURCE_DIR}/src" "${SUITE_ROOT}/third_party/clap/include")
 target_link_libraries(suite_clap_host_test PRIVATE
   PkgConfig::X11 ${CMAKE_DL_LIBS})
 target_compile_features(suite_clap_host_test PRIVATE cxx_std_17)
@@ -345,30 +349,30 @@ else()
     COMMAND suite_clap_host_test "${CMAKE_BINARY_DIR}/clap/SuiteChannelPlus.clap")
 endif()
 
-add_executable(suite_lv2_host_test test/lv2_host_test.cpp)
-target_include_directories(suite_lv2_host_test PRIVATE
-  "${CMAKE_SOURCE_DIR}/src")
-target_link_libraries(suite_lv2_host_test PRIVATE
+add_executable(plus_lv2_host_test test/lv2_host_test.cpp)
+target_include_directories(plus_lv2_host_test PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_link_libraries(plus_lv2_host_test PRIVATE
   PkgConfig::LV2 ${CMAKE_DL_LIBS})
-target_compile_features(suite_lv2_host_test PRIVATE cxx_std_17)
-add_dependencies(suite_lv2_host_test suite_channel_plus_lv2_bundle)
-add_test(NAME suite_lv2_host
-  COMMAND suite_lv2_host_test "${CMAKE_BINARY_DIR}/lv2/suite-channel-plus.lv2/suite_channel_plus.so")
+target_compile_features(plus_lv2_host_test PRIVATE cxx_std_17)
+add_dependencies(plus_lv2_host_test suite_channel_plus_lv2_bundle)
+add_test(NAME plus_lv2_host
+  COMMAND plus_lv2_host_test "${CMAKE_BINARY_DIR}/lv2/suite-channel-plus.lv2/suite_channel_plus.so")
 
-add_executable(suite_lv2_ui_host_test test/lv2_ui_host_test.cpp)
-target_include_directories(suite_lv2_ui_host_test PRIVATE
-  "${CMAKE_SOURCE_DIR}/src")
-target_link_libraries(suite_lv2_ui_host_test PRIVATE
+add_executable(plus_lv2_ui_host_test test/lv2_ui_host_test.cpp)
+target_include_directories(plus_lv2_ui_host_test PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_link_libraries(plus_lv2_ui_host_test PRIVATE
   PkgConfig::X11 ${CMAKE_DL_LIBS})
-target_compile_features(suite_lv2_ui_host_test PRIVATE cxx_std_17)
-add_dependencies(suite_lv2_ui_host_test suite_channel_plus_lv2_bundle)
+target_compile_features(plus_lv2_ui_host_test PRIVATE cxx_std_17)
+add_dependencies(plus_lv2_ui_host_test suite_channel_plus_lv2_bundle)
 if(XVFB_RUN)
-  add_test(NAME suite_lv2_ui_host
+  add_test(NAME plus_lv2_ui_host
     COMMAND "${XVFB_RUN}" -a -s "-screen 0 1600x1200x24"
-      "$<TARGET_FILE:suite_lv2_ui_host_test>" "${CMAKE_BINARY_DIR}/lv2/suite-channel-plus.lv2")
+      "$<TARGET_FILE:plus_lv2_ui_host_test>" "${CMAKE_BINARY_DIR}/lv2/suite-channel-plus.lv2")
 else()
-  add_test(NAME suite_lv2_ui_host
-    COMMAND suite_lv2_ui_host_test "${CMAKE_BINARY_DIR}/lv2/suite-channel-plus.lv2")
+  add_test(NAME plus_lv2_ui_host
+    COMMAND plus_lv2_ui_host_test "${CMAKE_BINARY_DIR}/lv2/suite-channel-plus.lv2")
 endif()
 endif()  # SUITE_X11
 
@@ -379,9 +383,9 @@ if(SUITE_X11)
 add_custom_target(dist
   COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/dist"
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
-          "${CMAKE_SOURCE_DIR}/README.md"
-          "${CMAKE_SOURCE_DIR}/LICENSE"
-          "${CMAKE_SOURCE_DIR}/THIRD_PARTY_NOTICES.md"
+          "${CMAKE_CURRENT_SOURCE_DIR}/README.md"
+          "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
+          "${CMAKE_CURRENT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md"
           "${CMAKE_BINARY_DIR}/"
   COMMAND ${CMAKE_COMMAND} -E tar czf
           "dist/suite-channel-${PROJECT_VERSION}-linux-x86_64.tar.gz"
