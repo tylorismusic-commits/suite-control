@@ -68,8 +68,10 @@ include CMakeFiles/suite_control_lv2_bundle.dir/progress.make
 
 CMakeFiles/suite_control_lv2_bundle: lv2/suite-control.lv2/suite_control.so
 CMakeFiles/suite_control_lv2_bundle: lv2/suite-control.lv2/suite_control_ui.so
+CMakeFiles/suite_control_lv2_bundle: /home/tylor/Projects/suite-control/assets/fonts/Jost-ExtraBold.ttf
+CMakeFiles/suite_control_lv2_bundle: /home/tylor/Projects/suite-control/assets/fonts/OFL.txt
 	/usr/bin/cmake -E make_directory /home/tylor/Projects/suite-control/build/lv2/suite-control.lv2
-	/usr/bin/cmake -E copy_if_different /home/tylor/Projects/suite-control/lv2/manifest.ttl /home/tylor/Projects/suite-control/lv2/suite_control.ttl /home/tylor/Projects/suite-control/build/lv2/suite-control.lv2/
+	/usr/bin/cmake -E copy_if_different /home/tylor/Projects/suite-control/lv2/manifest.ttl /home/tylor/Projects/suite-control/lv2/suite_control.ttl /home/tylor/Projects/suite-control/assets/fonts/Jost-ExtraBold.ttf /home/tylor/Projects/suite-control/assets/fonts/OFL.txt /home/tylor/Projects/suite-control/build/lv2/suite-control.lv2/
 
 CMakeFiles/suite_control_lv2_bundle.dir/codegen:
 .PHONY : CMakeFiles/suite_control_lv2_bundle.dir/codegen

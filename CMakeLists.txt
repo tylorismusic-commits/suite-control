@@ -102,8 +102,9 @@ add_custom_target(suite_control_lv2_bundle ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
           "${CMAKE_SOURCE_DIR}/lv2/manifest.ttl"
           "${CMAKE_SOURCE_DIR}/lv2/suite_control.ttl"
+          ${SUITE_RESOURCE_FILES}
           "${SC_LV2_DIR}/"
-  DEPENDS suite_control_lv2 suite_control_lv2_ui)
+  DEPENDS suite_control_lv2 suite_control_lv2_ui ${SUITE_RESOURCE_FILES})
 
 add_test(NAME suite_control_ttl
   COMMAND suite_control_ttl_gen --check --root "${CMAKE_SOURCE_DIR}")
