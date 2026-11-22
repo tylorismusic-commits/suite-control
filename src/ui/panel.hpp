@@ -101,6 +101,8 @@ private:
   std::vector<Widget> widgets_;
   peer::Hub hub_;
   int bus_ = 1;
+  double captureNoticeUntil_ = 0.0;
+  int captureCount_ = -1;
 
   FT_Library ft_ = nullptr;
   FT_Face ftFace_ = nullptr;

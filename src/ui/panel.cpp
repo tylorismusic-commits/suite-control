@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <chrono>
 #include <cstring>
 
 namespace suite {
@@ -322,11 +323,22 @@ bool Panel::pointerDown(Shared& shared, PanelState& state, double x, double y,
         bus_ = static_cast<int>(w.value + 0.5);
         return true;
       case Kind::Capture: {
-        if (bus_ <= 0) return true;
         hub_.refresh();
-        for (int i = 0; i < hub_.size(); ++i) {
-          if (hub_.bus(i) == 0) hub_.write(i, ch::kBus, bus_);
+        int count = 0;
+        if (bus_ > 0) {
+          for (int i = 0; i < hub_.size(); ++i) {
+            if (hub_.bus(i) == 0) {
+              hub_.write(i, ch::kBus, bus_);
+              ++count;
+            }
+          }
         }
+        captureCount_ = count;
+        captureNoticeUntil_ =
+            std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now().time_since_epoch())
+                .count() +
+            2200.0;
         return true;
       }
       case Kind::Pill:
@@ -542,27 +554,67 @@ void Panel::draw(cairo_t* cr, const Shared& shared, const PanelState& state) {
     return n;
   }();
 
-  char status[96];
-  if (hub_.size() == 0) {
-    std::snprintf(status, sizeof(status), "NO SUITE CHANNEL PLUS VISIBLE");
+  const double nowMs = std::chrono::duration<double, std::milli>(
+                           std::chrono::steady_clock::now().time_since_epoch())
+                           .count();
+  char status[128];
+  if (captureCount_ >= 0 && nowMs < captureNoticeUntil_) {
+    std::snprintf(status, sizeof(status), "CAPTURED %d CHANNEL%s TO BUS %s",
+                  captureCount_, captureCount_ == 1 ? "" : "S",
+                  kBusLabels[std::clamp(bus_, 0, 8)]);
+    text(cr, status, kPanelWidth - 24, 40, 9.0, 2, kAccent.r * 0.7 + 0.2,
+         kAccent.g, kAccent.b);
+  } else if (hub_.size() == 0) {
+    std::snprintf(status, sizeof(status),
+                  "NO CHANNELS · %d SEGMENT%s · %d SLOT%s", hub_.segments(),
+                  hub_.segments() == 1 ? "" : "S", hub_.rawSlots(),
+                  hub_.rawSlots() == 1 ? "" : "S");
+    text(cr, status, kPanelWidth - 24, 40, 8.5, 2, 0.80, 0.45, 0.35);
   } else {
     std::snprintf(status, sizeof(status), "%d OF %d CHANNELS ON BUS %s",
                   shownCount, hub_.size(),
                   kBusLabels[std::clamp(bus_, 0, 8)]);
+    text(cr, status, kPanelWidth - 24, 40, 8.5, 2, kLegendDim.r, kLegendDim.g,
+         kLegendDim.b);
   }
-  text(cr, status, kPanelWidth - 24, 40, 8.5, 2, kLegendDim.r, kLegendDim.g,
-       kLegendDim.b);
 
   if (shownCount == 0) {
-    char line1[96];
-    std::snprintf(line1, sizeof(line1), "NO SUITE CHANNEL PLUS ON BUS %s",
-                  kBusLabels[std::clamp(bus_, 0, 8)]);
-    text(cr, line1, kStripX0 + 500, 360, 14, 1, kLegend.r, kLegend.g,
+    const bool anyChannels = hub_.size() > 0;
+    char line1[128];
+    if (anyChannels) {
+      std::snprintf(line1, sizeof(line1), "NO CHANNELS ON BUS %s",
+                    kBusLabels[std::clamp(bus_, 0, 8)]);
+    } else if (hub_.segments() == 0) {
+      std::snprintf(line1, sizeof(line1), "NO PEER SEGMENTS");
+    } else {
+      std::snprintf(line1, sizeof(line1), "PEER SEGMENTS FOUND, NO CHANNELS");
+    }
+    text(cr, line1, kStripX0 + 500, 350, 14, 1, kLegend.r, kLegend.g,
          kLegend.b);
-    text(cr, "Set its BUS knob to this bus, or press CAPTURE to assign every",
-         kStripX0 + 500, 386, 9, 1, kLegendDim.r, kLegendDim.g, kLegendDim.b);
-    text(cr, "unassigned Suite Channel Plus instance to it.", kStripX0 + 500,
-         402, 9, 1, kLegendDim.r, kLegendDim.g, kLegendDim.b);
+    if (anyChannels) {
+      text(cr, "Set the BUS knob to this bus, or press CAPTURE to assign every",
+           kStripX0 + 500, 378, 9, 1, kLegendDim.r, kLegendDim.g,
+           kLegendDim.b);
+      text(cr, "unassigned Suite Channel Plus instance to it.", kStripX0 + 500,
+           394, 9, 1, kLegendDim.r, kLegendDim.g, kLegendDim.b);
+    } else if (hub_.segments() == 0) {
+      text(cr, "Suite Channel Plus has not registered in this session.",
+           kStripX0 + 500, 378, 9, 1, kLegendDim.r, kLegendDim.g,
+           kLegendDim.b);
+      text(cr, "Fully restart the host after installing and check that",
+           kStripX0 + 500, 394, 9, 1, kLegendDim.r, kLegendDim.g,
+           kLegendDim.b);
+      text(cr, "Suite Channel Plus is loaded on at least one track.",
+           kStripX0 + 500, 410, 9, 1, kLegendDim.r, kLegendDim.g,
+           kLegendDim.b);
+    } else {
+      text(cr, "Suite Channel Plus is loaded but has not registered a slot.",
+           kStripX0 + 500, 378, 9, 1, kLegendDim.r, kLegendDim.g,
+           kLegendDim.b);
+      text(cr, "Reinstall Suite Channel Plus and restart the host.",
+           kStripX0 + 500, 394, 9, 1, kLegendDim.r, kLegendDim.g,
+           kLegendDim.b);
+    }
   }
 
   // Strip plates.

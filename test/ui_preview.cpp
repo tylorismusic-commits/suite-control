@@ -1,12 +1,14 @@
 // Renders the panel to a PNG for visual checks.
 #include "ui/panel.hpp"
 #include <cstdio>
+#include <string>
 int main(int argc, char** argv) {
   const char* out = argc > 1 ? argv[1] : "/tmp/suite-control.png";
   suite::peer::Client coarse;
   // Two fake Suite Channel Plus instances so the strips have content.
   int slots[3] = {-1, -1, -1};
-  for (int i = 0; i < 3; ++i) {
+  const bool empty = argc > 2 && std::string(argv[2]) == "empty";
+  for (int i = 0; i < 3 && !empty; ++i) {
     slots[i] = coarse.registerSlot(i == 0 ? 1 : 1, "Suite Channel Plus",
                                    suite::ch::kCount);
     if (slots[i] < 0) continue;
