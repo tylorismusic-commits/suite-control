@@ -1,8 +1,8 @@
-suite_control_dsp 55 0.000895623
-suite_control_panel 49 0.00153922
-suite_control_host 52 0.000137158
-suite_peer_integration 46 0.00540676
-suite_control_ttl 9 0.000311952
-suite_lv2_host 9 0.00104642
-suite_lv2_ui_host 5 0.625244
+suite_control_dsp 65 0.000530015
+suite_control_panel 59 0.000980092
+suite_control_host 62 0.000105869
+suite_peer_integration 56 0.00441433
+suite_control_ttl 19 0.000153322
+suite_lv2_host 19 0.000380154
+suite_lv2_ui_host 14 0.23099
 ---

@@ -6,5 +6,5 @@ CXX_DEFINES = -Dsuite_control_lv2_ui_EXPORTS
 
 CXX_INCLUDES = -I/home/tylor/Projects/suite-control/src -I/home/tylor/Projects/suite-control/third_party/hearth-dsp/include -I/home/tylor/Projects/suite-control/third_party/dusk-4k -isystem /usr/include/cairo -isystem /usr/include/freetype2 -isystem /usr/include/libpng16 -isystem /usr/include/pixman-1
 
-CXX_FLAGS = -O3 -DNDEBUG -std=c++17 -fPIC
+CXX_FLAGS = -O3 -DNDEBUG -std=c++17 -fPIC -fvisibility=hidden -fvisibility-inlines-hidden
 

@@ -1,17 +1,17 @@
-Start testing: Nov 22 14:06 EST
+Start testing: Nov 22 15:13 EST
 ----------------------------------------------------------
 1/7 Testing: suite_control_ttl
 1/7 Test: suite_control_ttl
 Command: "/home/tylor/Projects/suite-control/build/suite_control_ttl_gen" "--check" "--root" "/home/tylor/Projects/suite-control"
 Directory: /home/tylor/Projects/suite-control/build
-"suite_control_ttl" start time: Nov 22 14:06 EST
+"suite_control_ttl" start time: Nov 22 15:13 EST
 Output:
 ----------------------------------------------------------
 <end of output>
 Test time =   0.00 sec
 ----------------------------------------------------------
 Test Passed.
-"suite_control_ttl" end time: Nov 22 14:06 EST
+"suite_control_ttl" end time: Nov 22 15:13 EST
 "suite_control_ttl" time elapsed: 00:00:00
 ----------------------------------------------------------
 
@@ -19,7 +19,7 @@ Test Passed.
 2/7 Test: suite_lv2_host
 Command: "/home/tylor/Projects/suite-control/build/suite_lv2_host_test" "/home/tylor/Projects/suite-control/build/lv2/suite-control.lv2/suite_control.so"
 Directory: /home/tylor/Projects/suite-control/build
-"suite_lv2_host" start time: Nov 22 14:06 EST
+"suite_lv2_host" start time: Nov 22 15:13 EST
 Output:
 ----------------------------------------------------------
 loaded: https://github.com/tylorismusic-commits/suite-control
@@ -29,7 +29,7 @@ gr=4.3 outL=-17.6 outR=-17.6
 Test time =   0.01 sec
 ----------------------------------------------------------
 Test Passed.
-"suite_lv2_host" end time: Nov 22 14:06 EST
+"suite_lv2_host" end time: Nov 22 15:13 EST
 "suite_lv2_host" time elapsed: 00:00:00
 ----------------------------------------------------------
 
@@ -37,7 +37,7 @@ Test Passed.
 3/7 Test: suite_lv2_ui_host
 Command: "/usr/bin/xvfb-run" "-a" "-s" "-screen 0 1600x1200x24" "/home/tylor/Projects/suite-control/build/suite_lv2_ui_host_test" "/home/tylor/Projects/suite-control/build/lv2/suite-control.lv2"
 Directory: /home/tylor/Projects/suite-control/build
-"suite_lv2_ui_host" start time: Nov 22 14:06 EST
+"suite_lv2_ui_host" start time: Nov 22 15:13 EST
 Output:
 ----------------------------------------------------------
 PASS  UI library loads
@@ -47,16 +47,17 @@ PASS  UI instantiates with a parent window
 PASS  UI returns an X11 widget
 PASS  UI asks the host for its preferred size
 PASS  preferred size is the 1280x760 logical layout
-PASS  UI provides the idle interface
-PASS  idle() returns 0 and draws without crashing
-PASS  UI paints a non-black frame
-PASS  parameter port events are accepted
+PASS  paints without the host calling idle (REAPER's path)
+PASS  UI offers the idle interface
+PASS  idle() is safe when the host does call it
+PASS  paints after the host reparents the widget
+PASS  redraws after a port event
 0 failure(s)
 <end of output>
-Test time =   3.13 sec
+Test time =   3.23 sec
 ----------------------------------------------------------
 Test Passed.
-"suite_lv2_ui_host" end time: Nov 22 14:06 EST
+"suite_lv2_ui_host" end time: Nov 22 15:13 EST
 "suite_lv2_ui_host" time elapsed: 00:00:03
 ----------------------------------------------------------
 
@@ -64,7 +65,7 @@ Test Passed.
 4/7 Test: suite_control_dsp
 Command: "/home/tylor/Projects/suite-control/build/suite_control_dsp_test"
 Directory: /home/tylor/Projects/suite-control/build
-"suite_control_dsp" start time: Nov 22 14:06 EST
+"suite_control_dsp" start time: Nov 22 15:13 EST
 Output:
 ----------------------------------------------------------
 comp: 0.247 -> 0.113
@@ -83,10 +84,10 @@ latency 0
 PASS  reports a small latency
 0 failure(s)
 <end of output>
-Test time =   0.05 sec
+Test time =   0.03 sec
 ----------------------------------------------------------
 Test Passed.
-"suite_control_dsp" end time: Nov 22 14:06 EST
+"suite_control_dsp" end time: Nov 22 15:13 EST
 "suite_control_dsp" time elapsed: 00:00:00
 ----------------------------------------------------------
 
@@ -94,7 +95,7 @@ Test Passed.
 5/7 Test: suite_control_panel
 Command: "/home/tylor/Projects/suite-control/build/suite_control_panel_test"
 Directory: /home/tylor/Projects/suite-control/build
-"suite_control_panel" start time: Nov 22 14:06 EST
+"suite_control_panel" start time: Nov 22 15:13 EST
 Output:
 ----------------------------------------------------------
 PASS  panel paints something
@@ -120,10 +121,10 @@ PASS  drag changes the value
 PASS  drag stops on release
 0 failure(s)
 <end of output>
-Test time =   0.08 sec
+Test time =   0.06 sec
 ----------------------------------------------------------
 Test Passed.
-"suite_control_panel" end time: Nov 22 14:06 EST
+"suite_control_panel" end time: Nov 22 15:13 EST
 "suite_control_panel" time elapsed: 00:00:00
 ----------------------------------------------------------
 
@@ -131,7 +132,7 @@ Test Passed.
 6/7 Test: suite_control_host
 Command: "/home/tylor/Projects/suite-control/build/suite_control_host_test" "/home/tylor/Projects/suite-control/build/clap/SuiteControl.clap"
 Directory: /home/tylor/Projects/suite-control/build
-"suite_control_host" start time: Nov 22 14:06 EST
+"suite_control_host" start time: Nov 22 15:13 EST
 Output:
 ----------------------------------------------------------
 loaded: Suite Control (com.tylorismusic.suitecontrol)
@@ -140,7 +141,7 @@ loaded: Suite Control (com.tylorismusic.suitecontrol)
 Test time =   0.01 sec
 ----------------------------------------------------------
 Test Passed.
-"suite_control_host" end time: Nov 22 14:06 EST
+"suite_control_host" end time: Nov 22 15:13 EST
 "suite_control_host" time elapsed: 00:00:00
 ----------------------------------------------------------
 
@@ -148,7 +149,7 @@ Test Passed.
 7/7 Test: suite_peer_integration
 Command: "/home/tylor/Projects/suite-control/build/suite_peer_integration" "/home/tylor/.clap/SuiteChannelPlus.clap"
 Directory: /home/tylor/Projects/suite-control/build
-"suite_peer_integration" start time: Nov 22 14:06 EST
+"suite_peer_integration" start time: Nov 22 15:13 EST
 Output:
 ----------------------------------------------------------
 PASS  (null)
@@ -168,8 +169,8 @@ PASS  deactivate drops the slot
 Test time =   0.25 sec
 ----------------------------------------------------------
 Test Passed.
-"suite_peer_integration" end time: Nov 22 14:06 EST
+"suite_peer_integration" end time: Nov 22 15:13 EST
 "suite_peer_integration" time elapsed: 00:00:00
 ----------------------------------------------------------
 
-End testing: Nov 22 14:06 EST
+End testing: Nov 22 15:13 EST

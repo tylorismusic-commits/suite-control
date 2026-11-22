@@ -1,20 +1,26 @@
 // Suite Control — LV2 UI host test (X11 + Xvfb)
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// Loads suite_control_ui.so, embeds it in a parent window and drives it through
-// the idle interface the way a host does.  The important assertion is the pixel
-// check: a black window is the symptom of a cairo surface that does not match
-// the window's visual.
+// Loads suite_control_ui.so, embeds it in a parent window and checks the two
+// things a host actually decides:
+//
+//   * the UI paints even when the host never calls the idle interface
+//     (REAPER does not implement it), including when the frame is discarded
+//     because the FX container was still unmapped at instantiate time;
+//   * a reparented window repaints by itself.
+//
+// An all-black grab is the exact symptom users see, so that is the assertion.
 #include <dlfcn.h>
 #include <lv2/ui/ui.h>
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
+#include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <string>
-#include <vector>
+#include <thread>
 
 #include "params.hpp"
 #include "ui/panel.hpp"
@@ -40,6 +46,35 @@ int onResize(LV2UI_Feature_Handle handle, int w, int h) {
   return 0;
 }
 void onWrite(LV2UI_Controller, uint32_t, uint32_t, uint32_t, const void*) {}
+
+bool paints(Display* dpy, Window win, int w, int h) {
+  XImage* img = XGetImage(dpy, win, 0, 0, static_cast<unsigned>(w),
+                          static_cast<unsigned>(h), AllPlanes, ZPixmap);
+  if (!img) return false;
+  bool painted = false;
+  for (int y = 0; y < img->height && !painted; y += 8) {
+    for (int x = 0; x < img->width; x += 8) {
+      if (XGetPixel(img, x, y) != 0) {
+        painted = true;
+        break;
+      }
+    }
+  }
+  XDestroyImage(img);
+  return painted;
+}
+
+// Wait for the UI's own frame loop to paint, without calling idle().
+bool paintsWithin(Display* dpy, Window win, int w, int h, int millis) {
+  const auto end = std::chrono::steady_clock::now() +
+                   std::chrono::milliseconds(millis);
+  while (std::chrono::steady_clock::now() < end) {
+    XSync(dpy, False);
+    if (paints(dpy, win, w, h)) return true;
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+  }
+  return false;
+}
 } // namespace
 
 int main(int argc, char** argv) {
@@ -67,9 +102,12 @@ int main(int argc, char** argv) {
     return 1;
   }
   const int screen = DefaultScreen(dpy);
+
+  // REAPER hands over a parent inside the FX window that is not mapped yet, so
+  // the first frame is thrown away when the parent appears.  The UI must paint
+  // again on its own.
   Window parent = XCreateSimpleWindow(dpy, RootWindow(dpy, screen), 0, 0, 1400,
                                       820, 0, 0, 0);
-  XMapWindow(dpy, parent);
   XFlush(dpy);
 
   HostResize host;
@@ -96,50 +134,47 @@ int main(int argc, char** argv) {
             host.lastHeight == suite::kPanelHeight,
         "preferred size is the 1280x760 logical layout");
 
-  const auto* idle = static_cast<const LV2UI_Idle_Interface*>(
-      ui->extension_data(LV2_UI__idleInterface));
-  check(idle != nullptr, "UI provides the idle interface");
-
   const Window window =
       static_cast<Window>(reinterpret_cast<uintptr_t>(widget));
+
+  // The frame painted while the parent is unmapped is discarded by the server.
+  std::this_thread::sleep_for(std::chrono::milliseconds(120));
+  XMapWindow(dpy, parent);
+  XSync(dpy, False);
+
+  // No idle() call here on purpose: that is how REAPER behaves.
+  check(paintsWithin(dpy, window, host.lastWidth, host.lastHeight, 1500),
+        "paints without the host calling idle (REAPER's path)");
+
+  const auto* idle = static_cast<const LV2UI_Idle_Interface*>(
+      ui->extension_data(LV2_UI__idleInterface));
+  check(idle != nullptr, "UI offers the idle interface");
   bool idled = true;
   for (int i = 0; i < 5; ++i) {
     if (idle && idle->idle(handle) != 0) idled = false;
   }
-  check(idled, "idle() returns 0 and draws without crashing");
+  check(idled, "idle() is safe when the host does call it");
 
-  // A frame must contain pixels; an all-black grab means cairo refused to
-  // paint because the surface visual did not match the window.
-  {
-    XImage* img = XGetImage(dpy, window, 0, 0,
-                            static_cast<unsigned>(host.lastWidth),
-                            static_cast<unsigned>(host.lastHeight), AllPlanes,
-                            ZPixmap);
-    bool painted = false;
-    if (img) {
-      for (int y = 0; y < img->height && !painted; y += 8) {
-        for (int x = 0; x < img->width; x += 8) {
-          if (XGetPixel(img, x, y) != 0) {
-            painted = true;
-            break;
-          }
-        }
-      }
-      XDestroyImage(img);
-    }
-    check(painted, "UI paints a non-black frame");
-  }
+  // A reparented widget must repaint into its new parent.
+  Window mover = XCreateSimpleWindow(dpy, RootWindow(dpy, screen), 0, 0, 1400,
+                                     820, 0, 0, 0);
+  XMapWindow(dpy, mover);
+  XReparentWindow(dpy, window, mover, 0, 0);
+  XSync(dpy, False);
+  check(paintsWithin(dpy, window, host.lastWidth, host.lastHeight, 1500),
+        "paints after the host reparents the widget");
 
-  // A parameter change from the host must be accepted.
+  // A parameter change from the host must be accepted and redrawn.
   {
     const float v = 0.3f;
     ui->port_event(handle, 4, sizeof(float), 0, &v);
-    if (idle) idle->idle(handle);
-    check(true, "parameter port events are accepted");
+    check(paintsWithin(dpy, window, host.lastWidth, host.lastHeight, 1000),
+          "redraws after a port event");
   }
 
   ui->cleanup(handle);
   dlclose(module);
+  XDestroyWindow(dpy, mover);
   XDestroyWindow(dpy, parent);
   XCloseDisplay(dpy);
   std::printf("%d failure(s)\n", failures);

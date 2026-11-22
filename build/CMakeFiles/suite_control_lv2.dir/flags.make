@@ -6,5 +6,5 @@ CXX_DEFINES = -Dsuite_control_lv2_EXPORTS
 
 CXX_INCLUDES = -I/home/tylor/Projects/suite-control/src -I/home/tylor/Projects/suite-control/third_party/hearth-dsp/include -I/home/tylor/Projects/suite-control/third_party/dusk-4k
 
-CXX_FLAGS = -O3 -DNDEBUG -std=c++17 -fPIC
+CXX_FLAGS = -O3 -DNDEBUG -std=c++17 -fPIC -fvisibility=hidden -fvisibility-inlines-hidden
 

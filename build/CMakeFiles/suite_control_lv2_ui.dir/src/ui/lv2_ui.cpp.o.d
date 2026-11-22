@@ -33,8 +33,9 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o: \
  /usr/include/X11/keysym.h /usr/include/X11/keysymdef.h \
  /usr/include/cairo/cairo-xlib.h /usr/include/cairo/cairo.h \
  /usr/include/cairo/cairo-version.h /usr/include/cairo/cairo-features.h \
- /usr/include/cairo/cairo-deprecated.h /usr/include/c++/16/algorithm \
- /usr/include/c++/16/bits/stl_algobase.h \
+ /usr/include/cairo/cairo-deprecated.h /usr/include/poll.h \
+ /usr/include/sys/poll.h /usr/include/bits/poll.h \
+ /usr/include/c++/16/algorithm /usr/include/c++/16/bits/stl_algobase.h \
  /usr/include/c++/16/x86_64-pc-linux-gnu/bits/c++config.h \
  /usr/include/c++/16/x86_64-pc-linux-gnu/bits/os_defines.h \
  /usr/include/c++/16/x86_64-pc-linux-gnu/bits/cpu_defines.h \
@@ -97,17 +98,24 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o: \
  /usr/include/c++/16/tr1/modified_bessel_func.tcc \
  /usr/include/c++/16/tr1/poly_hermite.tcc \
  /usr/include/c++/16/tr1/poly_laguerre.tcc \
- /usr/include/c++/16/tr1/riemann_zeta.tcc /usr/include/c++/16/cstring \
- /usr/include/string.h /usr/include/strings.h /usr/include/c++/16/string \
- /usr/include/c++/16/bits/stringfwd.h \
+ /usr/include/c++/16/tr1/riemann_zeta.tcc /usr/include/c++/16/atomic \
+ /usr/include/c++/16/bits/atomic_base.h \
+ /usr/include/c++/16/bits/atomic_lockfree_defines.h \
+ /usr/include/c++/16/cstdarg \
+ /usr/lib/gcc/x86_64-pc-linux-gnu/16/include/stdarg.h \
+ /usr/include/c++/16/cstdio /usr/include/stdio.h \
+ /usr/include/bits/types/__fpos_t.h /usr/include/bits/types/__mbstate_t.h \
+ /usr/include/bits/types/__fpos64_t.h /usr/include/bits/types/__FILE.h \
+ /usr/include/bits/types/FILE.h /usr/include/bits/types/struct_FILE.h \
+ /usr/include/bits/types/cookie_io_functions_t.h \
+ /usr/include/bits/stdio_lim.h /usr/include/bits/stdio.h \
+ /usr/include/c++/16/cstring /usr/include/string.h /usr/include/strings.h \
+ /usr/include/c++/16/string /usr/include/c++/16/bits/stringfwd.h \
  /usr/include/c++/16/bits/memoryfwd.h \
  /usr/include/c++/16/bits/char_traits.h \
  /usr/include/c++/16/bits/postypes.h /usr/include/c++/16/cwchar \
- /usr/include/wchar.h \
- /usr/lib/gcc/x86_64-pc-linux-gnu/16/include/stdarg.h \
- /usr/include/bits/types/wint_t.h /usr/include/bits/types/mbstate_t.h \
- /usr/include/bits/types/__mbstate_t.h /usr/include/bits/types/__FILE.h \
- /usr/include/bits/types/FILE.h /usr/include/c++/16/bits/allocator.h \
+ /usr/include/wchar.h /usr/include/bits/types/wint_t.h \
+ /usr/include/bits/types/mbstate_t.h /usr/include/c++/16/bits/allocator.h \
  /usr/include/c++/16/x86_64-pc-linux-gnu/bits/c++allocator.h \
  /usr/include/c++/16/bits/new_allocator.h \
  /usr/include/c++/16/bits/new_throw.h \
@@ -126,25 +134,33 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o: \
  /usr/include/c++/16/bits/functional_hash.h \
  /usr/include/c++/16/bits/hash_bytes.h \
  /usr/include/c++/16/bits/string_view.tcc \
- /usr/include/c++/16/ext/string_conversions.h /usr/include/c++/16/cstdio \
- /usr/include/stdio.h /usr/include/bits/types/__fpos_t.h \
- /usr/include/bits/types/__fpos64_t.h \
- /usr/include/bits/types/struct_FILE.h \
- /usr/include/bits/types/cookie_io_functions_t.h \
- /usr/include/bits/stdio_lim.h /usr/include/bits/stdio.h \
- /usr/include/c++/16/cerrno /usr/include/errno.h \
- /usr/include/bits/errno.h /usr/include/linux/errno.h \
- /usr/include/asm/errno.h /usr/include/asm-generic/errno.h \
- /usr/include/asm-generic/errno-base.h /usr/include/bits/types/error_t.h \
- /usr/include/c++/16/bits/charconv.h \
+ /usr/include/c++/16/ext/string_conversions.h /usr/include/c++/16/cerrno \
+ /usr/include/errno.h /usr/include/bits/errno.h \
+ /usr/include/linux/errno.h /usr/include/asm/errno.h \
+ /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
+ /usr/include/bits/types/error_t.h /usr/include/c++/16/bits/charconv.h \
  /usr/include/c++/16/bits/basic_string.tcc \
  /usr/include/c++/16/bits/memory_resource.h /usr/include/c++/16/cstddef \
  /usr/include/c++/16/bits/uses_allocator.h \
  /usr/include/c++/16/bits/uses_allocator_args.h /usr/include/c++/16/tuple \
- /usr/include/c++/16/bits/invoke.h \
+ /usr/include/c++/16/bits/invoke.h /usr/include/c++/16/thread \
+ /usr/include/c++/16/bits/std_thread.h /usr/include/c++/16/bits/refwrap.h \
+ /usr/include/c++/16/bits/unique_ptr.h \
+ /usr/include/c++/16/x86_64-pc-linux-gnu/bits/gthr.h \
+ /usr/include/c++/16/x86_64-pc-linux-gnu/bits/gthr-default.h \
+ /usr/include/pthread.h /usr/include/sched.h /usr/include/bits/sched.h \
+ /usr/include/linux/sched/types.h /usr/include/linux/types.h \
+ /usr/include/asm/types.h /usr/include/asm-generic/types.h \
+ /usr/include/asm-generic/int-ll64.h /usr/include/asm/bitsperlong.h \
+ /usr/include/asm-generic/bitsperlong.h /usr/include/linux/posix_types.h \
+ /usr/include/linux/stddef.h /usr/include/asm/posix_types.h \
+ /usr/include/asm/posix_types_64.h /usr/include/asm-generic/posix_types.h \
+ /usr/include/bits/types/struct_sched_param.h /usr/include/bits/cpu-set.h \
+ /usr/include/bits/setjmp.h \
+ /usr/include/bits/types/struct___jmp_buf_tag.h \
+ /usr/include/bits/pthread_stack_min-dynamic.h \
+ /usr/include/c++/16/bits/this_thread_sleep.h \
  /home/tylor/Projects/suite-control/src/params.hpp \
- /usr/include/c++/16/atomic /usr/include/c++/16/bits/atomic_base.h \
- /usr/include/c++/16/bits/atomic_lockfree_defines.h \
  /home/tylor/Projects/suite-control/src/dsp/controls.hpp \
  /home/tylor/Projects/suite-control/src/ui/geometry.hpp \
  /home/tylor/Projects/suite-control/src/ui/panel.hpp \
@@ -159,11 +175,9 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o: \
  /usr/lib/gcc/x86_64-pc-linux-gnu/16/include/syslimits.h \
  /usr/include/limits.h /usr/include/bits/posix1_lim.h \
  /usr/include/bits/local_lim.h /usr/include/linux/limits.h \
- /usr/include/bits/pthread_stack_min-dynamic.h \
  /usr/include/bits/posix2_lim.h /usr/include/bits/xopen_lim.h \
  /usr/include/bits/uio_lim.h /usr/include/c++/16/stdlib.h \
- /usr/include/setjmp.h /usr/include/bits/setjmp.h \
- /usr/include/bits/types/struct___jmp_buf_tag.h \
+ /usr/include/setjmp.h \
  /usr/include/freetype2/freetype/config/integer-types.h \
  /usr/include/freetype2/freetype/config/public-macros.h \
  /usr/include/freetype2/freetype/config/mac-support.h \
@@ -176,12 +190,7 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o: \
  /usr/include/fontconfig/fontconfig.h /usr/include/sys/stat.h \
  /usr/include/bits/stat.h /usr/include/bits/struct_stat.h \
  /usr/include/bits/statx.h /usr/include/linux/stat.h \
- /usr/include/linux/types.h /usr/include/asm/types.h \
- /usr/include/asm-generic/types.h /usr/include/asm-generic/int-ll64.h \
- /usr/include/asm/bitsperlong.h /usr/include/asm-generic/bitsperlong.h \
- /usr/include/linux/posix_types.h /usr/include/linux/stddef.h \
- /usr/include/asm/posix_types.h /usr/include/asm/posix_types_64.h \
- /usr/include/asm-generic/posix_types.h /usr/include/bits/statx-generic.h \
+ /usr/include/bits/statx-generic.h \
  /usr/include/bits/types/struct_statx_timestamp.h \
  /usr/include/bits/types/struct_statx.h /usr/include/c++/16/vector \
  /usr/include/c++/16/bits/stl_uninitialized.h \

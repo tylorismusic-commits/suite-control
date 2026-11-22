@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.1.8
+
+- LV2 UI is now driven by its own frame/event loop.  REAPER never calls the
+  optional idle interface, so the window kept the single frame painted before
+  the FX container was mapped and stayed black; it also ignored every click.
+  The idle interface is still honoured, but only nudges the loop.
+- CLAP and LV2 symbols are hidden except the entry points.  Hosts that
+  `dlopen` with global scope were binding this plug-in's `Panel`, `Shared` and
+  parameter table to Suite Channel Plus's copies, which made the BUS tabs read
+  the wrong parameter (clicks reverted immediately) whenever both were loaded.
+- Parameter echoes from the host are ignored briefly after a UI write, so a
+  clicked value cannot be snapped back by a stale `port_event`.
+- `Shared::set` only marks a parameter dirty when it actually changes; a host
+  that echoes port events no longer causes a write/echo loop at frame rate.
+- Bus tabs label index 0 consistently, and the UI host test now covers the
+  "no idle + parent mapped late" path REAPER uses.
+
 ## 0.1.7
 
 - LV2 UI opens again: the cairo surface now matches the host window's visual

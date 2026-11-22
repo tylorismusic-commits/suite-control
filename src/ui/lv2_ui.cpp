@@ -12,12 +12,17 @@
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
 #include <cairo-xlib.h>
+#include <poll.h>
 
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <atomic>
+#include <cstdarg>
+#include <cstdio>
 #include <cstring>
 #include <string>
+#include <thread>
 
 #include "params.hpp"
 #include "ui/geometry.hpp"
@@ -49,8 +54,73 @@ struct Ui {
   uint32_t width = suite::kPanelWidth;
   uint32_t height = suite::kPanelHeight;
 
-  bool dirty = true;
+  // Hosts (REAPER among them) echo values back through port_event while we are
+  // still applying our own write, so a click would be reverted by a stale echo.
+  double lastWriteValue[suite::P_COUNT] = {};
+  double lastWriteMs[suite::P_COUNT] = {};
+
+  static double nowMs() {
+    return std::chrono::duration<double, std::milli>(
+               std::chrono::steady_clock::now().time_since_epoch())
+        .count();
+  }
+
+  // The UI owns its own frame loop.  X11 hosts are not required to provide
+  // the idle interface, and REAPER does not: it painted once while the FX
+  // container was still unmapped, discarded that frame when the window became
+  // viewable, and never called back, leaving a black box.
+  std::atomic<bool> dirty{true};
+  std::atomic<bool> running{false};
+  std::thread thread;
   std::chrono::steady_clock::time_point lastFrame{};
+
+  // Open diagnostics.  A host that never calls idle() (or that reparents the
+  // window after we paint) leaves a black box; these counters say which.
+  FILE* logf = nullptr;
+  long idles = 0;
+  long draws = 0;
+  long exposes = 0;
+  long maps = 0;
+  long reparents = 0;
+  long eventsLogged = 0;
+  long writesLogged = 0;
+
+  long logLines = 0;
+
+  void logf_(const char* fmt, ...) {
+    if (!logf || logLines >= 300) return;
+    ++logLines;
+    std::fprintf(logf, "%8.1f ", nowMs() / 1000.0);
+    std::va_list args;
+    va_start(args, fmt);
+    std::vfprintf(logf, fmt, args);
+    va_end(args);
+    std::fputc('\n', logf);
+    std::fflush(logf);
+  }
+
+  void describeWindow(const char* what) {
+    if (!logf) return;
+    XWindowAttributes wa{};
+    Window root = 0, parent = 0, *kids = nullptr;
+    unsigned n = 0;
+    const bool ok = XGetWindowAttributes(dpy, win, &wa) != 0;
+    XQueryTree(dpy, win, &root, &parent, &kids, &n);
+    if (kids) XFree(kids);
+    logf_("%s win=0x%lx parent=0x%lx kids=%u geom=%dx%d+%d+%d depth=%d mapped=%d "
+          "backing=%d status=%s",
+          what, static_cast<unsigned long>(win),
+          static_cast<unsigned long>(parent), n, ok ? wa.width : -1,
+          ok ? wa.height : -1, ok ? wa.x : -1, ok ? wa.y : -1,
+          ok ? wa.depth : -1, ok ? wa.map_state : -1,
+          ok ? wa.backing_store : -1,
+          !windowSurface ? "null"
+                         : (cairo_surface_status(windowSurface) ==
+                                    CAIRO_STATUS_SUCCESS
+                                ? "ok"
+                                : cairo_status_to_string(
+                                      cairo_surface_status(windowSurface))));
+  }
 
   double layoutScale() const {
     const double sx = static_cast<double>(width) / suite::kPanelWidth;
@@ -102,7 +172,16 @@ struct Ui {
                   static_cast<uint32_t>(ev.xconfigure.height));
         break;
       case Expose:
+        ++exposes;
         if (ev.xexpose.count == 0) draw();
+        break;
+      case MapNotify:
+        ++maps;
+        dirty = true;
+        break;
+      case ReparentNotify:
+        ++reparents;
+        dirty = true;
         break;
       case ButtonPress: {
         if (dpy && win) {
@@ -182,10 +261,14 @@ struct Ui {
 
   void draw() {
     if (!cr || !windowSurface || width < 8 || height < 8) return;
+    ++draws;
+    if (draws == 1) logf_("first frame");
 
     for (uint32_t i = 0; i < suite::P_COUNT; ++i) {
       if (!shared.takeDirty(i)) continue;
       const float v = static_cast<float>(shared.get(i));
+      lastWriteValue[i] = static_cast<double>(v);
+      lastWriteMs[i] = nowMs();
       if (write) write(controller, kFirstParam + i, sizeof(float), 0, &v);
     }
 
@@ -208,20 +291,38 @@ struct Ui {
     cairo_destroy(xcr);
     cairo_surface_flush(windowSurface);
     XFlush(dpy);
+
   }
 
-  int idle() {
+  void processEvents() {
     while (dpy && XPending(dpy) > 0) {
       XEvent ev;
       XNextEvent(dpy, &ev);
       handleEvent(ev);
     }
-    const auto now = std::chrono::steady_clock::now();
-    if (dirty || now - lastFrame >= kFrameInterval) {
-      draw();
-      dirty = false;
-      lastFrame = now;
+  }
+
+  void runLoop() {
+    while (running.load(std::memory_order_relaxed)) {
+      processEvents();
+      const auto now = std::chrono::steady_clock::now();
+      if (dirty.load(std::memory_order_relaxed) ||
+          now - lastFrame >= kFrameInterval) {
+        draw();
+        dirty.store(false, std::memory_order_relaxed);
+        lastFrame = now;
+      }
+      // Wake on host input, otherwise run at the frame rate (meters).
+      pollfd pfd{ConnectionNumber(dpy), POLLIN, 0};
+      poll(&pfd, 1, 8);
     }
+  }
+
+  // The idle interface is optional for the host: if it does call us we only
+  // nudge the frame loop, so no Xlib call ever crosses threads.
+  int idle() {
+    ++idles;
+    dirty.store(true, std::memory_order_relaxed);
     return 0;
   }
 };
@@ -279,7 +380,17 @@ LV2UI_Handle uiInstantiate(const LV2UI_Descriptor*, const char*,
                           CopyFromParent, InputOutput, CopyFromParent,
                           CWBackPixel | CWEventMask, &attrs);
   XStoreName(ui->dpy, ui->win, "Suite Control");
+
+  ui->logf = std::fopen("/tmp/suite-control-ui.log", "w");
+  ui->logf_("instantiate requested parent=0x%lx screen=%d screenDepth=%d "
+            "size=%ux%u scaleHint=%.2f fit=%.2f",
+            static_cast<unsigned long>(parentWindow), screen,
+            DefaultDepth(ui->dpy, screen), ui->width, ui->height,
+            scaleHint ? static_cast<double>(*scaleHint) : -1.0, fitScale);
+  ui->describeWindow("pre-map");
+
   XMapRaised(ui->dpy, ui->win);
+  ui->describeWindow("post-map");
 
   {
     const suite::UiSize minSize = suite::sizeForScale(suite::kMinUiScale);
@@ -300,9 +411,20 @@ LV2UI_Handle uiInstantiate(const LV2UI_Descriptor*, const char*,
   // parent, and a mismatched cairo surface silently paints nothing (black).
   XWindowAttributes wa{};
   XGetWindowAttributes(ui->dpy, ui->win, &wa);
+  if (wa.depth == 0) {
+    wa.depth = DefaultDepth(ui->dpy, screen);
+    wa.visual = DefaultVisual(ui->dpy, screen);
+  }
   ui->format = wa.depth == 32 ? CAIRO_FORMAT_ARGB32 : CAIRO_FORMAT_RGB24;
   ui->windowSurface = cairo_xlib_surface_create(
       ui->dpy, ui->win, wa.visual, ui->width, ui->height);
+  if (cairo_surface_status(ui->windowSurface) != CAIRO_STATUS_SUCCESS) {
+    // Last resort: the host's visual was unusable, fall back to the default.
+    cairo_surface_destroy(ui->windowSurface);
+    ui->format = CAIRO_FORMAT_RGB24;
+    ui->windowSurface = cairo_xlib_surface_create(
+        ui->dpy, ui->win, DefaultVisual(ui->dpy, screen), ui->width, ui->height);
+  }
   ui->rebuildSurfaces();
   XFlush(ui->dpy);
 
@@ -317,6 +439,10 @@ LV2UI_Handle uiInstantiate(const LV2UI_Descriptor*, const char*,
   ui->panel.tick(ui->shared, ui->state);
   ui->draw();
   ui->dirty = false;
+  ui->describeWindow("after first draw");
+
+  ui->running.store(true, std::memory_order_relaxed);
+  ui->thread = std::thread([ui] { ui->runLoop(); });
 
   *widget = reinterpret_cast<LV2UI_Widget>(static_cast<uintptr_t>(ui->win));
   return ui;
@@ -324,6 +450,11 @@ LV2UI_Handle uiInstantiate(const LV2UI_Descriptor*, const char*,
 
 void uiCleanup(LV2UI_Handle handle) {
   auto* ui = static_cast<Ui*>(handle);
+  ui->running.store(false, std::memory_order_relaxed);
+  if (ui->thread.joinable()) ui->thread.join();
+  ui->logf_("cleanup idles=%ld draws=%ld exposes=%ld maps=%ld reparents=%ld",
+            ui->idles, ui->draws, ui->exposes, ui->maps, ui->reparents);
+  if (ui->logf) std::fclose(ui->logf);
   if (ui->cr) cairo_destroy(ui->cr);
   if (ui->backing) cairo_surface_destroy(ui->backing);
   if (ui->windowSurface) cairo_surface_destroy(ui->windowSurface);
@@ -340,7 +471,16 @@ void uiPortEvent(LV2UI_Handle handle, uint32_t port, uint32_t size,
   if (format != 0 || size != sizeof(float) || !buffer) return;
   const float v = *static_cast<const float*>(buffer);
   if (port >= kFirstParam && port < kFirstParam + suite::P_COUNT) {
-    ui->shared.setFromHost(port - kFirstParam, static_cast<double>(v));
+    const uint32_t id = port - kFirstParam;
+    // REAPER echoes parameter values back to the UI, and the echo can still
+    // carry the host's previous value right after we write a new one.  Ignore
+    // those for a moment, otherwise every click snaps back.
+    const double age = Ui::nowMs() - ui->lastWriteMs[id];
+    if (ui->lastWriteMs[id] > 0.0 && age < 600.0 &&
+        std::fabs(static_cast<double>(v) - ui->lastWriteValue[id]) > 1e-9) {
+      return;
+    }
+    ui->shared.setFromHost(id, static_cast<double>(v));
     ui->dirty = true;
     return;
   }

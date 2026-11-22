@@ -31,6 +31,7 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o: /home/tylor/Projects/su
   /usr/include/bits/byteswap.h \
   /usr/include/bits/cloexec.h \
   /usr/include/bits/confname.h \
+  /usr/include/bits/cpu-set.h \
   /usr/include/bits/dirent.h \
   /usr/include/bits/dirent_ext.h \
   /usr/include/bits/endian.h \
@@ -63,12 +64,14 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o: /home/tylor/Projects/su
   /usr/include/bits/mman.h \
   /usr/include/bits/mman_ext.h \
   /usr/include/bits/openat2.h \
+  /usr/include/bits/poll.h \
   /usr/include/bits/posix1_lim.h \
   /usr/include/bits/posix2_lim.h \
   /usr/include/bits/posix_opt.h \
   /usr/include/bits/pthread_stack_min-dynamic.h \
   /usr/include/bits/pthreadtypes-arch.h \
   /usr/include/bits/pthreadtypes.h \
+  /usr/include/bits/sched.h \
   /usr/include/bits/select.h \
   /usr/include/bits/setjmp.h \
   /usr/include/bits/sigaction.h \
@@ -127,6 +130,7 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o: /home/tylor/Projects/su
   /usr/include/bits/types/struct___jmp_buf_tag.h \
   /usr/include/bits/types/struct_iovec.h \
   /usr/include/bits/types/struct_itimerspec.h \
+  /usr/include/bits/types/struct_sched_param.h \
   /usr/include/bits/types/struct_sigstack.h \
   /usr/include/bits/types/struct_statx.h \
   /usr/include/bits/types/struct_statx_timestamp.h \
@@ -181,9 +185,11 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o: /home/tylor/Projects/su
   /usr/include/c++/16/bits/predefined_ops.h \
   /usr/include/c++/16/bits/ptr_traits.h \
   /usr/include/c++/16/bits/range_access.h \
+  /usr/include/c++/16/bits/refwrap.h \
   /usr/include/c++/16/bits/requires_hosted.h \
   /usr/include/c++/16/bits/specfun.h \
   /usr/include/c++/16/bits/std_abs.h \
+  /usr/include/c++/16/bits/std_thread.h \
   /usr/include/c++/16/bits/stdexcept_throw.h \
   /usr/include/c++/16/bits/stdexcept_throwfwd.h \
   /usr/include/c++/16/bits/stl_algo.h \
@@ -201,7 +207,9 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o: /home/tylor/Projects/su
   /usr/include/c++/16/bits/stl_vector.h \
   /usr/include/c++/16/bits/string_view.tcc \
   /usr/include/c++/16/bits/stringfwd.h \
+  /usr/include/c++/16/bits/this_thread_sleep.h \
   /usr/include/c++/16/bits/uniform_int_dist.h \
+  /usr/include/c++/16/bits/unique_ptr.h \
   /usr/include/c++/16/bits/uses_allocator.h \
   /usr/include/c++/16/bits/uses_allocator_args.h \
   /usr/include/c++/16/bits/utility.h \
@@ -213,6 +221,7 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o: /home/tylor/Projects/su
   /usr/include/c++/16/clocale \
   /usr/include/c++/16/cmath \
   /usr/include/c++/16/concepts \
+  /usr/include/c++/16/cstdarg \
   /usr/include/c++/16/cstddef \
   /usr/include/c++/16/cstdint \
   /usr/include/c++/16/cstdio \
@@ -237,6 +246,7 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o: /home/tylor/Projects/su
   /usr/include/c++/16/stdlib.h \
   /usr/include/c++/16/string \
   /usr/include/c++/16/string_view \
+  /usr/include/c++/16/thread \
   /usr/include/c++/16/tr1/bessel_function.tcc \
   /usr/include/c++/16/tr1/beta_function.tcc \
   /usr/include/c++/16/tr1/ell_integral.tcc \
@@ -256,6 +266,8 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o: /home/tylor/Projects/su
   /usr/include/c++/16/x86_64-pc-linux-gnu/bits/c++config.h \
   /usr/include/c++/16/x86_64-pc-linux-gnu/bits/c++locale.h \
   /usr/include/c++/16/x86_64-pc-linux-gnu/bits/cpu_defines.h \
+  /usr/include/c++/16/x86_64-pc-linux-gnu/bits/gthr-default.h \
+  /usr/include/c++/16/x86_64-pc-linux-gnu/bits/gthr.h \
   /usr/include/c++/16/x86_64-pc-linux-gnu/bits/os_defines.h \
   /usr/include/cairo/cairo-deprecated.h \
   /usr/include/cairo/cairo-features.h \
@@ -295,6 +307,7 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o: /home/tylor/Projects/su
   /usr/include/linux/limits.h \
   /usr/include/linux/openat2.h \
   /usr/include/linux/posix_types.h \
+  /usr/include/linux/sched/types.h \
   /usr/include/linux/stat.h \
   /usr/include/linux/stddef.h \
   /usr/include/linux/types.h \
@@ -303,6 +316,9 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o: /home/tylor/Projects/su
   /usr/include/lv2/ui/ui.h \
   /usr/include/lv2/urid/urid.h \
   /usr/include/math.h \
+  /usr/include/poll.h \
+  /usr/include/pthread.h \
+  /usr/include/sched.h \
   /usr/include/setjmp.h \
   /usr/include/signal.h \
   /usr/include/stdc-predef.h \
@@ -313,6 +329,7 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o: /home/tylor/Projects/su
   /usr/include/strings.h \
   /usr/include/sys/cdefs.h \
   /usr/include/sys/mman.h \
+  /usr/include/sys/poll.h \
   /usr/include/sys/select.h \
   /usr/include/sys/stat.h \
   /usr/include/sys/types.h \
@@ -703,6 +720,8 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 
 /usr/include/sys/select.h:
 
+/usr/include/sys/poll.h:
+
 /usr/include/sys/mman.h:
 
 /usr/include/sys/cdefs.h:
@@ -716,6 +735,10 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 /usr/include/signal.h:
 
 /usr/include/setjmp.h:
+
+/usr/include/pthread.h:
+
+/usr/include/poll.h:
 
 /usr/include/math.h:
 
@@ -773,9 +796,33 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 
 /usr/include/cairo/cairo-xlib.h:
 
-/usr/include/bits/types/struct_itimerspec.h:
+/usr/include/sys/ucontext.h:
 
-/usr/include/bits/struct_rwlock.h:
+/usr/include/stdc-predef.h:
+
+/usr/include/c++/16/x86_64-pc-linux-gnu/bits/os_defines.h:
+
+/usr/include/c++/16/x86_64-pc-linux-gnu/bits/gthr.h:
+
+/usr/include/c++/16/x86_64-pc-linux-gnu/bits/gthr-default.h:
+
+/usr/include/c++/16/x86_64-pc-linux-gnu/bits/cpu_defines.h:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/16/include/stdarg.h:
+
+/usr/include/c++/16/x86_64-pc-linux-gnu/bits/c++locale.h:
+
+/usr/include/c++/16/x86_64-pc-linux-gnu/bits/c++allocator.h:
+
+/usr/include/c++/16/vector:
+
+/usr/include/c++/16/type_traits:
+
+/usr/lib/libc.so.6:
+
+/usr/include/c++/16/tuple:
+
+/usr/include/c++/16/tr1/special_function_util.h:
 
 /usr/include/bits/types/sigset_t.h:
 
@@ -815,23 +862,13 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 
 /usr/include/bits/types/__mbstate_t.h:
 
-/usr/include/bits/types/cookie_io_functions_t.h:
-
-/home/tylor/Projects/suite-control/src/params.hpp:
-
 /home/tylor/Projects/suite-control/src/dsp/controls.hpp:
 
 /usr/include/bits/types/clock_t.h:
 
 /usr/include/bits/mathcalls.h:
 
-/usr/include/c++/16/x86_64-pc-linux-gnu/bits/cpu_defines.h:
-
-/usr/include/bits/statx-generic.h:
-
 /usr/include/c++/16/algorithm:
-
-/usr/include/bits/signum-generic.h:
 
 /usr/include/bits/types/stack_t.h:
 
@@ -839,17 +876,25 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 
 /usr/include/bits/signum-arch.h:
 
-/usr/lib/gcc/x86_64-pc-linux-gnu/16/include/stdarg.h:
-
-/usr/include/c++/16/x86_64-pc-linux-gnu/bits/c++locale.h:
-
 /usr/include/bits/types/mbstate_t.h:
 
 /usr/include/bits/signal_ext.h:
 
 /usr/include/c++/16/bits/exception_defines.h:
 
+/usr/include/c++/16/x86_64-pc-linux-gnu/bits/c++config.h:
+
+/usr/include/bits/setjmp.h:
+
 /usr/include/bits/select.h:
+
+/usr/include/bits/types/cookie_io_functions_t.h:
+
+/home/tylor/Projects/suite-control/src/params.hpp:
+
+/usr/include/bits/types/siginfo_t.h:
+
+/usr/include/c++/16/bits/memoryfwd.h:
 
 /usr/lib/libc.so:
 
@@ -867,6 +912,10 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 
 /usr/include/bits/posix_opt.h:
 
+/usr/include/bits/poll.h:
+
+/usr/include/c++/16/bits/basic_string.tcc:
+
 /usr/include/bits/sigstksz.h:
 
 /usr/include/c++/16/bits/range_access.h:
@@ -876,6 +925,14 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 /usr/include/bits/mman_ext.h:
 
 /usr/include/bits/mman.h:
+
+/usr/include/bits/types/locale_t.h:
+
+/usr/include/ctype.h:
+
+/usr/include/c++/16/bits/stl_tempbuf.h:
+
+/usr/include/bits/mman-shared.h:
 
 /usr/include/freetype2/freetype/config/ftstdlib.h:
 
@@ -892,10 +949,6 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 /usr/include/bits/getopt_core.h:
 
 /usr/include/bits/local_lim.h:
-
-/usr/include/bits/types/siginfo_t.h:
-
-/usr/include/c++/16/bits/memoryfwd.h:
 
 /usr/include/bits/statx.h:
 
@@ -991,8 +1044,6 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 
 /home/tylor/Projects/suite-control/src/peer.hpp:
 
-/usr/include/c++/16/ctime:
-
 /home/tylor/Projects/suite-control/src/ui/geometry.hpp:
 
 /usr/include/freetype2/freetype/fttypes.h:
@@ -1007,6 +1058,8 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 
 /usr/include/features.h:
 
+/usr/include/bits/sched.h:
+
 /usr/include/bits/types/__FILE.h:
 
 /usr/include/c++/16/cerrno:
@@ -1017,15 +1070,27 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 
 /usr/include/bits/iscanonical.h:
 
-/usr/include/bits/mathcalls-narrow.h:
-
 /usr/include/X11/Xosdefs.h:
 
 /usr/lib/crtn.o:
 
 /usr/include/c++/16/tr1/legendre_function.tcc:
 
+/usr/include/bits/struct_rwlock.h:
+
+/usr/include/bits/types/struct_itimerspec.h:
+
 /usr/include/c++/16/bits/ptr_traits.h:
+
+/usr/include/bits/cpu-set.h:
+
+/usr/lib/libfreetype.so:
+
+/usr/include/c++/16/bits/atomic_lockfree_defines.h:
+
+/usr/include/bits/errno.h:
+
+/usr/include/c++/16/cstdlib:
 
 /usr/include/c++/16/bits/requires_hosted.h:
 
@@ -1081,6 +1146,8 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 
 /usr/include/bits/fcntl-linux.h:
 
+/usr/include/c++/16/bits/unique_ptr.h:
+
 /usr/include/X11/keysymdef.h:
 
 /usr/include/c++/16/bits/atomic_base.h:
@@ -1097,8 +1164,6 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 
 /usr/include/bits/posix1_lim.h:
 
-/usr/include/c++/16/bits/basic_string.tcc:
-
 /usr/include/bits/sigaction.h:
 
 /usr/include/c++/16/bits/cpp_type_traits.h:
@@ -1109,13 +1174,19 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 
 /usr/include/bits/libc-header-start.h:
 
-/usr/include/bits/types/locale_t.h:
+/usr/include/linux/posix_types.h:
 
-/usr/include/ctype.h:
+/usr/include/cairo/cairo-deprecated.h:
 
-/usr/include/c++/16/bits/stl_tempbuf.h:
+/usr/include/bits/types/FILE.h:
 
-/usr/include/bits/mman-shared.h:
+/usr/include/bits/mman-map-flags-generic.h:
+
+/usr/include/bits/types/struct_sched_param.h:
+
+/usr/include/bits/openat2.h:
+
+/usr/include/c++/16/bits/cxxabi_forced.h:
 
 /usr/include/bits/types/struct_statx.h:
 
@@ -1130,10 +1201,6 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 /usr/include/bits/types/timer_t.h:
 
 /usr/include/c++/16/bits/ostream_insert.h:
-
-/usr/include/bits/setjmp.h:
-
-/usr/include/c++/16/x86_64-pc-linux-gnu/bits/c++config.h:
 
 /usr/include/bits/uintn-identity.h:
 
@@ -1167,14 +1234,6 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 
 /usr/include/c++/16/bits/alloc_traits.h:
 
-/usr/lib/libfreetype.so:
-
-/usr/include/c++/16/bits/atomic_lockfree_defines.h:
-
-/usr/include/bits/errno.h:
-
-/usr/include/c++/16/cstdlib:
-
 /usr/include/c++/16/bits/basic_string.h:
 
 /usr/include/bits/atomic_wide_counter.h:
@@ -1186,10 +1245,6 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 /usr/include/gnu/stubs.h:
 
 /usr/include/c++/16/bits/std_abs.h:
-
-/usr/include/bits/openat2.h:
-
-/usr/include/c++/16/bits/cxxabi_forced.h:
 
 /usr/include/c++/16/bits/hash_bytes.h:
 
@@ -1211,6 +1266,12 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 
 /usr/include/c++/16/bits/postypes.h:
 
+/usr/include/bits/mathcalls-narrow.h:
+
+/usr/include/c++/16/bits/refwrap.h:
+
+/usr/include/c++/16/bits/stringfwd.h:
+
 /usr/include/bits/mathcalls-helper-functions.h:
 
 /usr/include/c++/16/bits/specfun.h:
@@ -1218,6 +1279,10 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 /usr/include/bits/sigstack.h:
 
 /usr/include/c++/16/cstring:
+
+/usr/include/c++/16/ctime:
+
+/usr/include/c++/16/bits/std_thread.h:
 
 /usr/include/c++/16/bits/stl_algo.h:
 
@@ -1247,7 +1312,13 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 
 /usr/include/c++/16/bits/string_view.tcc:
 
-/usr/include/c++/16/bits/stringfwd.h:
+/usr/include/bits/statx-generic.h:
+
+/usr/include/c++/16/bits/this_thread_sleep.h:
+
+/usr/include/bits/types/__fpos64_t.h:
+
+/usr/include/c++/16/string_view:
 
 /usr/include/c++/16/bits/uniform_int_dist.h:
 
@@ -1261,17 +1332,23 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 
 /usr/include/c++/16/concepts:
 
+/usr/include/bits/signum-generic.h:
+
+/usr/include/c++/16/cstdarg:
+
 /usr/include/c++/16/cstddef:
 
 /usr/include/c++/16/cstdint:
 
+/usr/include/linux/sched/types.h:
+
 /usr/include/c++/16/cwchar:
+
+/usr/include/sched.h:
 
 /usr/include/bits/fp-fast.h:
 
 /usr/include/c++/16/tr1/hypergeometric.tcc:
-
-/usr/include/c++/16/type_traits:
 
 /usr/include/c++/16/pstl/glue_algorithm_defs.h:
 
@@ -1315,9 +1392,7 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 
 /usr/include/c++/16/pstl/pstl_config.h:
 
-/usr/include/bits/types/__fpos64_t.h:
-
-/usr/include/c++/16/string_view:
+/usr/include/c++/16/thread:
 
 /usr/include/bits/floatn-common.h:
 
@@ -1334,27 +1409,3 @@ CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o:
 /usr/include/c++/16/tr1/poly_hermite.tcc:
 
 /usr/include/c++/16/tr1/poly_laguerre.tcc:
-
-/usr/include/c++/16/tr1/special_function_util.h:
-
-/usr/lib/libc.so.6:
-
-/usr/include/c++/16/tuple:
-
-/usr/include/c++/16/vector:
-
-/usr/include/c++/16/x86_64-pc-linux-gnu/bits/c++allocator.h:
-
-/usr/include/sys/ucontext.h:
-
-/usr/include/stdc-predef.h:
-
-/usr/include/c++/16/x86_64-pc-linux-gnu/bits/os_defines.h:
-
-/usr/include/linux/posix_types.h:
-
-/usr/include/bits/types/FILE.h:
-
-/usr/include/bits/mman-map-flags-generic.h:
-
-/usr/include/cairo/cairo-deprecated.h:

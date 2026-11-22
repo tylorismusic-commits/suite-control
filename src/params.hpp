@@ -140,9 +140,14 @@ public:
     v = std::min(std::max(v, s.min), s.max);
     if (s.stepped) v = std::floor(v + 0.5);
     const double previous = values_[p].load(std::memory_order_relaxed);
+    if (v == previous) {
+      // Hosts echo our own writes back as port events; marking the value dirty
+      // again would write it straight back and loop forever.
+      return;
+    }
     values_[p].store(v, std::memory_order_relaxed);
     dirty_[p].store(true, std::memory_order_release);
-    if (v != previous) revision_.fetch_add(1, std::memory_order_relaxed);
+    revision_.fetch_add(1, std::memory_order_relaxed);
   }
 
   void setFromHost(uint32_t p, double v) noexcept { set(p, v); }

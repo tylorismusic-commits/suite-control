@@ -18,6 +18,16 @@ include_directories(
   "${HEARTH_DSP_DIR}/include"
   "${DUSK_EQ_DIR}")
 
+# Plug-ins and UIs from different bundles share a host process.  With default
+# visibility the dynamic linker can bind suite::Panel/kParamSpecs/Shared to a
+# different plug-in's copy (REAPER dlopens with global scope), so hide
+# everything except the entry points, which the export macros mark.
+function(suite_hide_symbols target)
+  set_target_properties(${target} PROPERTIES
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN YES)
+endfunction()
+
 enable_testing()
 
 find_package(PkgConfig REQUIRED)
@@ -177,3 +187,9 @@ target_link_libraries(suite_peer_integration PRIVATE ${CMAKE_DL_LIBS})
 target_compile_features(suite_peer_integration PRIVATE cxx_std_17)
 add_test(NAME suite_peer_integration
   COMMAND suite_peer_integration "${PLUS_CLAP}")
+
+suite_hide_symbols(suite_control)
+
+suite_hide_symbols(suite_control_lv2)
+
+suite_hide_symbols(suite_control_lv2_ui)
