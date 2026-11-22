@@ -28,7 +28,7 @@
 namespace suite::peer {
 
 constexpr uint32_t kMagic = 0x53505231u;  // "SPR1"
-constexpr uint32_t kVersion = 1;
+constexpr uint32_t kVersion = 2;
 constexpr int kSlots = 64;
 constexpr int kMaxParams = 48;
 constexpr int kNameBytes = 32;
@@ -72,7 +72,7 @@ struct Segment {
 
 inline std::string segmentName() noexcept {
   char buf[64];
-  std::snprintf(buf, sizeof(buf), "/suitepeer-v1-%ld",
+  std::snprintf(buf, sizeof(buf), "/suitepeer-v2-%ld",
                 static_cast<long>(getpid()));
   return buf;
 }
@@ -81,7 +81,7 @@ inline std::string segmentName() noexcept {
 inline void reapStale() noexcept {
   DIR* dir = opendir("/dev/shm");
   if (!dir) return;
-  const std::string prefix = "suitepeer-v1-";
+  const std::string prefix = "suitepeer-v2-";
   while (dirent* e = readdir(dir)) {
     const char* n = e->d_name;
     if (std::strncmp(n, prefix.c_str(), prefix.size()) != 0) continue;
@@ -193,17 +193,16 @@ public:
     seg_->slot[slot_].bus.store(bus, std::memory_order_relaxed);
   }
 
-  // Publish one parameter if the local value differs from what we last wrote.
+  // Publish one parameter if it differs from the shared value.  Stateless on
+  // purpose: the audio thread and the editor thread can both call it.
   void publish(int p, double value) noexcept {
     if (!seg_ || slot_ < 0 || p < 0 || p >= kMaxParams) return;
     Slot& s = seg_->slot[slot_];
     if (p >= static_cast<int>(s.paramCount.load(std::memory_order_relaxed)))
       return;
-    if (value == mirror_[p]) return;
-    mirror_[p] = value;
+    if (value == s.param[p].value.load(std::memory_order_relaxed)) return;
     s.param[p].value.store(value, std::memory_order_relaxed);
     s.param[p].gen.fetch_add(1, std::memory_order_release);
-    seen_[p] = s.param[p].gen.load(std::memory_order_relaxed);
   }
 
   // Returns true (and the value) when another plugin changed parameter p.
@@ -214,8 +213,6 @@ public:
     if (g == seen_[p]) return false;
     seen_[p] = g;
     const double v = s.param[p].value.load(std::memory_order_relaxed);
-    if (v == mirror_[p]) return false;  // our own write echoed back
-    mirror_[p] = v;
     *value = v;
     return true;
   }
@@ -266,6 +263,12 @@ public:
     s.bus.store(bus, std::memory_order_relaxed);
   }
 
+  static void writeSlotName(Slot& s, const char* name) noexcept {
+    if (!name) return;
+    std::strncpy(s.name, name, kNameBytes - 1);
+    s.name[kNameBytes - 1] = '\0';
+  }
+
 private:
   void close() noexcept {
     if (fd_ >= 0) {
@@ -299,14 +302,14 @@ public:
 
   void refresh() noexcept {
     const int64_t now = nowMs();
-    if (now - lastScan_ < 500 && !entries_.empty()) return;
+    if (now - lastScan_ < 250 && !entries_.empty()) return;
     lastScan_ = now;
     reapStale();
     // Drop segments that disappeared (host exited, stale cleanup).
     DIR* dir = opendir("/dev/shm");
     std::vector<std::string> names;
     if (dir) {
-      const std::string prefix = "suitepeer-v1-";
+      const std::string prefix = "suitepeer-v2-";
       while (dirent* e = readdir(dir)) {
         if (std::strncmp(e->d_name, prefix.c_str(), prefix.size()) == 0) {
           names.push_back(std::string("/dev/shm/") + e->d_name);
@@ -389,6 +392,14 @@ public:
   bool write(int i, int param, double v) noexcept {
     const Entry& e = entries_[static_cast<size_t>(i)];
     return Client::writeRemote(e.seg->slot[e.slot], param, v);
+  }
+  const char* name(int i) const noexcept {
+    const Entry& e = entries_[static_cast<size_t>(i)];
+    return e.seg->slot[e.slot].name;
+  }
+  void setName(int i, const char* value) noexcept {
+    const Entry& e = entries_[static_cast<size_t>(i)];
+    Client::writeSlotName(e.seg->slot[e.slot], value);
   }
   void meter(int i, float* inL, float* inR, float* outL, float* outR,
              float* gr) const noexcept {

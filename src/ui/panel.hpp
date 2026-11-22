@@ -53,18 +53,26 @@ public:
                    bool fine);
   void pointerUp();
   void wheel(Shared&, PanelState&, double, double, double) {}
-  void beginTextEntry(Shared&, PanelState&, double, double) {}
-  void textKey(Shared&, PanelState&, int, unsigned) {}
+  bool beginTextEntry(Shared& shared, PanelState& state, double x, double y);
+  void textKey(Shared& shared, PanelState& state, int code, unsigned ch);
   void importDroppedFile(Shared&, PanelState&, const std::string&) {}
 
-  int stripCount() const { return hub_.size(); }
+  int stripCount() const {
+    int n = 0;
+    for (int i = 0; i < hub_.size(); ++i) {
+      if (bus_ == 0 || static_cast<int>(hub_.bus(i)) == bus_) ++n;
+    }
+    return n;
+  }
+  bool editing() const { return editing_; }
 
   static constexpr int kTextEnter = -2;
   static constexpr int kTextEscape = -1;
   static constexpr int kTextBackspace = -3;
 
 private:
-  enum class Kind { Knob, Remote, Pill, Tab, Capture, Strip };
+  enum class Kind { Knob, Remote, RemotePill, Pill, Tab, Capture, Strip, Rename, Page };
+
 
   struct Widget {
     Kind kind = Kind::Knob;
@@ -98,9 +106,19 @@ private:
   double dragY_ = 0.0;
   double dragStart_ = 0.0;
 
+  void drawBusPage(cairo_t* cr, const Shared& shared, const PanelState& state);
+  void drawDetailPage(cairo_t* cr, const Shared& shared, const PanelState& state);
+  void layoutBus(const Shared& shared, const PanelState& state);
+  void layoutDetail();
+
   std::vector<Widget> widgets_;
   peer::Hub hub_;
   int bus_ = 1;
+  int page_ = 0;       // 0 = mix bus, 1 = selected channel
+  int detail_ = -1;    // hub index for the channel page
+  bool editing_ = false;
+  int editIndex_ = -1;
+  std::string editText_;
   double captureNoticeUntil_ = 0.0;
   int captureCount_ = -1;
 

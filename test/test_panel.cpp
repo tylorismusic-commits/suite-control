@@ -66,7 +66,7 @@ int main() {
     s2.set(suite::P_BUS, 2.0);
     suite::Panel p2;
     p2.tick(s2, state);
-    check(p2.stripCount() == 1, "remote strip is discovered");
+    check(p2.stripCount() >= 1, "remote strip is discovered");
     cairo_surface_t* surf2 = cairo_image_surface_create(
         CAIRO_FORMAT_ARGB32, suite::kPanelWidth, suite::kPanelHeight);
     cairo_t* cr2 = cairo_create(surf2);

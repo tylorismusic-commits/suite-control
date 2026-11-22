@@ -87,7 +87,8 @@ private:
     const int h = suite::kPanelHeight;
     XSetWindowAttributes attrs{};
     attrs.event_mask = ExposureMask | ButtonPressMask | ButtonReleaseMask |
-                       PointerMotionMask | Button1MotionMask | ButtonMotionMask;
+                       PointerMotionMask | Button1MotionMask | ButtonMotionMask |
+                       KeyPressMask;
     const Window win = XCreateWindow(dpy, parent, 0, 0, w, h, 0,
                                      CopyFromParent, InputOutput, CopyFromParent,
                                      CWEventMask, &attrs);
@@ -144,6 +145,9 @@ private:
   void handleEvent(const XEvent& ev, suite::PanelState& state) {
     switch (ev.type) {
       case ButtonPress:
+        // X only delivers KeyPress to the focused window.
+        XSetInputFocus(ev.xbutton.display, ev.xbutton.window, RevertToParent,
+                       CurrentTime);
         if (ev.xbutton.button == Button1) {
           panel_.pointerDown(shared_, state, ev.xbutton.x, ev.xbutton.y,
                              (ev.xbutton.state & ShiftMask) != 0);
@@ -156,6 +160,23 @@ private:
         panel_.pointerMove(shared_, state, ev.xmotion.x, ev.xmotion.y,
                            (ev.xmotion.state & ShiftMask) != 0);
         break;
+      case KeyPress: {
+        char buf[8] = {};
+        KeySym sym = 0;
+        XKeyEvent key = ev.xkey;
+        const int n = XLookupString(&key, buf, sizeof(buf), &sym, nullptr);
+        if (sym == XK_Return || sym == XK_KP_Enter) {
+          panel_.textKey(shared_, state, suite::Panel::kTextEnter, 0);
+        } else if (sym == XK_Escape) {
+          panel_.textKey(shared_, state, suite::Panel::kTextEscape, 0);
+        } else if (sym == XK_BackSpace) {
+          panel_.textKey(shared_, state, suite::Panel::kTextBackspace, 0);
+        } else if (n > 0) {
+          panel_.textKey(shared_, state, 0,
+                         static_cast<unsigned>(static_cast<unsigned char>(buf[0])));
+        }
+        break;
+      }
       default:
         break;
     }

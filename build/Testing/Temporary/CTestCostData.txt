@@ -1,5 +1,5 @@
-suite_control_dsp 13 0.00250748
-suite_control_panel 12 0.00403692
-suite_control_host 11 0.000590468
-suite_peer_integration 7 0.00106165
+suite_control_dsp 17 0.0014481
+suite_control_panel 16 0.0029594
+suite_control_host 15 0.000662759
+suite_peer_integration 9 0.000844142
 ---
