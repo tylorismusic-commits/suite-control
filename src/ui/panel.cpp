@@ -1040,6 +1040,8 @@ bool Panel::pointerDown(Shared& shared, PanelState& state, double x, double y,
         }
         return true;
       case Kind::Rename:
+        editKind_ = 0;
+        editIndex_ = w.index;
         editKey_ = nameKey(w.index);
         editText_ = shared.names[editKey_];
         editing_ = true;
@@ -1169,6 +1171,7 @@ bool Panel::beginTextEntry(Shared& shared, PanelState& state, double x,
   if (!w) return false;
   if (w->kind == Kind::Rename) {
     editKind_ = 0;
+    editIndex_ = w->index;
     editKey_ = nameKey(w->index);
     editText_ = shared.names[editKey_];
     editing_ = true;
@@ -1213,10 +1216,37 @@ void Panel::textKey(Shared& shared, PanelState& state, int code, unsigned ch) {
     editing_ = false;
     editText_.clear();
     editKey_ = -1;
+  } else if (code == kTextTab && editKind_ == 0) {
+    // Commit this name and open the next strip's field.
+    if (editKey_ >= 0 && editKey_ < Shared::kNameSlots) {
+      std::snprintf(shared.names[editKey_], Shared::kNameBytes, "%s",
+                    editText_.c_str());
+    }
+    int next = -1;
+    bool seen = false;
+    for (int i = 0; i < hub_.size() && next < 0; ++i) {
+      if (bus_ != 0 && static_cast<int>(hub_.bus(i)) != bus_) continue;
+      if (seen) {
+        next = i;
+        break;
+      }
+      if (i == editIndex_) seen = true;
+    }
+    if (next >= 0) {
+      editIndex_ = next;
+      editKey_ = nameKey(next);
+      editText_ = shared.names[editKey_];
+    } else {
+      editing_ = false;
+      editText_.clear();
+      editKey_ = -1;
+      editIndex_ = -1;
+    }
   } else if (code == kTextEscape) {
     editing_ = false;
     editText_.clear();
     editKey_ = -1;
+    editIndex_ = -1;
   } else if (code == kTextBackspace) {
     if (!editText_.empty()) editText_.pop_back();
   } else if (ch >= 32 && ch < 127 && editText_.size() < 20) {

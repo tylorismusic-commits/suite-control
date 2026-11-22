@@ -3,6 +3,7 @@
 #include "ui/panel.hpp"
 
 #include <cstdio>
+#include <string>
 
 namespace {
 int failures = 0;
@@ -108,6 +109,30 @@ int main() {
     p4.pointerDown(s4, st4, 40.0, 694.0, false);
     p4.pointerUp();
     check(on(a, c1) && on(b, c2), "unmute restores the fader");
+    c1.unregisterSlot();
+    c2.unregisterSlot();
+  }
+
+  // Tab commits a name and opens the next strip's field.
+  {
+    suite::peer::Client c1, c2;
+    c1.registerSlot(7, "Suite Channel Plus", suite::ch::kCount);
+    c2.registerSlot(7, "Suite Channel Plus", suite::ch::kCount);
+    suite::Shared s5;
+    s5.set(suite::P_BUS, 7.0);
+    suite::PanelState st5;
+    suite::Panel p5;
+    p5.tick(s5, st5);
+    p5.beginTextEntry(s5, st5, 118.0, 124.0);
+    p5.textKey(s5, st5, 0, 'K');
+    p5.textKey(s5, st5, suite::Panel::kTextTab, 0);
+    check(std::string(s5.names[7 * 32]) == "K",
+          "tab commits the current name");
+    check(p5.editing(), "tab opens the next field");
+    p5.textKey(s5, st5, 0, 'S');
+    p5.textKey(s5, st5, suite::Panel::kTextEnter, 0);
+    check(std::string(s5.names[7 * 32 + 1]) == "S",
+          "second name commits on enter");
     c1.unregisterSlot();
     c2.unregisterSlot();
   }

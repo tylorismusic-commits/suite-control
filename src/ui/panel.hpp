@@ -70,6 +70,7 @@ public:
   static constexpr int kTextEnter = -2;
   static constexpr int kTextEscape = -1;
   static constexpr int kTextBackspace = -3;
+  static constexpr int kTextTab = -4;
 
 private:
   enum class Kind {

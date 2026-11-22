@@ -179,6 +179,8 @@ private:
           panel_.textKey(shared_, state, suite::Panel::kTextEscape, 0);
         } else if (sym == XK_BackSpace) {
           panel_.textKey(shared_, state, suite::Panel::kTextBackspace, 0);
+        } else if (sym == XK_Tab) {
+          panel_.textKey(shared_, state, suite::Panel::kTextTab, 0);
         } else if (n > 0) {
           panel_.textKey(shared_, state, 0,
                          static_cast<unsigned>(static_cast<unsigned char>(buf[0])));
