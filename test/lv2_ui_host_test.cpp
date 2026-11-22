@@ -18,9 +18,13 @@
 #include <string>
 
 #include <chrono>
+#include <cmath>
+#include <mutex>
 #include <thread>
+#include <vector>
 
 #include "params.hpp"
+#include "peer.hpp"
 
 namespace {
 
@@ -48,7 +52,32 @@ int onResize(void* handle, int width, int height) {
   return 0;
 }
 
-void onWrite(LV2UI_Controller, uint32_t, uint32_t, uint32_t, const void*) {}
+std::mutex gWriteMutex;
+std::vector<std::pair<uint32_t, float>> gWrites;
+
+void onWrite(LV2UI_Controller, uint32_t port, uint32_t size, uint32_t,
+             const void* data) {
+  if (size != sizeof(float) || !data) return;
+  std::lock_guard<std::mutex> lock(gWriteMutex);
+  gWrites.emplace_back(port, *static_cast<const float*>(data));
+}
+
+bool sawWrite(uint32_t port, float expected, int millis) {
+  const auto end = std::chrono::steady_clock::now() +
+                   std::chrono::milliseconds(millis);
+  while (std::chrono::steady_clock::now() < end) {
+    {
+      std::lock_guard<std::mutex> lock(gWriteMutex);
+      for (const auto& w : gWrites) {
+        if (w.first == port && std::fabs(w.second - expected) < 0.01f) {
+          return true;
+        }
+      }
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+  }
+  return false;
+}
 
 using DescriptorFn = const LV2UI_Descriptor* (*)(uint32_t);
 
@@ -224,6 +253,30 @@ int main(int argc, char** argv) {
                   attrs.width, attrs.height);
     check(attrs.width == 700 && attrs.height == 420, label);
     check(host.calls == 0, "shrinking does not call back into the host resize");
+  }
+
+  // ---------------------------------------------------------------------
+  // Remote edits (Suite Control) never reach the host, so the plug-in tells
+  // the UI which peer slot it owns; the UI must then mirror that slot and
+  // push the mirrored values back to the host.
+  // ---------------------------------------------------------------------
+  {
+    suite::peer::Client client;
+    const int slotIndex =
+        client.registerSlot(1, "Suite Channel Plus", suite::P_COUNT);
+    check(slotIndex >= 0, "peer slot registers for the mirror test");
+    client.publish(1, 0.9);
+    client.beat();
+
+    const float slot = static_cast<float>(slotIndex + 1);
+    ui->port_event(handle, 4 + suite::P_COUNT + 7, sizeof(float), 0, &slot);
+
+    char label[128];
+    const bool mirrored = sawWrite(4 + 1, 0.9f, 2500);
+    std::snprintf(label, sizeof(label),
+                  "mirrors remote edits into the host%s", "");
+    check(mirrored, label);
+    client.unregisterSlot();
   }
 
   // A degenerate allocation must not crash or wedge the idle loop.

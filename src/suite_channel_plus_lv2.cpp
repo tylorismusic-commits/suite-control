@@ -34,6 +34,9 @@ enum Port : uint32_t {
   PORT_IN_PEAK_L,
   PORT_IN_PEAK_R,
   PORT_LATENCY,
+  // Tells our own UI which peer slot we registered, so it can mirror remote
+  // edits (Suite Control) that the host never hears about.
+  PORT_PEER_ID,
   PORT_COUNT
 };
 
@@ -58,10 +61,12 @@ struct Plugin {
   float* inPeakL = nullptr;
   float* inPeakR = nullptr;
   float* latency = nullptr;
+  float* peerId = nullptr;
 
   suite::peer::Client peer;
   bool peerRegistered = false;
   bool portsSynced = false;
+  int slotIndex = -1;
   // LV2 hosts only hand us new port values inside run(), which they skip while
   // the transport is stopped.  Poll the ports so BUS changes reach Suite
   // Control without playback.
@@ -109,6 +114,7 @@ void connectPort(LV2_Handle handle, uint32_t port, void* data) {
     case PORT_IN_PEAK_L: p->inPeakL = fp; break;
     case PORT_IN_PEAK_R: p->inPeakR = fp; break;
     case PORT_LATENCY: p->latency = fp; break;
+    case PORT_PEER_ID: p->peerId = fp; break;
     default: break;
   }
 }
@@ -116,13 +122,18 @@ void connectPort(LV2_Handle handle, uint32_t port, void* data) {
 void activate(LV2_Handle handle) {
   auto* p = static_cast<Plugin*>(handle);
   p->engine.reset();
-  if (p->peer.registerSlot(
-          static_cast<uint32_t>(p->shared.get(suite::P_BUS) + 0.5),
-          "Suite Channel Plus", suite::P_COUNT) >= 0) {
+  const int slot = p->peer.registerSlot(
+      static_cast<uint32_t>(p->shared.get(suite::P_BUS) + 0.5),
+      "Suite Channel Plus", suite::P_COUNT);
+  if (slot >= 0) {
     p->peerRegistered = true;
+    p->slotIndex = slot;
   }
   if (p->latency) {
     *p->latency = static_cast<float>(p->engine.latencySamples());
+  }
+  if (p->peerId) {
+    *p->peerId = static_cast<float>(p->slotIndex + 1);
   }
   if (!p->peerRun.exchange(true)) {
     p->peerThread = std::thread([p] {
@@ -171,6 +182,7 @@ void deactivate(LV2_Handle handle) {
   if (p->peerRegistered) {
     p->peer.unregisterSlot();
     p->peerRegistered = false;
+    p->slotIndex = -1;
   }
 }
 
@@ -223,6 +235,9 @@ void run(LV2_Handle handle, uint32_t frames) {
   }
   if (p->latency) {
     *p->latency = static_cast<float>(p->engine.latencySamples());
+  }
+  if (p->peerId) {
+    *p->peerId = static_cast<float>(p->slotIndex + 1);
   }
 
   p->display.setGainReductionDb(p->meters.grDb);

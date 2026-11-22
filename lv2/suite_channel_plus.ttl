@@ -599,6 +599,17 @@
         lv2:designation lv2:latency ;
         lv2:portProperty pprops:notOnGUI ;
         pg:group <https://github.com/tylorismusic-commits/suite-channel-plus#latency> ;
+    ] ,
+    [
+        a lv2:OutputPort , lv2:ControlPort ;
+        lv2:index 50 ;
+        lv2:symbol "peer_id" ;
+        lv2:name "Peer Slot" ;
+        lv2:default 0 ;
+        lv2:minimum 0 ;
+        lv2:maximum 64 ;
+        lv2:portProperty pprops:notOnGUI ;
+        pg:group <https://github.com/tylorismusic-commits/suite-channel-plus#latency> ;
     ] .
 
 

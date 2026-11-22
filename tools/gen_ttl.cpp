@@ -234,6 +234,22 @@ std::string buildPluginTtl() {
     ports.push_back(p.str());
   }
 
+  {
+    std::ostringstream p;
+    p << "    [\n";
+    p << "        a lv2:OutputPort , lv2:ControlPort ;\n";
+    p << "        lv2:index " << index++ << " ;\n";
+    p << "        lv2:symbol \"peer_id\" ;\n";
+    p << "        lv2:name \"Peer Slot\" ;\n";
+    p << "        lv2:default 0 ;\n";
+    p << "        lv2:minimum 0 ;\n";
+    p << "        lv2:maximum 64 ;\n";
+    p << "        lv2:portProperty pprops:notOnGUI ;\n";
+    p << "        pg:group <" << groupUri("Latency") << "> ;\n";
+    p << "    ]";
+    ports.push_back(p.str());
+  }
+
   for (size_t i = 0; i < ports.size(); ++i) {
     out << ports[i];
     out << (i + 1 == ports.size() ? " .\n" : " ,\n");
@@ -291,7 +307,8 @@ std::string buildManifestTtl() {
         << "\" ; ui:protocol ui:floatProtocol ]";
   }
   const char* const meters[] = {"gr_meter", "gate_gr_meter", "out_peak_l",
-                                "out_peak_r", "in_peak_l", "in_peak_r"};
+                                "out_peak_r", "in_peak_l", "in_peak_r",
+                                "peer_id"};
   for (const char* meter : meters) {
     out << " ,\n        [ ui:plugin <" << kUri << "> ; ui:symbol \""
         << meter << "\" ; ui:protocol ui:floatProtocol ]";

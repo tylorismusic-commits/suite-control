@@ -15,6 +15,8 @@
 #include <lv2/core/lv2.h>
 #include <lv2/ui/ui.h>
 
+#include <unistd.h>
+
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
@@ -30,6 +32,7 @@
 #include <thread>
 
 #include "params.hpp"
+#include "peer.hpp"
 #include "ui/geometry.hpp"
 #include "ui/panel.hpp"
 #include "ui/xdnd.hpp"
@@ -49,6 +52,13 @@ struct Ui {
   suite::Shared shared;
   suite::Panel panel;
   suite::PanelState state;
+
+  // Our own peer slot, published by the plugin on the peer_id port.  Remote
+  // edits (Suite Control) never reach the host, so without this the channel's
+  // own window would keep showing the pre-edit values.
+  suite::peer::Hub hub;
+  int peerSlot = -1;
+  int peerEntry = -1;
   suite::XdndDropTarget xdnd;
 
   Display* dpy = nullptr;
@@ -199,10 +209,44 @@ struct Ui {
     }
   }
 
+  // Find our slot in the hub: slot number plus our own PID, because another
+  // host process can have a plug-in with the same slot index.
+  int findEntry() {
+    const int64_t pid = static_cast<int64_t>(getpid());
+    for (int i = 0; i < hub.size(); ++i) {
+      const suite::peer::Hub::Entry& e = hub.entry(i);
+      if (e.slot == peerSlot &&
+          static_cast<int64_t>(
+              e.seg->slot[e.slot].ownerPid.load(std::memory_order_relaxed)) ==
+              pid) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  void mirrorRemote() {
+    if (peerSlot < 0) return;
+    hub.refresh();
+    if (peerEntry < 0 || peerEntry >= hub.size() ||
+        hub.entry(peerEntry).slot != peerSlot) {
+      peerEntry = findEntry();
+      if (peerEntry < 0) return;
+    }
+    for (uint32_t p = 0; p < suite::P_COUNT; ++p) {
+      // A control the user is turning right now wins until the plugin has
+      // published it back.
+      if (lastWriteMs[p] > 0.0 && nowMs() - lastWriteMs[p] < 400.0) continue;
+      const double v = hub.value(peerEntry, static_cast<int>(p));
+      if (std::fabs(v - shared.get(p)) > 1e-9) shared.set(p, v);
+    }
+  }
+
   void draw() {
     if (!cr || !windowSurface || width < 8 || height < 8) {
       return;
     }
+    mirrorRemote();
 
     // Push changed controls to the host.
     for (uint32_t i = 0; i < suite::P_COUNT; ++i) {
@@ -420,6 +464,13 @@ void uiPortEvent(LV2UI_Handle handle, uint32_t port, uint32_t size,
   }
   // Meter ports follow the parameter block directly.
   constexpr uint32_t kMeterBase = kFirstParam + suite::P_COUNT;
+  // Meters, then latency, then peer_id.
+  constexpr uint32_t kPeerIdPort = kMeterBase + 7;
+  if (port == kPeerIdPort) {
+    ui->peerSlot = static_cast<int>(v + 0.5f) - 1;
+    ui->peerEntry = -1;
+    return;
+  }
   switch (port) {
     case kMeterBase: ui->shared.grDb.store(v); break;
     case kMeterBase + 1: ui->shared.gateGrDb.store(v); break;

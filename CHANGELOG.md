@@ -7,6 +7,10 @@
 - LV2 control ports are polled on a timer thread, so BUS changes reach Suite
   Control without the transport running; the first poll adopts every port, so
   a saved/Off value is not lost against the zero-initialised cache.
+- The channel's own LV2 window now follows remote edits: the plug-in publishes
+  its peer slot on a hidden `peer_id` output port, and the UI mirrors that
+  slot's published values (and pushes them back to the host, so project state
+  follows too) - the same end result the CLAP editor gets from sharing state.
 - Remote edits from Suite Control now survive the port poll: adopting a remote
   value no longer records it as "the host's value", so the next poll no longer
   treated the untouched control port as a host change and reverted the edit

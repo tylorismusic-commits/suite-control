@@ -61,5 +61,6 @@
         [ ui:plugin <https://github.com/tylorismusic-commits/suite-channel-plus> ; ui:symbol "out_peak_l" ; ui:protocol ui:floatProtocol ] ,
         [ ui:plugin <https://github.com/tylorismusic-commits/suite-channel-plus> ; ui:symbol "out_peak_r" ; ui:protocol ui:floatProtocol ] ,
         [ ui:plugin <https://github.com/tylorismusic-commits/suite-channel-plus> ; ui:symbol "in_peak_l" ; ui:protocol ui:floatProtocol ] ,
-        [ ui:plugin <https://github.com/tylorismusic-commits/suite-channel-plus> ; ui:symbol "in_peak_r" ; ui:protocol ui:floatProtocol ] ;
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-channel-plus> ; ui:symbol "in_peak_r" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-channel-plus> ; ui:symbol "peer_id" ; ui:protocol ui:floatProtocol ] ;
     rdfs:seeAlso <suite_channel_plus.ttl> .
