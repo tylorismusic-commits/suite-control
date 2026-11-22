@@ -154,6 +154,14 @@ public:
     return revision_.load(std::memory_order_relaxed);
   }
 
+  // Console name table, keyed by bus + position (BUS A CH1 = A/1).  UI and
+  // state only; the audio thread never touches it.
+  static constexpr int kNameSlots = 9 * 32;
+  static constexpr int kNameBytes = 24;
+  char names[kNameSlots][kNameBytes] = {};
+  bool muted[kNameSlots] = {};
+  bool soloed[kNameSlots] = {};
+
   std::atomic<float> inPeakDb{-120.0f};
   std::atomic<float> outPeakDb{-120.0f};
   std::atomic<float> inPeakLDb{-120.0f};

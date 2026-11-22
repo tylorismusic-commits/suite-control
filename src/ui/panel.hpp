@@ -73,7 +73,7 @@ public:
 private:
   enum class Kind {
     Knob, Remote, RemotePill, RemoteFader, Pill, Tab, Capture, Strip, Rename,
-    Page, View, Scroll
+    Page, View, Scroll, Mute, Solo, RemoteButton
   };
 
 
@@ -99,7 +99,9 @@ private:
   void fader(cairo_t* cr, const Widget& w, double value) const;
   int visibleCount() const;
   int maxScroll() const;
-  void stripLabel(int i, char* buf, size_t n) const;
+  void stripLabel(int i, const Shared& shared, char* buf, size_t n) const;
+  int nameKey(int i) const;
+  void applyMuteSolo(Shared& shared);
   void meter(cairo_t* cr, double x, double y, double w, double h, float dbL,
              float dbR) const;
   void grMeter(cairo_t* cr, double x, double y, double w, double h,
@@ -126,8 +128,9 @@ private:
   int scroll_ = 0;     // first visible strip
   int detail_ = -1;    // hub index for the channel page
   bool editing_ = false;
-  int editIndex_ = -1;
+  int editKey_ = -1;
   std::string editText_;
+  std::vector<int> forced_;  // name-table keys currently forced off
   double captureNoticeUntil_ = 0.0;
   int captureCount_ = -1;
 

@@ -296,12 +296,22 @@ int Panel::visibleCount() const {
 
 int Panel::maxScroll() const { return std::max(0, visibleCount() - kVisible); }
 
-// "BUS A CH2" for assigned channels, "OFF CH1" for unassigned, or the user's
-// name when one has been set.
-void Panel::stripLabel(int i, char* buf, size_t n) const {
-  const char* name = hub_.name(i);
-  if (!isDefaultName(name)) {
-    std::snprintf(buf, n, "%s", name);
+int Panel::nameKey(int i) const {
+  if (i < 0 || i >= hub_.size()) return 0;
+  const uint32_t bus = hub_.bus(i);
+  int ordinal = 0;
+  for (int k = 0; k <= i; ++k) {
+    if (hub_.bus(k) == bus) ++ordinal;
+  }
+  const int key = static_cast<int>(bus) * 32 + (ordinal - 1);
+  return std::clamp(key, 0, Shared::kNameSlots - 1);
+}
+
+void Panel::stripLabel(int i, const Shared& shared, char* buf, size_t n) const {
+  const int key = nameKey(i);
+  const char* custom = shared.names[key];
+  if (custom[0]) {
+    std::snprintf(buf, n, "%s", custom);
     return;
   }
   const uint32_t bus = hub_.bus(i);
@@ -314,6 +324,36 @@ void Panel::stripLabel(int i, char* buf, size_t n) const {
   } else {
     std::snprintf(buf, n, "BUS %s CH%d", kBusLabels[std::clamp<int>(bus, 0, 8)],
                   ordinal);
+  }
+}
+
+void Panel::applyMuteSolo(Shared& shared) {
+  // Solo is scoped to what is on screen: the whole console on ALL, or the
+  // current bus otherwise.  This keeps solo from silencing other buckets.
+  auto visible = [&](int i) {
+    return bus_ == 0 || static_cast<int>(hub_.bus(i)) == bus_;
+  };
+  bool anySolo = false;
+  for (int k = 0; k < hub_.size(); ++k) {
+    if (visible(k) && shared.soloed[nameKey(k)]) {
+      anySolo = true;
+      break;
+    }
+  }
+  for (int i = 0; i < hub_.size(); ++i) {
+    if (!visible(i)) continue;
+    const int key = nameKey(i);
+    const bool wantOn = !shared.muted[key] &&
+                        (!anySolo || shared.soloed[key]);
+    auto it = std::find(forced_.begin(), forced_.end(), key);
+    const bool forced = it != forced_.end();
+    if (!wantOn && !forced) {
+      hub_.write(i, ch::kEnabled, 0.0);
+      forced_.push_back(key);
+    } else if (wantOn && forced) {
+      hub_.write(i, ch::kEnabled, 1.0);
+      forced_.erase(it);
+    }
   }
 }
 
@@ -399,9 +439,9 @@ void Panel::layoutBus(const Shared& shared, const PanelState& state) {
     Widget w;
     w.kind = Kind::View;
     w.value = static_cast<double>(v);
-    w.x = 24.0 + v * 186.0;
-    w.y = 76.0;
-    w.w = 176.0;
+    w.x = 48.0 + v * 188.0;
+    w.y = 78.0;
+    w.w = 180.0;
     w.h = 24.0;
     w.label = kViews[v];
     widgets_.push_back(w);
@@ -540,6 +580,28 @@ void Panel::layoutBus(const Shared& shared, const PanelState& state) {
         break;
       }
     }
+    {
+      Widget m;
+      m.kind = Kind::Mute;
+      m.index = i;
+      m.x = x + 10;
+      m.y = kStripTop + 584;
+      m.w = 46;
+      m.h = 22;
+      m.label = "MUTE";
+      widgets_.push_back(m);
+    }
+    {
+      Widget so;
+      so.kind = Kind::Solo;
+      so.index = i;
+      so.x = x + 62;
+      so.y = kStripTop + 584;
+      so.w = 46;
+      so.h = 22;
+      so.label = "SOLO";
+      widgets_.push_back(so);
+    }
     ++shown;
   }
 
@@ -566,13 +628,55 @@ void Panel::layoutBus(const Shared& shared, const PanelState& state) {
 }
 
 void Panel::layoutDetail() {
+  auto pillWidget = [&](int plus, double x, double y, double w, double h,
+                        const char* label) {
+    Widget b;
+    b.kind = Kind::RemotePill;
+    b.index = detail_;
+    b.plus = plus;
+    b.x = x;
+    b.y = y;
+    b.w = w;
+    b.h = h;
+    b.label = label;
+    widgets_.push_back(b);
+  };
+  auto buttonWidget = [&](int plus, double x, double y, double w, double h,
+                          double value, const char* label) {
+    Widget b;
+    b.kind = Kind::RemoteButton;
+    b.index = detail_;
+    b.plus = plus;
+    b.x = x;
+    b.y = y;
+    b.w = w;
+    b.h = h;
+    b.value = value;
+    b.label = label;
+    widgets_.push_back(b);
+  };
+  auto knobWidget = [&](int plus, double x, double y, double r,
+                        const char* label, int palette) {
+    Widget k;
+    k.kind = Kind::Remote;
+    k.index = detail_;
+    k.plus = plus;
+    k.x = x;
+    k.y = y;
+    k.r = r;
+    k.label = label;
+    k.palette = palette;
+    widgets_.push_back(k);
+  };
+
+  // Header row, inset past the corner screw.
   {
     Widget back;
     back.kind = Kind::Page;
     back.value = 0.0;
-    back.x = 24;
-    back.y = 82;
-    back.w = 116;
+    back.x = 44;
+    back.y = 80;
+    back.w = 100;
     back.h = 26;
     back.label = "< MIX BUS";
     widgets_.push_back(back);
@@ -584,37 +688,76 @@ void Panel::layoutDetail() {
     tab.kind = Kind::Page;
     tab.value = 1.0;
     tab.index = i;
-    tab.x = 152.0 + shown * 46.0;
-    tab.y = 82;
+    tab.x = 156.0 + shown * 46.0;
+    tab.y = 80;
     tab.w = 40;
     tab.h = 26;
     widgets_.push_back(tab);
     ++shown;
   }
 
-  const int cols = 7;
-  for (int k = 0; k < kDetailCount; ++k) {
-    const DetailEntry& e = kDetail[k];
-    const int col = k % cols;
-    const int row = k / cols;
-    Widget w;
-    w.index = detail_;
-    w.plus = e.plus;
-    w.label = e.label;
-    w.palette = e.palette;
-    w.x = 64.0 + col * 172.0;
-    w.y = 172.0 + row * 96.0;
-    if (isToggleKind(e.fmt) || isEnumKind(e.fmt)) {
-      w.kind = Kind::RemotePill;
-      w.w = 108;
-      w.h = 26;
-      w.x -= 54;
-    } else {
-      w.kind = Kind::Remote;
-      w.r = 24;
-    }
-    widgets_.push_back(w);
+  // INPUT / COLOUR
+  pillWidget(0, 30, 140, 58, 20, "POWER");
+  pillWidget(2, 94, 140, 38, 20, "POL");
+  knobWidget(1, 62, 210, 22, "INPUT", 0);
+  knobWidget(4, 136, 210, 22, "COLOUR", 4);
+  pillWidget(3, 198, 198, 92, 22, "COLOUR");
+
+  // DYNAMICS
+  pillWidget(22, 30, 286, 58, 20, "COMP IN");
+  buttonWidget(21, 94, 286, 40, 20, 0.0, "VCA");
+  buttonWidget(21, 138, 286, 40, 20, 1.0, "76");
+  knobWidget(23, 62, 356, 22, "THRESH", 0);
+  knobWidget(24, 136, 356, 22, "MAKEUP", 0);
+  pillWidget(25, 204, 338, 46, 20, "F.ATK");
+  pillWidget(26, 204, 364, 46, 20, "AUTO");
+  pillWidget(33, 204, 390, 46, 20, "POST EQ");
+
+  // GATE
+  pillWidget(27, 30, 478, 54, 20, "GATE IN");
+  pillWidget(32, 90, 478, 62, 20, "MODE");
+  knobWidget(28, 56, 546, 20, "THRESH", 3);
+  knobWidget(29, 112, 546, 20, "RANGE", 3);
+  knobWidget(30, 168, 546, 20, "RELEASE", 3);
+  pillWidget(31, 228, 536, 44, 20, "F.ATK");
+  knobWidget(36, 246, 596, 14, "HOLD", 3);
+
+  // FILTERS
+  knobWidget(5, 72, 704, 17, "HPF", 5);
+  knobWidget(6, 180, 704, 17, "LPF", 5);
+
+  // EQUALISER
+  pillWidget(8, 322, 140, 46, 20, "EQ IN");
+  buttonWidget(7, 374, 140, 64, 20, 0.0, "BROWN");
+  buttonWidget(7, 444, 140, 64, 20, 1.0, "BLACK");
+  knobWidget(9, 392, 222, 24, "LF GAIN", 1);
+  knobWidget(10, 546, 222, 22, "LF FREQ", 1);
+  pillWidget(11, 664, 210, 62, 20, "LF BELL");
+  knobWidget(12, 392, 332, 24, "LMF GAIN", 0);
+  knobWidget(13, 546, 332, 22, "LMF FREQ", 0);
+  knobWidget(14, 700, 332, 22, "LMF Q", 0);
+  knobWidget(15, 392, 442, 24, "HMF GAIN", 3);
+  knobWidget(16, 546, 442, 22, "HMF FREQ", 3);
+  knobWidget(17, 700, 442, 22, "HMF Q", 3);
+  knobWidget(18, 392, 552, 24, "HF GAIN", 2);
+  knobWidget(19, 546, 552, 22, "HF FREQ", 2);
+  pillWidget(20, 664, 540, 62, 20, "HF BELL");
+
+  // OUTPUT
+  {
+    Widget f;
+    f.kind = Kind::RemoteFader;
+    f.index = detail_;
+    f.plus = 34;
+    f.x = 1058;
+    f.y = 190;
+    f.w = 60.0;
+    f.h = 430.0;
+    f.label = "OUTPUT";
+    widgets_.push_back(f);
   }
+  pillWidget(37, 1004, 640, 62, 22, "LIMIT");
+  pillWidget(35, 1074, 640, 66, 22, "OVERSAMPLE");
 }
 
 void Panel::layout(const Shared& shared, const PanelState& state) {
@@ -654,8 +797,8 @@ bool Panel::pointerDown(Shared& shared, PanelState& state, double x, double y,
         }
         return true;
       case Kind::Rename:
-        editIndex_ = w.index;
-        editText_ = hub_.name(w.index);
+        editKey_ = nameKey(w.index);
+        editText_ = shared.names[editKey_];
         editing_ = true;
         return true;
       case Kind::Strip:
@@ -691,6 +834,21 @@ bool Panel::pointerDown(Shared& shared, PanelState& state, double x, double y,
         } else {
           shared.set(w.param, shared.get(w.param) > 0.5 ? 0.0 : 1.0);
         }
+        return true;
+      case Kind::Mute: {
+        const int key = nameKey(w.index);
+        shared.muted[key] = !shared.muted[key];
+        applyMuteSolo(shared);
+        return true;
+      }
+      case Kind::Solo: {
+        const int key = nameKey(w.index);
+        shared.soloed[key] = !shared.soloed[key];
+        applyMuteSolo(shared);
+        return true;
+      }
+      case Kind::RemoteButton:
+        hub_.write(w.index, w.plus, w.value);
         return true;
       case Kind::RemotePill: {
         const double v = hub_.value(w.index, w.plus);
@@ -767,8 +925,8 @@ bool Panel::beginTextEntry(Shared& shared, PanelState& state, double x,
   for (const Widget& w : widgets_) {
     if (w.kind != Kind::Rename) continue;
     if (x >= w.x && x <= w.x + w.w && y >= w.y && y <= w.y + w.h) {
-      editIndex_ = w.index;
-      editText_ = hub_.name(w.index);
+      editKey_ = nameKey(w.index);
+      editText_ = shared.names[editKey_];
       editing_ = true;
       return true;
     }
@@ -781,16 +939,17 @@ void Panel::textKey(Shared& shared, PanelState& state, int code, unsigned ch) {
   (void)state;
   if (!editing_) return;
   if (code == kTextEnter) {
-    if (!editText_.empty() && editIndex_ >= 0) {
-      hub_.setName(editIndex_, editText_.c_str());
+    if (editKey_ >= 0 && editKey_ < Shared::kNameSlots) {
+      std::snprintf(shared.names[editKey_], Shared::kNameBytes, "%s",
+                    editText_.c_str());
     }
     editing_ = false;
     editText_.clear();
-    editIndex_ = -1;
+    editKey_ = -1;
   } else if (code == kTextEscape) {
     editing_ = false;
     editText_.clear();
-    editIndex_ = -1;
+    editKey_ = -1;
   } else if (code == kTextBackspace) {
     if (!editText_.empty()) editText_.pop_back();
   } else if (ch >= 32 && ch < 127 && editText_.size() < 20) {
@@ -959,7 +1118,7 @@ void Panel::grMeter(cairo_t* cr, double x, double y, double w, double h,
   cairo_fill(cr);
   const double t = clamp01(grDb / 24.0);
   setRgb(cr, {0.95, 0.55, 0.20});
-  cairo_rectangle(cr, x + 2.0, y + 2.0, w - 4.0, (h - 4.0) * t);
+  cairo_rectangle(cr, x + 2.0, y + 2.0, (w - 4.0) * t, h - 4.0);
   cairo_fill(cr);
 }
 
@@ -1115,16 +1274,26 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
       case Kind::Rename:
         pill(cr, w, "REN", false);
         break;
+      case Kind::Mute: {
+        const int key = nameKey(w.index);
+        pill(cr, w, "MUTE", shared.muted[key]);
+        break;
+      }
+      case Kind::Solo: {
+        const int key = nameKey(w.index);
+        pill(cr, w, "SOLO", shared.soloed[key]);
+        break;
+      }
       case Kind::Strip: {
         const bool sel = state.selectedStrip == static_cast<int>(w.value);
         roundRect(cr, w.x, w.y, w.w, w.h, 4);
         setRgb(cr, sel ? Rgb{0.24, 0.21, 0.16} : Rgb{0.13, 0.15, 0.18});
         cairo_fill(cr);
         char buf[40];
-        if (editing_ && editIndex_ == w.index) {
+        if (editing_ && editKey_ == nameKey(w.index)) {
           std::snprintf(buf, sizeof(buf), "%s_", editText_.c_str());
         } else {
-          stripLabel(w.index, buf, sizeof(buf));
+          stripLabel(w.index, shared, buf, sizeof(buf));
         }
         text(cr, buf, w.x + w.w * 0.5, w.y + 17, 8.0, 1,
              sel ? 0.96 : kLegend.r, sel ? 0.86 : kLegend.g,
@@ -1204,6 +1373,11 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
         }
         break;
       }
+      case Kind::RemoteButton: {
+        const bool on = std::fabs(hub_.value(w.index, w.plus) - w.value) < 0.5;
+        pill(cr, w, w.label, on);
+        break;
+      }
       case Kind::RemoteFader:
         fader(cr, w, hub_.value(w.index, w.plus));
         break;
@@ -1262,47 +1436,89 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
 
 void Panel::drawDetailPage(cairo_t* cr, const Shared& shared,
                            const PanelState& state) {
-  (void)shared;
-  (void)state;
   if (detail_ < 0 || detail_ >= hub_.size()) {
     page_ = 0;
     return;
   }
   char title[96];
-  stripLabel(detail_, title, sizeof(title));
-  text(cr, title, 560, 100, 15, 1, kLegend.r, kLegend.g, kLegend.b);
+  stripLabel(detail_, shared, title, sizeof(title));
+  text(cr, title, 700, 99, 15, 1, kLegend.r, kLegend.g, kLegend.b);
+
+  // Same section grouping as Suite Channel, widened for the console.
+  plate(cr, 20, 110, 280, 140, "INPUT / COLOUR");
+  plate(cr, 20, 258, 280, 186, "DYNAMICS");
+  plate(cr, 20, 452, 280, 180, "GATE / EXPANDER");
+  plate(cr, 20, 640, 280, 104, "FILTERS");
+  plate(cr, 310, 110, 670, 626, "EQUALISER");
+  plate(cr, 990, 110, 274, 626, "OUTPUT");
+
+  // Output meters.
+  float inL = 0, inR = 0, outL = 0, outR = 0, gr = 0;
+  hub_.meter(detail_, &inL, &inR, &outL, &outR, &gr);
+  meter(cr, 1140, 190, 16, 430, outL, outR);
+  grMeter(cr, 1168, 190, 10, 430, gr);
+  text(cr, "OUT", 1148, 636, 7.5, 1, kLegendDim.r, kLegendDim.g, kLegendDim.b);
+  text(cr, "GR", 1173, 636, 7.5, 1, kLegendDim.r, kLegendDim.g, kLegendDim.b);
 
   for (const Widget& w : widgets_) {
-    if (w.kind == Kind::Page) {
-      char label[16];
-      if (w.value == 0.0) {
-        pill(cr, w, "< MIX BUS", false);
-      } else {
-        std::snprintf(label, sizeof(label), "%d", w.index + 1);
-        pill(cr, w, label, w.index == detail_);
+    switch (w.kind) {
+      case Kind::Page: {
+        if (w.value == 0.0) {
+          pill(cr, w, "< MIX BUS", false);
+        } else {
+          char label[16];
+          std::snprintf(label, sizeof(label), "%d", w.index + 1);
+          pill(cr, w, label, w.index == detail_);
+        }
+        break;
       }
-      continue;
-    }
-    if (w.kind == Kind::RemotePill) {
-      const double v = hub_.value(w.index, w.plus);
-      const int count = enumCount(w.plus);
-      if (count > 0) {
-        pill(cr, w, enumName(w.plus, static_cast<int>(v + 0.5)), true);
-      } else {
-        pill(cr, w, w.label, v > 0.5);
+      case Kind::RemoteButton: {
+        const bool on = std::fabs(hub_.value(w.index, w.plus) - w.value) < 0.5;
+        pill(cr, w, w.label, on);
+        break;
       }
-      continue;
-    }
-    if (w.kind == Kind::Remote) {
-      const double v = hub_.value(w.index, w.plus);
-      char buf[32];
-      const DetailEntry* e = nullptr;
-      for (const DetailEntry& d : kDetail) {
-        if (d.plus == w.plus) e = &d;
+      case Kind::RemotePill: {
+        const double v = hub_.value(w.index, w.plus);
+        const int count = enumCount(w.plus);
+        if (count > 0) {
+          pill(cr, w, enumName(w.plus, static_cast<int>(v + 0.5)), true);
+        } else {
+          pill(cr, w, w.label, v > 0.5);
+        }
+        break;
       }
-      const char* ro = e ? formatDetail(w.plus, e->fmt, v, buf, sizeof(buf))
-                         : "";
-      knob(cr, w, v, ro, w.palette);
+      case Kind::RemoteFader:
+        fader(cr, w, hub_.value(w.index, w.plus));
+        break;
+      case Kind::Remote: {
+        const double v = hub_.value(w.index, w.plus);
+        char buf[32];
+        int fmt = 1;
+        switch (w.plus) {
+          case 1: fmt = 0; break;
+          case 4: fmt = 3; break;
+          case 5:
+          case 6: fmt = 7; break;
+          case 10:
+          case 13:
+          case 16:
+          case 19: fmt = 4; break;
+          case 14:
+          case 17: fmt = 8; break;
+          case 23: fmt = 9; break;
+          case 24: fmt = 2; break;
+          case 28: fmt = 9; break;
+          case 29: fmt = 1; break;
+          case 30: fmt = 10; break;
+          case 36: fmt = 12; break;
+          default: fmt = 1; break;
+        }
+        const char* ro = formatDetail(w.plus, fmt, v, buf, sizeof(buf));
+        knob(cr, w, v, ro, w.palette);
+        break;
+      }
+      default:
+        break;
     }
   }
 }

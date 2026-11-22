@@ -77,6 +77,37 @@ int main() {
     c.unregisterSlot();
   }
 
+  // Mute and solo write the channel's enable parameter.  The test does not
+  // assume which slot lands on strip 0, only the resulting state.
+  {
+    suite::peer::Client c1, c2;
+    const int a = c1.registerSlot(7, "Suite Channel Plus", suite::ch::kCount);
+    const int b = c2.registerSlot(7, "Suite Channel Plus", suite::ch::kCount);
+    suite::Shared s4;
+    s4.set(suite::P_BUS, 7.0);
+    suite::PanelState st4;
+    suite::Panel p4;
+    p4.tick(s4, st4);
+    auto on = [&](int slot, suite::peer::Client& c) {
+      return c.raw()->slot[slot].param[suite::ch::kEnabled].value.load() > 0.5;
+    };
+    // Start both on.
+    suite::peer::Client::writeRemote(c1.raw()->slot[a], suite::ch::kEnabled, 1.0);
+    suite::peer::Client::writeRemote(c2.raw()->slot[b], suite::ch::kEnabled, 1.0);
+    p4.pointerDown(s4, st4, 40.0, 694.0, false);
+    p4.pointerUp();
+    check(on(a, c1) != on(b, c2), "mute disables exactly one channel");
+    // Solo on the other strip: the muted one stays off, the soloed one on.
+    p4.pointerDown(s4, st4, 141.0 + 70.0, 694.0, false);
+    p4.pointerUp();
+    check(on(a, c1) != on(b, c2), "solo leaves one channel on");
+    p4.pointerDown(s4, st4, 141.0 + 70.0, 694.0, false);
+    p4.pointerUp();
+    check(on(a, c1) != on(b, c2), "mute survives solo release");
+    c1.unregisterSlot();
+    c2.unregisterSlot();
+  }
+
   // A knob drag must stop when the mouse button is released.
   {
     suite::Shared s3;

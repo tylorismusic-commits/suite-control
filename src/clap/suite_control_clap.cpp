@@ -334,8 +334,29 @@ bool stateSave(const clap_plugin_t* p, const clap_ostream_t* stream) {
   Plugin* s = self(p);
   double values[suite::P_COUNT];
   for (uint32_t i = 0; i < suite::P_COUNT; ++i) values[i] = s->shared.get(i);
-  return stream->write(stream, values, sizeof(values)) ==
-         static_cast<int64_t>(sizeof(values));
+  if (stream->write(stream, values, sizeof(values)) !=
+      static_cast<int64_t>(sizeof(values))) {
+    return false;
+  }
+  // Console name table + mute states, appended after the parameters.
+  constexpr uint32_t kMagic = 0x53434e4d;  // SCNM
+  constexpr uint32_t kTableVersion = 1;
+  const uint32_t count = suite::Shared::kNameSlots;
+  if (stream->write(stream, &kMagic, sizeof(kMagic)) != sizeof(kMagic) ||
+      stream->write(stream, &kTableVersion, sizeof(kTableVersion)) !=
+          sizeof(kTableVersion) ||
+      stream->write(stream, &count, sizeof(count)) != sizeof(count)) {
+    return false;
+  }
+  for (uint32_t i = 0; i < count; ++i) {
+    if (stream->write(stream, s->shared.names[i],
+                      suite::Shared::kNameBytes) != suite::Shared::kNameBytes) {
+      return false;
+    }
+    const uint8_t m = s->shared.muted[i] ? 1 : 0;
+    if (stream->write(stream, &m, 1) != 1) return false;
+  }
+  return true;
 }
 
 bool stateLoad(const clap_plugin_t* p, const clap_istream_t* stream) {
@@ -349,6 +370,25 @@ bool stateLoad(const clap_plugin_t* p, const clap_istream_t* stream) {
   for (uint32_t i = 0; i < count; ++i) s->shared.setFromHost(i, values[i]);
   for (uint32_t i = count; i < suite::P_COUNT; ++i) {
     s->shared.setFromHost(i, suite::kParamSpecs[i].def);
+  }
+  // Optional name table.
+  uint32_t magic = 0, version = 0, slots = 0;
+  if (stream->read(stream, &magic, sizeof(magic)) == sizeof(magic) &&
+      magic == 0x53434e4d &&
+      stream->read(stream, &version, sizeof(version)) == sizeof(version) &&
+      version == 1 &&
+      stream->read(stream, &slots, sizeof(slots)) == sizeof(slots) &&
+      slots <= suite::Shared::kNameSlots) {
+    for (uint32_t i = 0; i < slots; ++i) {
+      if (stream->read(stream, s->shared.names[i],
+                       suite::Shared::kNameBytes) !=
+          suite::Shared::kNameBytes) {
+        break;
+      }
+      uint8_t m = 0;
+      if (stream->read(stream, &m, 1) != 1) break;
+      s->shared.muted[i] = m != 0;
+    }
   }
   return true;
 }
