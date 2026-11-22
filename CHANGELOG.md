@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.3
+
+- Double-click resets a control to its default; right-click types a value in
+  the unit shown; the wheel adjusts the knob under the cursor and scrolls the
+  console elsewhere; Shift fine-tunes both.
+- Input / colour group nudged down and kept inside its plate.
+
 ## 0.1.2
 
 - Mute and solo now ride the channel's output fader instead of its bypass,

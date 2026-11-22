@@ -1,10 +1,10 @@
-Start testing: Nov 22 11:39 EST
+Start testing: Nov 22 12:04 EST
 ----------------------------------------------------------
 1/4 Testing: suite_control_dsp
 1/4 Test: suite_control_dsp
 Command: "/home/tylor/Projects/suite-control/build/suite_control_dsp_test"
 Directory: /home/tylor/Projects/suite-control/build
-"suite_control_dsp" start time: Nov 22 11:39 EST
+"suite_control_dsp" start time: Nov 22 12:04 EST
 Output:
 ----------------------------------------------------------
 comp: 0.247 -> 0.113
@@ -26,7 +26,7 @@ PASS  reports a small latency
 Test time =   0.03 sec
 ----------------------------------------------------------
 Test Passed.
-"suite_control_dsp" end time: Nov 22 11:39 EST
+"suite_control_dsp" end time: Nov 22 12:04 EST
 "suite_control_dsp" time elapsed: 00:00:00
 ----------------------------------------------------------
 
@@ -34,7 +34,7 @@ Test Passed.
 2/4 Test: suite_control_panel
 Command: "/home/tylor/Projects/suite-control/build/suite_control_panel_test"
 Directory: /home/tylor/Projects/suite-control/build
-"suite_control_panel" start time: Nov 22 11:39 EST
+"suite_control_panel" start time: Nov 22 12:04 EST
 Output:
 ----------------------------------------------------------
 PASS  panel paints something
@@ -56,7 +56,7 @@ PASS  drag stops on release
 Test time =   0.05 sec
 ----------------------------------------------------------
 Test Passed.
-"suite_control_panel" end time: Nov 22 11:39 EST
+"suite_control_panel" end time: Nov 22 12:04 EST
 "suite_control_panel" time elapsed: 00:00:00
 ----------------------------------------------------------
 
@@ -64,7 +64,7 @@ Test Passed.
 3/4 Test: suite_control_host
 Command: "/home/tylor/Projects/suite-control/build/suite_control_host_test" "/home/tylor/Projects/suite-control/build/clap/SuiteControl.clap"
 Directory: /home/tylor/Projects/suite-control/build
-"suite_control_host" start time: Nov 22 11:39 EST
+"suite_control_host" start time: Nov 22 12:04 EST
 Output:
 ----------------------------------------------------------
 loaded: Suite Control (com.tylorismusic.suitecontrol)
@@ -73,7 +73,7 @@ loaded: Suite Control (com.tylorismusic.suitecontrol)
 Test time =   0.01 sec
 ----------------------------------------------------------
 Test Passed.
-"suite_control_host" end time: Nov 22 11:39 EST
+"suite_control_host" end time: Nov 22 12:04 EST
 "suite_control_host" time elapsed: 00:00:00
 ----------------------------------------------------------
 
@@ -81,7 +81,7 @@ Test Passed.
 4/4 Test: suite_peer_integration
 Command: "/home/tylor/Projects/suite-control/build/suite_peer_integration" "/home/tylor/.clap/SuiteChannelPlus.clap"
 Directory: /home/tylor/Projects/suite-control/build
-"suite_peer_integration" start time: Nov 22 11:39 EST
+"suite_peer_integration" start time: Nov 22 12:04 EST
 Output:
 ----------------------------------------------------------
 PASS  (null)
@@ -98,11 +98,11 @@ PASS  plus mirrors the value back
 PASS  deactivate drops the slot
 0 failure(s)
 <end of output>
-Test time =   0.01 sec
+Test time =   0.07 sec
 ----------------------------------------------------------
 Test Passed.
-"suite_peer_integration" end time: Nov 22 11:39 EST
+"suite_peer_integration" end time: Nov 22 12:04 EST
 "suite_peer_integration" time elapsed: 00:00:00
 ----------------------------------------------------------
 
-End testing: Nov 22 11:39 EST
+End testing: Nov 22 12:04 EST

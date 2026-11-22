@@ -208,13 +208,6 @@ const char* formatDetail(int plus, int fmt, double v, char* buf, size_t n) {
   return buf;
 }
 
-bool isToggleKind(int fmt) { return fmt == 5; }
-bool isEnumKind(int fmt) { return fmt == 6; }
-
-bool isDefaultName(const char* name) {
-  return !name || name[0] == '\0' || std::strcmp(name, "Suite Channel Plus") == 0;
-}
-
 const char* dbText(char* buf, size_t n, double v01, double lo, double hi) {
   std::snprintf(buf, n, "%+.1f", lo + (hi - lo) * clamp01(v01));
   return buf;
@@ -236,6 +229,191 @@ const char* faderText(char* buf, size_t n, double v) {
   }
   return buf;
 }
+
+double chDefault(int plus) {
+  switch (plus) {
+    case 0: return 1.0;    // power
+    case 1: return 0.5;    // input
+    case 3: return 1.0;    // colour model (Console)
+    case 4: return 0.35;   // colour amount
+    case 8: return 1.0;    // eq in
+    case 10: return 0.70;  // lf freq
+    case 13: return 0.637; // lmf freq
+    case 14: return 0.4;   // lmf q
+    case 16: return 0.655; // hmf freq
+    case 17: return 0.4;   // hmf q
+    case 19: return 0.707; // hf freq
+    case 23: return 0.73;  // comp threshold
+    case 24: return 0.5;   // makeup
+    case 26: return 1.0;   // auto
+    case 28: return 0.25;  // gate threshold
+    case 29: return 0.6;   // gate range
+    case 30: return 0.5;   // gate release
+    case 32: return 1.0;   // gate mode
+    case 34: return 0.75;  // output
+    case 35: return 2.0;   // oversample
+    case 37: return 1.0;   // limiter
+    case 9:
+    case 12:
+    case 15:
+    case 18: return 0.5;   // eq gains
+    default: return 0.0;
+  }
+}
+
+// Parses "‑6.5 dB", "35%", "250", "1.5k".
+bool parseNumberText(const char* text, double* out, bool* percent) {
+  if (!text) return false;
+  while (*text == ' ') ++text;
+  char* end = nullptr;
+  const double v = std::strtod(text, &end);
+  if (end == text) return false;
+  bool scale = false;
+  for (const char* p = end; *p; ++p) {
+    if (*p == '%') scale = true;
+    if (*p == 'k' || *p == 'K') {
+      *out = v * 1000.0;
+      *percent = scale;
+      return true;
+    }
+  }
+  *out = v;
+  *percent = scale;
+  return true;
+}
+
+double parseRemoteValue(int plus, const char* text) {
+  double n = 0.0;
+  bool pct = false;
+  if (!parseNumberText(text, &n, &pct)) return -1.0;
+  switch (plus) {
+    case 1: return (n + 18.0) / 36.0;
+    case 4: return n / 100.0;
+    case 5: return n <= 0.0 ? 0.0 : (n - 16.0) / 334.0;
+    case 6: return n <= 0.0 ? 0.0 : (n - 3000.0) / 12200.0;
+    case 9:
+    case 12:
+    case 15:
+    case 18: return (n + 15.0) / 30.0;
+    case 10: return n <= 0.0 ? 0.0 : std::log(n / 30.0) / std::log(15.0);
+    case 13: return n <= 0.0 ? 0.0 : std::log(n / 200.0) / std::log(12.5);
+    case 16: return n <= 0.0 ? 0.0 : std::log(n / 600.0) / std::log(11.67);
+    case 19: return n <= 0.0 ? 0.0 : std::log(n / 1500.0) / std::log(10.67);
+    case 14:
+    case 17: return (n - 0.5) / 2.5;
+    case 23: return (10.0 - n) / 30.0;
+    case 24: return (n + 9.0) / 18.0;
+    case 28: return (10.0 - n) / 40.0;
+    case 29: return n / 40.0;
+    case 30: return (n - 0.1) / 3.9;
+    case 34:
+      if (n >= 0.0) return 0.75 + n / 48.0;
+      return 0.75 * std::pow(10.0, n / 180.0);
+    case 36: return n / 500.0;
+    default:
+      if (pct) return n / 100.0;
+      return n;
+  }
+}
+
+double parseLocalValue(uint32_t param, const char* text) {
+  double n = 0.0;
+  bool pct = false;
+  if (!parseNumberText(text, &n, &pct)) return -1.0;
+  switch (param) {
+    case P_COMP_THRESHOLD: return (10.0 - n) / 30.0;
+    case P_COMP_ATTACK: return n <= 0.0 ? 0.0 : std::log(n / 0.1) / std::log(300.0);
+    case P_COMP_RELEASE: return n <= 0.0 ? 0.0 : std::log(n / 100.0) / std::log(12.0);
+    case P_COMP_MIX:
+    case P_SUM_AMOUNT: return n / 100.0;
+    case P_INPUT:
+    case P_OUTPUT: return (n + 18.0) / 36.0;
+    case P_EQ_LF_GAIN:
+    case P_EQ_LM_GAIN:
+    case P_EQ_HM_GAIN:
+    case P_EQ_HF_GAIN: return (n + 15.0) / 30.0;
+    case P_COMP_RATIO: return std::floor(n + 0.5);
+    default:
+      if (pct) return n / 100.0;
+      return n;
+  }
+}
+
+// Shared display formatting for the bus knobs.
+const char* busKnobText(uint32_t param, double v, char* buf, size_t n) {
+  if (param == P_COMP_THRESHOLD) return dbText(buf, n, v, 10.0, -20.0);
+  if (param == P_COMP_ATTACK) return dbText(buf, n, v, 0.1, 30.0);
+  if (param == P_COMP_RELEASE) return dbText(buf, n, v, 100.0, 1200.0);
+  if (param == P_COMP_MIX || param == P_SUM_AMOUNT) return pctText(buf, n, v);
+  if (param == P_INPUT || param == P_OUTPUT) return dbText(buf, n, v, -18.0, 18.0);
+  if (param == P_COMP_RATIO) {
+    static const char* kR[] = {"2:1", "4:1", "10:1"};
+    return kR[std::clamp(static_cast<int>(v + 0.5), 0, 2)];
+  }
+  return dbText(buf, n, v, -15.0, 15.0);
+}
+
+// Shared display formatting for the mirrored channel knobs.
+const char* remoteText(int plus, double v, char* buf, size_t n) {
+  switch (plus) {
+    case 1: return dbText(buf, n, v, -18.0, 18.0);
+    case 4: return pctText(buf, n, v);
+    case 5:
+    case 6:
+      if (v <= 0.001) return "OUT";
+      if (plus == 5) {
+        std::snprintf(buf, n, "%.0f", 16.0 + 334.0 * v);
+      } else {
+        std::snprintf(buf, n, "%.1fk", (3000.0 + 12200.0 * v) / 1000.0);
+      }
+      return buf;
+    case 9:
+    case 12:
+    case 15:
+    case 18: return dbText(buf, n, v, -15.0, 15.0);
+    case 10: {
+      const double hz = 30.0 * std::pow(15.0, v);
+      if (hz >= 1000.0) std::snprintf(buf, n, "%.1fk", hz / 1000.0);
+      else std::snprintf(buf, n, "%.0f", hz);
+      return buf;
+    }
+    case 13: {
+      const double hz = 200.0 * std::pow(12.5, v);
+      if (hz >= 1000.0) std::snprintf(buf, n, "%.1fk", hz / 1000.0);
+      else std::snprintf(buf, n, "%.0f", hz);
+      return buf;
+    }
+    case 16: {
+      const double hz = 600.0 * std::pow(11.67, v);
+      if (hz >= 1000.0) std::snprintf(buf, n, "%.1fk", hz / 1000.0);
+      else std::snprintf(buf, n, "%.0f", hz);
+      return buf;
+    }
+    case 19: {
+      const double hz = 1500.0 * std::pow(10.67, v);
+      std::snprintf(buf, n, "%.1fk", hz / 1000.0);
+      return buf;
+    }
+    case 14:
+    case 17: std::snprintf(buf, n, "%.1f", 0.5 + 2.5 * v); return buf;
+    case 23: return dbText(buf, n, v, 10.0, -20.0);
+    case 24: return dbText(buf, n, v, -9.0, 9.0);
+    case 28: return dbText(buf, n, v, -30.0, 10.0);
+    case 29: std::snprintf(buf, n, "%.0f dB", 40.0 * v); return buf;
+    case 30: std::snprintf(buf, n, "%.2fs", 0.1 + 3.9 * v); return buf;
+    case 34: return faderText(buf, n, v);
+    case 36: std::snprintf(buf, n, "%.0f ms", 500.0 * v); return buf;
+    default: return dbText(buf, n, v, -15.0, 15.0);
+  }
+}
+
+bool isToggleKind(int fmt) { return fmt == 5; }
+bool isEnumKind(int fmt) { return fmt == 6; }
+
+bool isDefaultName(const char* name) {
+  return !name || name[0] == '\0' || std::strcmp(name, "Suite Channel Plus") == 0;
+}
+
 
 } // namespace
 
@@ -367,12 +545,58 @@ void Panel::tick(const Shared& shared, PanelState& state) {
 }
 
 void Panel::wheel(Shared& shared, PanelState& state, double x, double y,
-                  double d) {
-  (void)shared;
-  (void)state;
+                  double d, bool fine) {
+  layout(shared, state);
+  const Widget* w = hitTest(x, y);
+  if (w) {
+    const double step = (fine ? 0.002 : 0.02) * (d > 0 ? 1.0 : -1.0);
+    if (w->kind == Kind::Knob) {
+      shared.set(w->param, clamp01(shared.get(w->param) + step));
+      return;
+    }
+    if (w->kind == Kind::Remote || w->kind == Kind::RemoteFader) {
+      hub_.write(w->index, w->plus,
+                 clamp01(hub_.value(w->index, w->plus) + step));
+      return;
+    }
+  }
   if (page_ != 0) return;
   if (x > kBusX - 10 || y < kStripTop - 20) return;
   scroll_ = std::clamp(scroll_ - static_cast<int>(d), 0, maxScroll());
+}
+
+const Panel::Widget* Panel::hitTest(double x, double y) const {
+  for (const Widget& w : widgets_) {
+    const bool hit =
+        (w.kind == Kind::Knob || w.kind == Kind::Remote)
+            ? ((x - w.x) * (x - w.x) + (y - w.y) * (y - w.y) <=
+               w.r * w.r * 1.6)
+            : (x >= w.x && x <= w.x + w.w && y >= w.y && y <= w.y + w.h);
+    if (hit) return &w;
+  }
+  return nullptr;
+}
+
+void Panel::resetWidget(Shared& shared, const Widget& w) {
+  switch (w.kind) {
+    case Kind::Knob:
+      shared.set(w.param, kParamSpecs[w.param].def);
+      break;
+    case Kind::Remote:
+    case Kind::RemoteFader:
+    case Kind::RemotePill:
+    case Kind::RemoteButton:
+      hub_.write(w.index, w.plus, chDefault(w.plus));
+      break;
+    default:
+      break;
+  }
+}
+
+static double steadyMs() {
+  return std::chrono::duration<double, std::milli>(
+             std::chrono::steady_clock::now().time_since_epoch())
+      .count();
 }
 
 void Panel::plate(cairo_t* cr, double x, double y, double w, double h,
@@ -698,11 +922,11 @@ void Panel::layoutDetail() {
   }
 
   // INPUT / COLOUR
-  pillWidget(0, 30, 138, 58, 20, "POWER");
-  pillWidget(2, 94, 138, 38, 20, "POL");
-  knobWidget(1, 66, 192, 20, "INPUT", 0);
-  knobWidget(4, 142, 192, 20, "COLOUR", 4);
-  pillWidget(3, 200, 180, 92, 22, "COLOUR");
+  pillWidget(0, 30, 141, 58, 20, "POWER");
+  pillWidget(2, 94, 141, 38, 20, "POL");
+  knobWidget(1, 66, 197, 20, "INPUT", 0);
+  knobWidget(4, 142, 197, 20, "COLOUR", 4);
+  pillWidget(3, 200, 185, 92, 22, "COLOUR");
 
   // DYNAMICS
   pillWidget(22, 30, 286, 58, 20, "COMP IN");
@@ -781,6 +1005,24 @@ bool Panel::pointerDown(Shared& shared, PanelState& state, double x, double y,
                w.r * w.r * 1.6)
             : (x >= w.x && x <= w.x + w.w && y >= w.y && y <= w.y + w.h);
     if (!hit) continue;
+    // Double-click resets the control to its default.
+    uint64_t id = 0;
+    if (w.kind == Kind::Knob) {
+      id = 0x10000000ull + w.param;
+    } else if (w.kind == Kind::Remote || w.kind == Kind::RemoteFader ||
+               w.kind == Kind::RemotePill || w.kind == Kind::RemoteButton) {
+      id = 0x20000000ull + static_cast<uint64_t>(w.index) * 64 +
+           static_cast<uint64_t>(w.plus + 1);
+    }
+    const double now = steadyMs();
+    if (id != 0 && id == lastClickId_ && now - lastClickMs_ < 350.0) {
+      resetWidget(shared, w);
+      lastClickId_ = 0;
+      lastClickMs_ = now;
+      return true;
+    }
+    lastClickId_ = id;
+    lastClickMs_ = now;
     switch (w.kind) {
       case Kind::View:
         view_ = static_cast<int>(w.value);
@@ -923,26 +1165,50 @@ void Panel::pointerUp() {
 bool Panel::beginTextEntry(Shared& shared, PanelState& state, double x,
                            double y) {
   layout(shared, state);
-  for (const Widget& w : widgets_) {
-    if (w.kind != Kind::Rename) continue;
-    if (x >= w.x && x <= w.x + w.w && y >= w.y && y <= w.y + w.h) {
-      editKey_ = nameKey(w.index);
-      editText_ = shared.names[editKey_];
-      editing_ = true;
-      return true;
-    }
+  const Widget* w = hitTest(x, y);
+  if (!w) return false;
+  if (w->kind == Kind::Rename) {
+    editKind_ = 0;
+    editKey_ = nameKey(w->index);
+    editText_ = shared.names[editKey_];
+    editing_ = true;
+    return true;
+  }
+  if (w->kind == Kind::Knob) {
+    // Typed entry starts empty so the whole value can be replaced.
+    editKind_ = 1;
+    editParam_ = static_cast<int>(w->param);
+    editText_.clear();
+    editing_ = true;
+    return true;
+  }
+  if (w->kind == Kind::Remote || w->kind == Kind::RemoteFader) {
+    editKind_ = 2;
+    editIndex_ = w->index;
+    editPlus_ = w->plus;
+    editText_.clear();
+    editing_ = true;
+    return true;
   }
   return false;
 }
 
 void Panel::textKey(Shared& shared, PanelState& state, int code, unsigned ch) {
-  (void)shared;
   (void)state;
   if (!editing_) return;
   if (code == kTextEnter) {
-    if (editKey_ >= 0 && editKey_ < Shared::kNameSlots) {
-      std::snprintf(shared.names[editKey_], Shared::kNameBytes, "%s",
-                    editText_.c_str());
+    if (editKind_ == 0) {
+      if (editKey_ >= 0 && editKey_ < Shared::kNameSlots) {
+        std::snprintf(shared.names[editKey_], Shared::kNameBytes, "%s",
+                      editText_.c_str());
+      }
+    } else if (editKind_ == 1) {
+      const double v = parseLocalValue(static_cast<uint32_t>(editParam_),
+                                       editText_.c_str());
+      if (v >= 0.0) shared.set(static_cast<uint32_t>(editParam_), clamp01(v));
+    } else if (editKind_ == 2) {
+      const double v = parseRemoteValue(editPlus_, editText_.c_str());
+      if (v >= 0.0) hub_.write(editIndex_, editPlus_, clamp01(v));
     }
     editing_ = false;
     editText_.clear();
@@ -1170,6 +1436,24 @@ void Panel::draw(cairo_t* cr, const Shared& shared, const PanelState& state) {
   } else {
     drawDetailPage(cr, shared, state);
   }
+
+  if (editing_ && editKind_ != 0) {
+    const double w = 220.0, h = 30.0;
+    const double x = (kPanelWidth - w) * 0.5;
+    const double y = kPlateY + 10.0;
+    roundRect(cr, x, y, w, h, 4);
+    setRgb(cr, {0.06, 0.07, 0.08});
+    cairo_fill(cr);
+    setRgb(cr, kAccent, 0.9);
+    cairo_set_line_width(cr, 1.0);
+    roundRect(cr, x + 0.5, y + 0.5, w - 1, h - 1, 4);
+    cairo_stroke(cr);
+    char buf[40];
+    std::snprintf(buf, sizeof(buf), "%s_", editText_.c_str());
+    text(cr, buf, x + 12, y + 20, 12, 0, kLegend.r, kLegend.g, kLegend.b);
+    text(cr, "ENTER", x + w - 12, y + 20, 8, 2, kLegendDim.r, kLegendDim.g,
+         kLegendDim.b);
+  }
 }
 
 void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
@@ -1307,65 +1591,16 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
         break;
       }
       case Kind::Knob: {
-        char buf[24];
-        const char* ro = nullptr;
-        if (w.param == P_COMP_THRESHOLD) {
-          ro = dbText(buf, sizeof(buf), shared.get(w.param), 10.0, -20.0);
-        } else if (w.param == P_COMP_ATTACK) {
-          ro = dbText(buf, sizeof(buf), shared.get(w.param), 0.1, 30.0);
-        } else if (w.param == P_COMP_RELEASE) {
-          ro = dbText(buf, sizeof(buf), shared.get(w.param), 100.0, 1200.0);
-        } else if (w.param == P_COMP_MIX || w.param == P_SUM_AMOUNT) {
-          ro = pctText(buf, sizeof(buf), shared.get(w.param));
-        } else if (w.param == P_INPUT || w.param == P_OUTPUT) {
-          ro = dbText(buf, sizeof(buf), shared.get(w.param), -18.0, 18.0);
-        } else if (w.param == P_COMP_RATIO) {
-          static const char* kR[] = {"2:1", "4:1", "10:1"};
-          ro = kR[std::clamp(static_cast<int>(shared.get(w.param) + 0.5), 0, 2)];
-        } else {
-          ro = dbText(buf, sizeof(buf), shared.get(w.param), -15.0, 15.0);
-        }
+        char buf[40];
+        const char* ro = busKnobText(w.param, shared.get(w.param), buf,
+                                     sizeof(buf));
         knob(cr, w, shared.get(w.param), ro, w.palette);
         break;
       }
       case Kind::Remote: {
         const double v = hub_.value(w.index, w.plus);
-        char buf[24];
-        const char* ro = nullptr;
-        switch (w.plus) {
-          case ch::kCompThreshold:
-            ro = dbText(buf, sizeof(buf), v, 10.0, -20.0);
-            break;
-          case ch::kCompMakeup:
-            ro = dbText(buf, sizeof(buf), v, -9.0, 9.0);
-            break;
-          case ch::kInput:
-          case ch::kOutput:
-            ro = dbText(buf, sizeof(buf), v, -18.0, 18.0);
-            break;
-          case 4:
-            ro = pctText(buf, sizeof(buf), v);
-            break;
-          case 5:
-          case 6:
-            ro = (v <= 0.001) ? "OUT" : dbText(buf, sizeof(buf), v, 16.0, 350.0);
-            break;
-          case 9:
-          case 12:
-          case 15:
-          case 18:
-            ro = dbText(buf, sizeof(buf), v, -15.0, 15.0);
-            break;
-          case 28:
-            ro = dbText(buf, sizeof(buf), v, -30.0, 10.0);
-            break;
-          case 30:
-            ro = dbText(buf, sizeof(buf), v, 0.1, 4.0);
-            break;
-          default:
-            ro = dbText(buf, sizeof(buf), v, -15.0, 15.0);
-            break;
-        }
+        char buf[40];
+        const char* ro = remoteText(w.plus, v, buf, sizeof(buf));
         knob(cr, w, v, ro, w.palette);
         break;
       }
@@ -1498,28 +1733,8 @@ void Panel::drawDetailPage(cairo_t* cr, const Shared& shared,
         break;
       case Kind::Remote: {
         const double v = hub_.value(w.index, w.plus);
-        char buf[32];
-        int fmt = 1;
-        switch (w.plus) {
-          case 1: fmt = 0; break;
-          case 4: fmt = 3; break;
-          case 5:
-          case 6: fmt = 7; break;
-          case 10:
-          case 13:
-          case 16:
-          case 19: fmt = 4; break;
-          case 14:
-          case 17: fmt = 8; break;
-          case 23: fmt = 9; break;
-          case 24: fmt = 2; break;
-          case 28: fmt = 9; break;
-          case 29: fmt = 1; break;
-          case 30: fmt = 10; break;
-          case 36: fmt = 12; break;
-          default: fmt = 1; break;
-        }
-        const char* ro = formatDetail(w.plus, fmt, v, buf, sizeof(buf));
+        char buf[40];
+        const char* ro = remoteText(w.plus, v, buf, sizeof(buf));
         knob(cr, w, v, ro, w.palette);
         break;
       }

@@ -52,7 +52,8 @@ public:
   bool pointerMove(Shared& shared, PanelState& state, double x, double y,
                    bool fine);
   void pointerUp();
-  void wheel(Shared& shared, PanelState& state, double x, double y, double d);
+  void wheel(Shared& shared, PanelState& state, double x, double y, double d,
+             bool fine);
   bool beginTextEntry(Shared& shared, PanelState& state, double x, double y);
   void textKey(Shared& shared, PanelState& state, int code, unsigned ch);
   void importDroppedFile(Shared&, PanelState&, const std::string&) {}
@@ -102,6 +103,8 @@ private:
   void stripLabel(int i, const Shared& shared, char* buf, size_t n) const;
   int nameKey(int i) const;
   void applyMuteSolo(Shared& shared);
+  const Widget* hitTest(double x, double y) const;
+  void resetWidget(Shared& shared, const Widget& w);
   void meter(cairo_t* cr, double x, double y, double w, double h, float dbL,
              float dbR) const;
   void grMeter(cairo_t* cr, double x, double y, double w, double h,
@@ -128,7 +131,13 @@ private:
   int scroll_ = 0;     // first visible strip
   int detail_ = -1;    // hub index for the channel page
   bool editing_ = false;
+  int editKind_ = 0;   // 0 name, 1 local param, 2 remote param
   int editKey_ = -1;
+  int editParam_ = -1;
+  int editIndex_ = -1;
+  int editPlus_ = -1;
+  uint64_t lastClickId_ = 0;
+  double lastClickMs_ = 0.0;
   std::string editText_;
 
   double captureNoticeUntil_ = 0.0;
