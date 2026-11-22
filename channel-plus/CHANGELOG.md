@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- LV2 state keeps the plug-in's parameter values, so a move from Suite Control
+  survives save/load even with the channel's window closed.  The first port
+  poll after a restore takes the host's stale port values as a baseline
+  instead of applying them over the restored ones.
+- Ships in the same repository and distribution as Suite Control (`suite.lv2`).
+
 - LV2 UI runs its own 30 Hz frame/event loop (REAPER does not implement the
   idle interface, so the window was frozen and clicks were ignored).
 - LV2 control ports are polled on a timer thread, so BUS changes reach Suite

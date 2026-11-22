@@ -140,6 +140,7 @@ std::string buildPluginTtl() {
   out << "@prefix doap: <http://usefulinc.com/ns/doap#> .\n";
   out << "@prefix units: <http://lv2plug.in/ns/extensions/units#> .\n";
   out << "@prefix ui:   <http://lv2plug.in/ns/extensions/ui#> .\n";
+  out << "@prefix state: <http://lv2plug.in/ns/ext/state#> .\n";
   out << "@prefix pg:   <http://lv2plug.in/ns/ext/port-groups#> .\n";
   out << "@prefix foaf: <http://xmlns.com/foaf/0.1/> .\n";
   out << "@prefix idpy: <http://harrisonconsoles.com/lv2/inlinedisplay#> .\n";
@@ -164,6 +165,7 @@ std::string buildPluginTtl() {
   out << "    rdfs:seeAlso <manifest.ttl> ;\n";
   out << "    ui:ui <" << kUri << "#ui> ;\n";
   out << "    lv2:optionalFeature lv2:hardRTCapable , idpy:queue_draw ;\n";
+  out << "    lv2:extensionData state:interface ;\n";
   out << "    lv2:extensionData idpy:interface ;\n";
   out << "    lv2:port\n";
 

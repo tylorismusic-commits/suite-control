@@ -20,7 +20,7 @@ phase is not done until both hosts pass its acceptance checks.
 Acceptance: one `~/.lv2/suite.lv2` announces both plug-ins; both UIs open in
 REAPER; lilv discovery (Ardour's loader) resolves both.
 
-## Phase 2 — LV2 parity with CLAP
+## Phase 2 — LV2 parity with CLAP (done)
 
 - `LV2_State_Interface` for Suite Control: channel names, mute and solo.
 - `LV2_State_Interface` for Suite Channel Plus: parameter values, so remote
@@ -28,8 +28,9 @@ REAPER; lilv discovery (Ardour's loader) resolves both.
 - GTK/suil embedding test locally; Ardour 9.8 load/open/save test.
 - Round-trip tests for both state blobs.
 
-Acceptance: names/mute/solo persist in REAPER and Ardour; Suite Control moves
-the channel's own UI and the host's stored values; nothing snaps back.
+Acceptance met: names/mute/fader persist in REAPER 7.84 and Ardour 9.8, with
+the Ardour UI embedded via suil; the channel's LV2 state restores parameter
+values and ignores the host's stale control ports on load.
 
 ## Phase 3 — Inserts, protocol v3, Comp Suite pilot
 

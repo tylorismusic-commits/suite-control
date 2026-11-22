@@ -24,6 +24,7 @@
 #include <string>
 #include <thread>
 
+#include "console_state.hpp"
 #include "params.hpp"
 #include "ui/geometry.hpp"
 #include "ui/panel.hpp"
@@ -43,6 +44,12 @@ struct Ui {
   suite::Shared shared;
   suite::Panel panel;
   suite::PanelState state;
+
+  // Console names/mute state is edited here but saved by the plug-in, so both
+  // sides meet in a tiny per-process segment.
+  suite::ConsoleBridge console;
+  uint32_t consoleSeq = 0;
+  bool consoleDirty = false;
 
   Display* dpy = nullptr;
   Window win = 0;
@@ -159,6 +166,32 @@ struct Ui {
     dirty = true;
   }
 
+  void adoptConsole() {
+    suite::ConsoleTable table{};
+    if (!console.read(table)) return;
+    if (console.sequence() == consoleSeq) return;
+    consoleSeq = console.sequence();
+    std::memcpy(shared.names, table.names, sizeof(shared.names));
+    for (int i = 0; i < suite::ConsoleTable::kSlots; ++i) {
+      shared.muted[i] = table.muted[i] != 0;
+      shared.gainForced[i] = table.gainForced[i] != 0;
+      shared.savedGain[i] = table.savedGain[i];
+    }
+    dirty = true;
+  }
+
+  void publishConsole() {
+    suite::ConsoleTable table{};
+    std::memcpy(table.names, shared.names, sizeof(table.names));
+    for (int i = 0; i < suite::ConsoleTable::kSlots; ++i) {
+      table.muted[i] = shared.muted[i] ? 1 : 0;
+      table.gainForced[i] = shared.gainForced[i] ? 1 : 0;
+      table.savedGain[i] = shared.savedGain[i];
+    }
+    console.write(table);
+    consoleSeq = console.sequence();
+  }
+
   void handleEvent(const XEvent& ev) {
     const double s = layoutScale();
     const double ox = offsetX();
@@ -202,6 +235,7 @@ struct Ui {
           panel.beginTextEntry(shared, state, lx(ev.xbutton.x),
                                ly(ev.xbutton.y));
         }
+        consoleDirty = true;
         dirty = true;
         break;
       }
@@ -246,6 +280,7 @@ struct Ui {
             panel.textKey(shared, state, 0, static_cast<unsigned>(digit));
           }
         }
+        consoleDirty = true;
         dirty = true;
         break;
       }
@@ -261,6 +296,12 @@ struct Ui {
 
   void draw() {
     if (!cr || !windowSurface || width < 8 || height < 8) return;
+    if (consoleDirty) {
+      publishConsole();
+      consoleDirty = false;
+    } else {
+      adoptConsole();
+    }
     ++draws;
     if (draws == 1) logf_("first frame");
 
@@ -436,6 +477,8 @@ LV2UI_Handle uiInstantiate(const LV2UI_Descriptor*, const char*,
                               static_cast<int>(ui->height));
   }
 
+  ui->console.open();
+  ui->adoptConsole();
   ui->panel.tick(ui->shared, ui->state);
   ui->draw();
   ui->dirty = false;

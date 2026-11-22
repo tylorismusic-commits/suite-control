@@ -3,9 +3,14 @@
 //
 // The control ports mirror the CLAP parameter ids: port = 4 + ParamId.
 
+#include <lv2/atom/atom.h>
 #include <lv2/core/lv2.h>
+#include <lv2/state/state.h>
+#include <lv2/urid/urid.h>
 
 #include <atomic>
+#include <cstdint>
+#include <vector>
 #include <chrono>
 #include <cmath>
 #include <cstring>
@@ -20,6 +25,8 @@ namespace {
 
 constexpr const char* kPluginUri =
     "https://github.com/tylorismusic-commits/suite-channel-plus";
+constexpr const char* kStateUri =
+    "https://github.com/tylorismusic-commits/suite-channel-plus#parameters";
 
 enum Port : uint32_t {
   PORT_AUDIO_IN_L = 0,
@@ -63,6 +70,13 @@ struct Plugin {
   float* latency = nullptr;
   float* peerId = nullptr;
 
+  const LV2_URID_Map* map = nullptr;
+  uint32_t chunkType = 0;
+  uint32_t stateKey = 0;
+  // Set by state restore: the first poll must baseline against the host's
+  // (stale) port values instead of adopting them over the restored ones.
+  std::atomic<bool> restoredPending{false};
+
   suite::peer::Client peer;
   bool peerRegistered = false;
   bool portsSynced = false;
@@ -90,6 +104,10 @@ LV2_Handle instantiate(const LV2_Descriptor*, double rate, const char*,
         (*f)->data) {
       p->queueDraw = static_cast<const suite::InlineDisplayQueueDraw*>(
           static_cast<const void*>((*f)->data));
+    } else if (!std::strcmp((*f)->URI, LV2_URID__map) && (*f)->data) {
+      p->map = static_cast<const LV2_URID_Map*>(f[0]->data);
+      p->chunkType = p->map->map(p->map->handle, LV2_ATOM__Chunk);
+      p->stateKey = p->map->map(p->map->handle, kStateUri);
     }
   }
   return p;
@@ -139,13 +157,22 @@ void activate(LV2_Handle handle) {
     p->peerThread = std::thread([p] {
       while (p->peerRun.load(std::memory_order_relaxed)) {
         if (p->peerRegistered) {
-          for (uint32_t i = 0; i < suite::P_COUNT; ++i) {
-            const float* v = p->ports[PORT_FIRST_PARAM + i];
-            // The first pass adopts every port, including values that happen
-            // to equal the zero-initialised cache (bus Off is 0).
-            if (v && (!p->portsSynced || *v != p->lastPort[i])) {
-              p->shared.setFromHost(i, static_cast<double>(*v));
-              p->lastPort[i] = *v;
+          if (p->restoredPending.exchange(false)) {
+            // Restored from state: the ports still hold the session's old
+            // values, so take them as the baseline without applying them.
+            for (uint32_t i = 0; i < suite::P_COUNT; ++i) {
+              const float* v = p->ports[PORT_FIRST_PARAM + i];
+              if (v) p->lastPort[i] = *v;
+            }
+          } else {
+            for (uint32_t i = 0; i < suite::P_COUNT; ++i) {
+              const float* v = p->ports[PORT_FIRST_PARAM + i];
+              // The first pass adopts every port, including values that
+              // happen to equal the zero-initialised cache (bus Off is 0).
+              if (v && (!p->portsSynced || *v != p->lastPort[i])) {
+                p->shared.setFromHost(i, static_cast<double>(*v));
+                p->lastPort[i] = *v;
+              }
             }
           }
           p->portsSynced = true;
@@ -263,10 +290,74 @@ suite::InlineDisplaySurface* renderInlineDisplay(void* instance, uint32_t width,
 
 const suite::InlineDisplayInterface kInlineDisplay = {&renderInlineDisplay};
 
+// --------------------------------------------------------------- LV2 state
+
+
+LV2_State_Status stateSave(LV2_Handle handle, LV2_State_Store_Function store,
+                           LV2_State_Handle storeHandle, uint32_t,
+                           const LV2_Feature* const*) {
+  auto* p = static_cast<Plugin*>(handle);
+  if (!p->chunkType || !p->stateKey) return LV2_STATE_ERR_UNKNOWN;
+
+  constexpr uint32_t kMagic = 0x53435056;  // SCPV
+  constexpr uint32_t kVersion = 1;
+  const uint32_t count = suite::P_COUNT;
+  std::vector<uint8_t> blob(12 + count * sizeof(double));
+  std::memcpy(blob.data(), &kMagic, 4);
+  std::memcpy(blob.data() + 4, &kVersion, 4);
+  std::memcpy(blob.data() + 8, &count, 4);
+  for (uint32_t i = 0; i < count; ++i) {
+    const double value = p->shared.get(i);
+    std::memcpy(blob.data() + 12 + i * sizeof(double), &value, sizeof(double));
+  }
+  return store(storeHandle, p->stateKey, blob.data(), blob.size(),
+               p->chunkType, LV2_STATE_IS_POD | LV2_STATE_IS_PORTABLE);
+}
+
+LV2_State_Status stateRestore(LV2_Handle handle,
+                              LV2_State_Retrieve_Function retrieve,
+                              LV2_State_Handle stateHandle, uint32_t,
+                              const LV2_Feature* const*) {
+  auto* p = static_cast<Plugin*>(handle);
+  size_t size = 0;
+  uint32_t type = 0;
+  uint32_t flags = 0;
+  if (!p->stateKey) return LV2_STATE_ERR_UNKNOWN;
+  const void* data = retrieve(stateHandle, p->stateKey, &size, &type, &flags);
+  if (!data) return LV2_STATE_ERR_NO_PROPERTY;
+  if (!p->chunkType || type != p->chunkType) {
+    return LV2_STATE_ERR_BAD_TYPE;
+  }
+
+  constexpr uint32_t kMagic = 0x53435056;
+  constexpr uint32_t kVersion = 1;
+  const uint32_t count = suite::P_COUNT;
+  if (size != 12 + count * sizeof(double)) return LV2_STATE_ERR_BAD_TYPE;
+
+  const auto* bytes = static_cast<const uint8_t*>(data);
+  uint32_t magic = 0, version = 0, stored = 0;
+  std::memcpy(&magic, bytes, 4);
+  std::memcpy(&version, bytes + 4, 4);
+  std::memcpy(&stored, bytes + 8, 4);
+  if (magic != kMagic || version != kVersion || stored != count) {
+    return LV2_STATE_ERR_UNKNOWN;
+  }
+  for (uint32_t i = 0; i < count; ++i) {
+    double value = 0.0;
+    std::memcpy(&value, bytes + 12 + i * sizeof(double), sizeof(double));
+    p->shared.set(i, value);
+  }
+  p->restoredPending.store(true, std::memory_order_release);
+  return LV2_STATE_SUCCESS;
+}
+
+const LV2_State_Interface kStateInterface = {stateSave, stateRestore};
+
 const void* extensionData(const char* uri) {
   if (uri && !std::strcmp(uri, suite::kInlineDisplayInterfaceURI)) {
     return &kInlineDisplay;
   }
+  if (uri && !std::strcmp(uri, LV2_STATE__interface)) return &kStateInterface;
   return nullptr;
 }
 

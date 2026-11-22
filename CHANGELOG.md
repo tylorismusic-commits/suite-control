@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0 — Suite bundle
+
+- First release of Suite Control and Suite Channel Plus as one distribution:
+  a single `suite.lv2` with both plug-ins, plus the two CLAP bundles.
+- LV2 state: channel names, mute and the saved fader position now persist in
+  the host's session.  LV2 state lives in the plug-in, but the console table is
+  edited in the UI, so both sides meet in a small per-process segment
+  (`src/console_state.hpp`); it is Linux-only, like the peer bus.
+- Verified end to end in REAPER 7.84 and Ardour 9.8: names survive save/reload
+  and the Ardour-embedded UI (suil X11-in-GTK2) comes back with them.
+
 ## 0.1.9
 
 - Remote edits on the strip surface reach the channel plug-ins again (they were

@@ -43,12 +43,14 @@ std::string pluginTtl() {
   out += "@prefix doap: <http://usefulinc.com/ns/doap#> .\n";
   out += "@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n";
   out += "@prefix units: <http://lv2plug.in/ns/ext/units#> .\n";
-  out += "@prefix ui:   <http://lv2plug.in/ns/extensions/ui#> .\n\n";
+  out += "@prefix ui:   <http://lv2plug.in/ns/extensions/ui#> .\n";
+  out += "@prefix state: <http://lv2plug.in/ns/ext/state#> .\n\n";
   out += "<" + std::string(kUri) + ">\n";
   out += "    a lv2:Plugin , lv2:CompressorPlugin , lv2:EQPlugin ;\n";
   out += "    doap:name \"" + std::string(kName) + "\" ;\n";
   out += "    doap:license <http://opensource.org/licenses/GPL-3.0> ;\n";
   out += "    lv2:optionalFeature lv2:hardRTCapable ;\n";
+  out += "    lv2:extensionData state:interface ;\n";
   out += "    lv2:port\n";
 
   std::vector<std::string> ports;
