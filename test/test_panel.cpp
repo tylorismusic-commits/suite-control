@@ -39,7 +39,7 @@ int main() {
   check(cairo_status(cr) == CAIRO_STATUS_SUCCESS, "panel draw is clean");
 
   // Bus tabs: "B" is the third pill (All, A, B ...).
-  const double tabX = 300.0 + 2 * 54.0 + 24.0;
+  const double tabX = 300.0 + 2 * 36.0 + 17.0;
   const bool hit = panel.pointerDown(shared, state, tabX, 32.0, false);
   check(hit, "bus tab is clickable");
   check(static_cast<int>(shared.get(suite::P_BUS) + 0.5) == 2,

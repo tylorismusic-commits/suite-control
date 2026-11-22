@@ -52,7 +52,7 @@ public:
   bool pointerMove(Shared& shared, PanelState& state, double x, double y,
                    bool fine);
   void pointerUp();
-  void wheel(Shared&, PanelState&, double, double, double) {}
+  void wheel(Shared& shared, PanelState& state, double x, double y, double d);
   bool beginTextEntry(Shared& shared, PanelState& state, double x, double y);
   void textKey(Shared& shared, PanelState& state, int code, unsigned ch);
   void importDroppedFile(Shared&, PanelState&, const std::string&) {}
@@ -71,7 +71,10 @@ public:
   static constexpr int kTextBackspace = -3;
 
 private:
-  enum class Kind { Knob, Remote, RemotePill, Pill, Tab, Capture, Strip, Rename, Page };
+  enum class Kind {
+    Knob, Remote, RemotePill, RemoteFader, Pill, Tab, Capture, Strip, Rename,
+    Page, View, Scroll
+  };
 
 
   struct Widget {
@@ -93,6 +96,10 @@ private:
   void pill(cairo_t* cr, const Widget& w, const char* label, bool on) const;
   void plate(cairo_t* cr, double x, double y, double w, double h,
              const char* title) const;
+  void fader(cairo_t* cr, const Widget& w, double value) const;
+  int visibleCount() const;
+  int maxScroll() const;
+  void stripLabel(int i, char* buf, size_t n) const;
   void meter(cairo_t* cr, double x, double y, double w, double h, float dbL,
              float dbR) const;
   void grMeter(cairo_t* cr, double x, double y, double w, double h,
@@ -115,6 +122,8 @@ private:
   peer::Hub hub_;
   int bus_ = 1;
   int page_ = 0;       // 0 = mix bus, 1 = selected channel
+  int view_ = 0;       // 0 mix, 1 input, 2 eq, 3 dynamics, 4 output
+  int scroll_ = 0;     // first visible strip
   int detail_ = -1;    // hub index for the channel page
   bool editing_ = false;
   int editIndex_ = -1;

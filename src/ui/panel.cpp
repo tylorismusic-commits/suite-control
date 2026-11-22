@@ -18,8 +18,11 @@ constexpr double kPlateH = 680.0;
 constexpr double kStripX0 = 16.0;
 constexpr double kStripW = 120.0;
 constexpr double kStripGap = 5.0;
+constexpr double kStripTop = 110.0;
+constexpr double kStripH = 626.0;
 constexpr double kBusX = 1021.0;
 constexpr double kBusW = 251.0;
+constexpr int kVisible = 8;
 
 struct Rgb {
   double r, g, b;
@@ -77,13 +80,11 @@ KnobPalette paletteFor(int group) {
   }
 }
 
-// Detail page model: one entry per Suite Channel Plus parameter.
 struct DetailEntry {
   int plus;
   const char* label;
   int palette;
-  int fmt;  // 0 dB18, 1 dB15, 2 dB9, 3 pct, 4 Hz, 5 toggle, 6 enum,
-            // 7 filter, 8 Q, 9 threshold, 10 seconds, 11 fader, 12 ms
+  int fmt;
 };
 
 const DetailEntry kDetail[] = {
@@ -165,12 +166,8 @@ const char* formatDetail(int plus, int fmt, double v, char* buf, size_t n) {
     }
     case 5:
       return v > 0.5 ? "ON" : "OFF";
-    case 6: {
-      const int count = enumCount(plus);
+    case 6:
       return enumName(plus, static_cast<int>(v + 0.5));
-      (void)count;
-      break;
-    }
     case 7:
       if (v <= 0.001) {
         std::snprintf(buf, n, "OUT");
@@ -196,7 +193,8 @@ const char* formatDetail(int plus, int fmt, double v, char* buf, size_t n) {
         std::snprintf(buf, n, "%+.1f dB", 48.0 * (v - 0.75));
       } else {
         const double t = v / 0.75;
-        std::snprintf(buf, n, "%.1f dB", 60.0 * std::log10(std::max(t * t * t, 1e-6)));
+        std::snprintf(buf, n, "%.1f dB",
+                      60.0 * std::log10(std::max(t * t * t, 1e-6)));
       }
       break;
     }
@@ -213,8 +211,6 @@ const char* formatDetail(int plus, int fmt, double v, char* buf, size_t n) {
 bool isToggleKind(int fmt) { return fmt == 5; }
 bool isEnumKind(int fmt) { return fmt == 6; }
 
-// A channel that has not been renamed shows as CH n; the default registration
-// name would be identical on every strip.
 bool isDefaultName(const char* name) {
   return !name || name[0] == '\0' || std::strcmp(name, "Suite Channel Plus") == 0;
 }
@@ -227,6 +223,20 @@ const char* pctText(char* buf, size_t n, double v01) {
   std::snprintf(buf, n, "%.0f%%", 100.0 * clamp01(v01));
   return buf;
 }
+
+const char* faderText(char* buf, size_t n, double v) {
+  if (v <= 0.001) {
+    std::snprintf(buf, n, "OFF");
+  } else if (v >= 0.75) {
+    std::snprintf(buf, n, "%+.1f", 48.0 * (v - 0.75));
+  } else {
+    const double t = v / 0.75;
+    std::snprintf(buf, n, "%.1f",
+                  60.0 * std::log10(std::max(t * t * t, 1e-6)));
+  }
+  return buf;
+}
+
 } // namespace
 
 Panel::Panel() {
@@ -275,11 +285,53 @@ void Panel::text(cairo_t* cr, const char* s, double x, double y, double size,
   cairo_show_text(cr, s);
 }
 
+int Panel::visibleCount() const {
+  int n = 0;
+  for (int i = 0; i < hub_.size(); ++i) {
+    if (bus_ != 0 && static_cast<int>(hub_.bus(i)) != bus_) continue;
+    ++n;
+  }
+  return n;
+}
+
+int Panel::maxScroll() const { return std::max(0, visibleCount() - kVisible); }
+
+// "BUS A CH2" for assigned channels, "OFF CH1" for unassigned, or the user's
+// name when one has been set.
+void Panel::stripLabel(int i, char* buf, size_t n) const {
+  const char* name = hub_.name(i);
+  if (!isDefaultName(name)) {
+    std::snprintf(buf, n, "%s", name);
+    return;
+  }
+  const uint32_t bus = hub_.bus(i);
+  int ordinal = 0;
+  for (int k = 0; k <= i; ++k) {
+    if (hub_.bus(k) == bus) ++ordinal;
+  }
+  if (bus == 0) {
+    std::snprintf(buf, n, "OFF CH%d", ordinal);
+  } else {
+    std::snprintf(buf, n, "BUS %s CH%d", kBusLabels[std::clamp<int>(bus, 0, 8)],
+                  ordinal);
+  }
+}
+
 void Panel::tick(const Shared& shared, PanelState& state) {
   (void)state;
   bus_ = std::clamp(static_cast<int>(shared.get(P_BUS) + 0.5), 0, 8);
   hub_.refresh();
   if (detail_ >= hub_.size()) detail_ = hub_.size() - 1;
+  scroll_ = std::clamp(scroll_, 0, maxScroll());
+}
+
+void Panel::wheel(Shared& shared, PanelState& state, double x, double y,
+                  double d) {
+  (void)shared;
+  (void)state;
+  if (page_ != 0) return;
+  if (x > kBusX - 10 || y < kStripTop - 20) return;
+  scroll_ = std::clamp(scroll_ - static_cast<int>(d), 0, maxScroll());
 }
 
 void Panel::plate(cairo_t* cr, double x, double y, double w, double h,
@@ -302,14 +354,15 @@ void Panel::plate(cairo_t* cr, double x, double y, double w, double h,
 
 void Panel::layoutBus(const Shared& shared, const PanelState& state) {
   (void)state;
+  // Bus tabs.
   for (int i = 0; i <= 8; ++i) {
     Widget t;
     t.kind = Kind::Tab;
     t.param = P_BUS;
     t.value = static_cast<double>(i);
-    t.x = 300.0 + i * 54.0;
+    t.x = 300.0 + i * 36.0;
     t.y = 18.0;
-    t.w = 48.0;
+    t.w = 34.0;
     t.h = 28.0;
     t.label = kBusLabels[i];
     widgets_.push_back(t);
@@ -317,12 +370,41 @@ void Panel::layoutBus(const Shared& shared, const PanelState& state) {
   {
     Widget c;
     c.kind = Kind::Capture;
-    c.x = 800.0;
+    c.x = 636.0;
     c.y = 18.0;
-    c.w = 132.0;
+    c.w = 120.0;
     c.h = 28.0;
     c.label = "CAPTURE";
     widgets_.push_back(c);
+  }
+  {
+    Widget s;
+    s.kind = Kind::Scroll;
+    s.value = -1.0;
+    s.x = 768.0;
+    s.y = 18.0;
+    s.w = 24.0;
+    s.h = 28.0;
+    s.label = "<";
+    widgets_.push_back(s);
+    s.value = 1.0;
+    s.x = 796.0;
+    s.label = ">";
+    widgets_.push_back(s);
+  }
+
+  // View selector row across the console area.
+  static const char* kViews[] = {"MIX", "INPUT", "EQ", "DYN", "OUT"};
+  for (int v = 0; v < 5; ++v) {
+    Widget w;
+    w.kind = Kind::View;
+    w.value = static_cast<double>(v);
+    w.x = 24.0 + v * 186.0;
+    w.y = 76.0;
+    w.w = 176.0;
+    w.h = 24.0;
+    w.label = kViews[v];
+    widgets_.push_back(w);
   }
 
   auto knob = [&](uint32_t p, double x, double y, double r, const char* label,
@@ -349,18 +431,46 @@ void Panel::layoutBus(const Shared& shared, const PanelState& state) {
     b.label = label;
     widgets_.push_back(b);
   };
+  auto remote = [&](int i, int plus, double x, double y, double r,
+                    const char* label, int palette) {
+    Widget k;
+    k.kind = Kind::Remote;
+    k.index = i;
+    k.plus = plus;
+    k.x = x;
+    k.y = y;
+    k.r = r;
+    k.label = label;
+    k.palette = palette;
+    widgets_.push_back(k);
+  };
+  auto rpill = [&](int i, int plus, double x, double y, double w, double h,
+                   const char* label) {
+    Widget b;
+    b.kind = Kind::RemotePill;
+    b.index = i;
+    b.plus = plus;
+    b.x = x;
+    b.y = y;
+    b.w = w;
+    b.h = h;
+    b.label = label;
+    widgets_.push_back(b);
+  };
 
   int shown = 0;
-  for (int i = 0; i < hub_.size() && shown < 8; ++i) {
+  int idx = 0;
+  for (int i = 0; i < hub_.size() && shown < kVisible; ++i) {
     if (bus_ != 0 && static_cast<int>(hub_.bus(i)) != bus_) continue;
+    if (idx++ < scroll_) continue;
     const double x = kStripX0 + shown * (kStripW + kStripGap);
     {
       Widget r;
       r.kind = Kind::Rename;
       r.index = i;
-      r.x = x + kStripW - 30;
-      r.y = kPlateY + 11;
-      r.w = 24;
+      r.x = x + kStripW - 28;
+      r.y = kStripTop + 5;
+      r.w = 22;
       r.h = 18;
       r.label = "REN";
       widgets_.push_back(r);
@@ -371,55 +481,65 @@ void Panel::layoutBus(const Shared& shared, const PanelState& state) {
       w.index = i;
       w.value = shown;
       w.x = x;
-      w.y = kPlateY + 8;
-      w.w = kStripW - 34;
+      w.y = kStripTop + 2;
+      w.w = kStripW - 32;
       w.h = 26.0;
       widgets_.push_back(w);
     }
-    struct R {
-      int plus;
-      double dx, dy, r;
-      const char* label;
-      int palette;
-    };
-    const R rows[] = {
-        {ch::kInput, 34, 108, 21, "INPUT", 0},
-        {ch::kCompThreshold, 86, 108, 21, "COMP", 0},
-        {ch::kCompMakeup, 34, 216, 21, "MAKEUP", 0},
-        {ch::kOutput, 86, 216, 21, "OUTPUT", 0},
-    };
-    for (const R& r : rows) {
-      Widget k;
-      k.kind = Kind::Remote;
-      k.index = i;
-      k.plus = r.plus;
-      k.x = x + r.dx;
-      k.y = kPlateY + r.dy;
-      k.r = r.r;
-      k.label = r.label;
-      k.palette = r.palette;
-      widgets_.push_back(k);
+    switch (view_) {
+      case 0:  // mix
+        remote(i, ch::kInput, x + 34, kStripTop + 84, 21, "INPUT", 0);
+        remote(i, ch::kCompThreshold, x + 86, kStripTop + 84, 21, "COMP", 0);
+        remote(i, ch::kCompMakeup, x + 34, kStripTop + 192, 21, "MAKEUP", 0);
+        remote(i, ch::kOutput, x + 86, kStripTop + 192, 21, "OUTPUT", 0);
+        rpill(i, ch::kCompIn, x + 16, kStripTop + 262, 48, 22, "COMP");
+        rpill(i, ch::kEqIn, x + 68, kStripTop + 262, 38, 22, "EQ");
+        break;
+      case 1:  // input / colour / filters
+        remote(i, ch::kInput, x + 34, kStripTop + 84, 21, "INPUT", 0);
+        remote(i, 4, x + 86, kStripTop + 84, 21, "COLOUR", 4);
+        remote(i, 5, x + 34, kStripTop + 192, 21, "HPF", 5);
+        remote(i, 6, x + 86, kStripTop + 192, 21, "LPF", 5);
+        rpill(i, ch::kEnabled, x + 12, kStripTop + 262, 50, 22, "POWER");
+        rpill(i, 2, x + 66, kStripTop + 262, 40, 22, "POL");
+        rpill(i, 3, x + 20, kStripTop + 294, 80, 22, "COLOUR");
+        break;
+      case 2:  // eq
+        remote(i, 9, x + 34, kStripTop + 84, 21, "LF", 1);
+        remote(i, 12, x + 86, kStripTop + 84, 21, "LMF", 0);
+        remote(i, 15, x + 34, kStripTop + 192, 21, "HMF", 3);
+        remote(i, 18, x + 86, kStripTop + 192, 21, "HF", 2);
+        rpill(i, ch::kEqIn, x + 10, kStripTop + 262, 46, 22, "EQ IN");
+        rpill(i, 7, x + 60, kStripTop + 262, 50, 22, "TYPE");
+        rpill(i, 11, x + 10, kStripTop + 294, 46, 22, "LF BELL");
+        rpill(i, 20, x + 60, kStripTop + 294, 50, 22, "HF BELL");
+        break;
+      case 3:  // dynamics
+        remote(i, ch::kCompThreshold, x + 34, kStripTop + 84, 21, "THRESH", 0);
+        remote(i, ch::kCompMakeup, x + 86, kStripTop + 84, 21, "MAKEUP", 0);
+        remote(i, 28, x + 34, kStripTop + 192, 21, "GATE THR", 3);
+        remote(i, 30, x + 86, kStripTop + 192, 21, "GATE REL", 3);
+        rpill(i, ch::kCompIn, x + 10, kStripTop + 262, 46, 22, "COMP");
+        rpill(i, 26, x + 60, kStripTop + 262, 50, 22, "AUTO");
+        rpill(i, 27, x + 10, kStripTop + 294, 46, 22, "GATE");
+        rpill(i, 25, x + 60, kStripTop + 294, 50, 22, "F.ATK");
+        break;
+      default: {  // output fader
+        Widget f;
+        f.kind = Kind::RemoteFader;
+        f.index = i;
+        f.plus = ch::kOutput;
+        f.x = x + 40;
+        f.y = kStripTop + 70;
+        f.w = 60.0;
+        f.h = 400.0;
+        f.label = "OUTPUT";
+        widgets_.push_back(f);
+        rpill(i, 37, x + 14, kStripTop + 500, 60, 22, "LIMIT");
+        rpill(i, 35, x + 78, kStripTop + 500, 32, 22, "OS");
+        break;
+      }
     }
-    Widget comp;
-    comp.kind = Kind::RemotePill;
-    comp.index = i;
-    comp.plus = ch::kCompIn;
-    comp.x = x + 16;
-    comp.y = kPlateY + 300;
-    comp.w = 48;
-    comp.h = 22;
-    comp.label = "COMP";
-    widgets_.push_back(comp);
-    Widget eq;
-    eq.kind = Kind::RemotePill;
-    eq.index = i;
-    eq.plus = ch::kEqIn;
-    eq.x = x + 68;
-    eq.y = kPlateY + 300;
-    eq.w = 38;
-    eq.h = 22;
-    eq.label = "EQ";
-    widgets_.push_back(eq);
     ++shown;
   }
 
@@ -518,6 +638,13 @@ bool Panel::pointerDown(Shared& shared, PanelState& state, double x, double y,
             : (x >= w.x && x <= w.x + w.w && y >= w.y && y <= w.y + w.h);
     if (!hit) continue;
     switch (w.kind) {
+      case Kind::View:
+        view_ = static_cast<int>(w.value);
+        return true;
+      case Kind::Scroll:
+        scroll_ = std::clamp(scroll_ + static_cast<int>(w.value), 0,
+                             maxScroll());
+        return true;
       case Kind::Page:
         if (w.value == 0.0) {
           page_ = 0;
@@ -539,6 +666,7 @@ bool Panel::pointerDown(Shared& shared, PanelState& state, double x, double y,
       case Kind::Tab:
         shared.set(P_BUS, w.value);
         bus_ = static_cast<int>(w.value + 0.5);
+        scroll_ = 0;
         return true;
       case Kind::Capture: {
         hub_.refresh();
@@ -575,6 +703,14 @@ bool Panel::pointerDown(Shared& shared, PanelState& state, double x, double y,
         }
         return true;
       }
+      case Kind::RemoteFader:
+        dragging_ = true;
+        dragKind_ = 2;
+        dragIndex_ = w.index;
+        dragPlus_ = w.plus;
+        dragY_ = y;
+        dragStart_ = hub_.value(w.index, w.plus);
+        return true;
       case Kind::Knob:
         dragging_ = true;
         dragKind_ = 0;
@@ -600,6 +736,12 @@ bool Panel::pointerMove(Shared& shared, PanelState& state, double x, double y,
   (void)x;
   (void)state;
   if (!dragging_) return false;
+  if (dragKind_ == 2) {
+    // Fader: full travel over ~380 px.
+    const double delta = (dragY_ - y) / 380.0;
+    hub_.write(dragIndex_, dragPlus_, clamp01(dragStart_ + delta));
+    return true;
+  }
   const double span = (fine || state.fine) ? 640.0 : 190.0;
   const double delta = (dragY_ - y) / span;
   const double v = clamp01(dragStart_ + delta);
@@ -721,6 +863,57 @@ void Panel::knob(cairo_t* cr, const Widget& w, double value,
        kLegend.b);
 }
 
+void Panel::fader(cairo_t* cr, const Widget& w, double value) const {
+  const double h = w.h;
+  const double top = w.y;
+  const double cx = w.x;
+  roundRect(cr, cx - 7, top, 14, h, 5);
+  setRgb(cr, {0.06, 0.07, 0.08});
+  cairo_fill(cr);
+  cairo_set_line_width(cr, 1.0);
+  cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.07);
+  roundRect(cr, cx - 6.5, top + 0.5, 13, h - 1, 5);
+  cairo_stroke(cr);
+
+  // Scale ticks.
+  static const struct {
+    double v;
+    const char* label;
+  } kTicks[] = {{1.0, "+12"}, {0.75, "0"},   {0.5, "-12"},
+                {0.25, "-24"}, {0.0, "OFF"}};
+  for (const auto& t : kTicks) {
+    const double y = top + (1.0 - t.v) * (h - 4.0) + 2.0;
+    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.12);
+    cairo_move_to(cr, cx - 9, y);
+    cairo_line_to(cr, cx - 15, y);
+    cairo_stroke(cr);
+    cairo_move_to(cr, cx + 9, y);
+    cairo_line_to(cr, cx + 15, y);
+    cairo_stroke(cr);
+  }
+
+  const double capY = top + (1.0 - clamp01(value)) * (h - 20.0);
+  cairo_pattern_t* pat = cairo_pattern_create_linear(0, capY, 0, capY + 20);
+  cairo_pattern_add_color_stop_rgb(pat, 0.0, 0.46, 0.48, 0.51);
+  cairo_pattern_add_color_stop_rgb(pat, 0.5, 0.30, 0.32, 0.35);
+  cairo_pattern_add_color_stop_rgb(pat, 1.0, 0.18, 0.19, 0.21);
+  roundRect(cr, cx - 26, capY, 52, 20, 4);
+  cairo_set_source(cr, pat);
+  cairo_fill(cr);
+  cairo_pattern_destroy(pat);
+  cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.35);
+  cairo_set_line_width(cr, 1.0);
+  cairo_move_to(cr, cx - 22, capY + 10);
+  cairo_line_to(cr, cx + 22, capY + 10);
+  cairo_stroke(cr);
+
+  char buf[24];
+  text(cr, faderText(buf, sizeof(buf), value), cx, top - 8, 9.0, 1,
+       kLegend.r, kLegend.g, kLegend.b);
+  text(cr, w.label, cx, top + h + 14, 9.0, 1, kLegend.r, kLegend.g,
+       kLegend.b);
+}
+
 void Panel::pill(cairo_t* cr, const Widget& w, const char* label,
                  bool on) const {
   roundRect(cr, w.x, w.y, w.w, w.h, 5);
@@ -816,12 +1009,7 @@ void Panel::draw(cairo_t* cr, const Shared& shared, const PanelState& state) {
 
 void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
                         const PanelState& state) {
-  int shownCount = 0;
-  for (int i = 0; i < hub_.size() && shownCount < 8; ++i) {
-    if (bus_ != 0 && static_cast<int>(hub_.bus(i)) != bus_) continue;
-    ++shownCount;
-  }
-
+  const int total = visibleCount();
   const double nowMs = std::chrono::duration<double, std::milli>(
                            std::chrono::steady_clock::now().time_since_epoch())
                            .count();
@@ -832,20 +1020,20 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
                   kBusLabels[std::clamp(bus_, 0, 8)]);
     text(cr, status, kPanelWidth - 24, 40, 9.0, 2, kAccent.r * 0.7 + 0.2,
          kAccent.g, kAccent.b);
-  } else if (hub_.size() == 0) {
-    std::snprintf(status, sizeof(status), "NO CHANNELS · %d SEGMENT%s · %d SLOT%s",
-                  hub_.segments(), hub_.segments() == 1 ? "" : "S",
-                  hub_.rawSlots(), hub_.rawSlots() == 1 ? "" : "S");
+  } else if (total == 0) {
+    std::snprintf(status, sizeof(status), "NO CHANNELS ON BUS %s",
+                  kBusLabels[std::clamp(bus_, 0, 8)]);
     text(cr, status, kPanelWidth - 24, 40, 8.5, 2, 0.80, 0.45, 0.35);
   } else {
-    std::snprintf(status, sizeof(status), "%d OF %d CHANNELS ON BUS %s",
-                  shownCount, hub_.size(),
-                  kBusLabels[std::clamp(bus_, 0, 8)]);
+    const int first = std::min(scroll_ + 1, total);
+    const int last = std::min(scroll_ + kVisible, total);
+    std::snprintf(status, sizeof(status), "SHOWING %d-%d OF %d", first, last,
+                  total);
     text(cr, status, kPanelWidth - 24, 40, 8.5, 2, kLegendDim.r, kLegendDim.g,
          kLegendDim.b);
   }
 
-  if (shownCount == 0) {
+  if (total == 0) {
     const bool anyChannels = hub_.size() > 0;
     char line1[128];
     if (anyChannels) {
@@ -856,38 +1044,40 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
     } else {
       std::snprintf(line1, sizeof(line1), "PEER SEGMENTS FOUND, NO CHANNELS");
     }
-    text(cr, line1, kStripX0 + 500, 350, 14, 1, kLegend.r, kLegend.g,
-         kLegend.b);
+    text(cr, line1, 500, 350, 14, 1, kLegend.r, kLegend.g, kLegend.b);
     if (anyChannels) {
       text(cr, "Set the BUS knob to this bus, or press CAPTURE to assign every",
-           kStripX0 + 500, 378, 9, 1, kLegendDim.r, kLegendDim.g, kLegendDim.b);
-      text(cr, "Suite Channel Plus instance to it.", kStripX0 + 500, 394, 9, 1,
+           500, 378, 9, 1, kLegendDim.r, kLegendDim.g, kLegendDim.b);
+      text(cr, "Suite Channel Plus instance to it.", 500, 394, 9, 1,
            kLegendDim.r, kLegendDim.g, kLegendDim.b);
     } else if (hub_.segments() == 0) {
-      text(cr, "Suite Channel Plus has not registered in this session.",
-           kStripX0 + 500, 378, 9, 1, kLegendDim.r, kLegendDim.g, kLegendDim.b);
-      text(cr, "Fully restart the host after installing and check that",
-           kStripX0 + 500, 394, 9, 1, kLegendDim.r, kLegendDim.g, kLegendDim.b);
-      text(cr, "Suite Channel Plus is loaded on at least one track.",
-           kStripX0 + 500, 410, 9, 1, kLegendDim.r, kLegendDim.g, kLegendDim.b);
+      text(cr, "Suite Channel Plus has not registered in this session.", 500,
+           378, 9, 1, kLegendDim.r, kLegendDim.g, kLegendDim.b);
+      text(cr, "Fully restart the host after installing and check that", 500,
+           394, 9, 1, kLegendDim.r, kLegendDim.g, kLegendDim.b);
+      text(cr, "Suite Channel Plus is loaded on at least one track.", 500, 410,
+           9, 1, kLegendDim.r, kLegendDim.g, kLegendDim.b);
     } else {
       text(cr, "Suite Channel Plus is loaded but has not registered a slot.",
-           kStripX0 + 500, 378, 9, 1, kLegendDim.r, kLegendDim.g, kLegendDim.b);
-      text(cr, "Reinstall Suite Channel Plus and restart the host.",
-           kStripX0 + 500, 394, 9, 1, kLegendDim.r, kLegendDim.g, kLegendDim.b);
+           500, 378, 9, 1, kLegendDim.r, kLegendDim.g, kLegendDim.b);
+      text(cr, "Reinstall Suite Channel Plus and restart the host.", 500, 394,
+           9, 1, kLegendDim.r, kLegendDim.g, kLegendDim.b);
     }
   }
 
+  // Strip plates.
   int shown = 0;
-  for (int i = 0; i < hub_.size() && shown < 8; ++i) {
+  int idx = 0;
+  for (int i = 0; i < hub_.size() && shown < kVisible; ++i) {
     if (bus_ != 0 && static_cast<int>(hub_.bus(i)) != bus_) continue;
+    if (idx++ < scroll_) continue;
     const double x = kStripX0 + shown * (kStripW + kStripGap);
-    roundRect(cr, x, kPlateY + 8, kStripW, kPlateH - 16, 6);
+    roundRect(cr, x, kStripTop, kStripW, kStripH, 6);
     cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.14);
     cairo_fill(cr);
     setRgb(cr, {1, 1, 1}, 0.06);
     cairo_set_line_width(cr, 1.0);
-    roundRect(cr, x + 0.5, kPlateY + 8.5, kStripW - 1, kPlateH - 17, 6);
+    roundRect(cr, x + 0.5, kStripTop + 0.5, kStripW - 1, kStripH - 1, 6);
     cairo_stroke(cr);
     ++shown;
   }
@@ -906,10 +1096,17 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
 
   for (const Widget& w : widgets_) {
     switch (w.kind) {
+      case Kind::View: {
+        const bool on = view_ == static_cast<int>(w.value);
+        pill(cr, w, w.label, on);
+        break;
+      }
+      case Kind::Scroll:
+        pill(cr, w, w.label, false);
+        break;
       case Kind::Tab: {
         const bool on = std::fabs(shared.get(P_BUS) - w.value) < 0.5;
-        Widget copy = w;
-        pill(cr, copy, w.label, on);
+        pill(cr, w, w.label, on);
         break;
       }
       case Kind::Capture:
@@ -927,15 +1124,9 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
         if (editing_ && editIndex_ == w.index) {
           std::snprintf(buf, sizeof(buf), "%s_", editText_.c_str());
         } else {
-          const char* name = hub_.name(w.index);
-          if (isDefaultName(name)) {
-            std::snprintf(buf, sizeof(buf), "CH %d",
-                          static_cast<int>(w.value) + 1);
-          } else {
-            std::snprintf(buf, sizeof(buf), "%s", name);
-          }
+          stripLabel(w.index, buf, sizeof(buf));
         }
-        text(cr, buf, w.x + w.w * 0.5, w.y + 17, 9.0, 1,
+        text(cr, buf, w.x + w.w * 0.5, w.y + 17, 8.0, 1,
              sel ? 0.96 : kLegend.r, sel ? 0.86 : kLegend.g,
              sel ? 0.62 : kLegend.b);
         break;
@@ -966,12 +1157,39 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
         const double v = hub_.value(w.index, w.plus);
         char buf[24];
         const char* ro = nullptr;
-        if (w.plus == ch::kCompThreshold) {
-          ro = dbText(buf, sizeof(buf), v, 10.0, -20.0);
-        } else if (w.plus == ch::kCompMakeup) {
-          ro = dbText(buf, sizeof(buf), v, -9.0, 9.0);
-        } else {
-          ro = dbText(buf, sizeof(buf), v, -18.0, 18.0);
+        switch (w.plus) {
+          case ch::kCompThreshold:
+            ro = dbText(buf, sizeof(buf), v, 10.0, -20.0);
+            break;
+          case ch::kCompMakeup:
+            ro = dbText(buf, sizeof(buf), v, -9.0, 9.0);
+            break;
+          case ch::kInput:
+          case ch::kOutput:
+            ro = dbText(buf, sizeof(buf), v, -18.0, 18.0);
+            break;
+          case 4:
+            ro = pctText(buf, sizeof(buf), v);
+            break;
+          case 5:
+          case 6:
+            ro = (v <= 0.001) ? "OUT" : dbText(buf, sizeof(buf), v, 16.0, 350.0);
+            break;
+          case 9:
+          case 12:
+          case 15:
+          case 18:
+            ro = dbText(buf, sizeof(buf), v, -15.0, 15.0);
+            break;
+          case 28:
+            ro = dbText(buf, sizeof(buf), v, -30.0, 10.0);
+            break;
+          case 30:
+            ro = dbText(buf, sizeof(buf), v, 0.1, 4.0);
+            break;
+          default:
+            ro = dbText(buf, sizeof(buf), v, -15.0, 15.0);
+            break;
         }
         knob(cr, w, v, ro, w.palette);
         break;
@@ -986,6 +1204,9 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
         }
         break;
       }
+      case Kind::RemoteFader:
+        fader(cr, w, hub_.value(w.index, w.plus));
+        break;
       case Kind::Pill: {
         bool on = shared.get(w.param) > 0.5;
         const char* label = w.label;
@@ -1001,21 +1222,30 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
     }
   }
 
+  // Meters under the strip controls.
   shown = 0;
-  for (int i = 0; i < hub_.size() && shown < 8; ++i) {
+  idx = 0;
+  for (int i = 0; i < hub_.size() && shown < kVisible; ++i) {
     if (bus_ != 0 && static_cast<int>(hub_.bus(i)) != bus_) continue;
+    if (idx++ < scroll_) continue;
     const double x = kStripX0 + shown * (kStripW + kStripGap);
     float inL = 0, inR = 0, outL = 0, outR = 0, gr = 0;
     hub_.meter(i, &inL, &inR, &outL, &outR, &gr);
-    meter(cr, x + 8, kPlateY + 356, 44, 190, inL, inR);
-    meter(cr, x + 68, kPlateY + 356, 44, 190, outL, outR);
-    text(cr, "IN", x + 30, kPlateY + 558, 7.5, 1, kLegendDim.r, kLegendDim.g,
-         kLegendDim.b);
-    text(cr, "OUT", x + 90, kPlateY + 558, 7.5, 1, kLegendDim.r, kLegendDim.g,
-         kLegendDim.b);
-    grMeter(cr, x + 8, kPlateY + 572, 104, 8, gr);
-    text(cr, "GR", x + 8, kPlateY + 596, 7.0, 0, kLegendDim.r, kLegendDim.g,
-         kLegendDim.b);
+    if (view_ == 4) {
+      meter(cr, x + 92, kStripTop + 70, 16, 400, outL, outR);
+      text(cr, "OUT", x + 100, kStripTop + 484, 7.0, 1, kLegendDim.r,
+           kLegendDim.g, kLegendDim.b);
+    } else {
+      meter(cr, x + 8, kStripTop + 340, 44, 170, inL, inR);
+      meter(cr, x + 68, kStripTop + 340, 44, 170, outL, outR);
+      text(cr, "IN", x + 30, kStripTop + 524, 7.5, 1, kLegendDim.r,
+           kLegendDim.g, kLegendDim.b);
+      text(cr, "OUT", x + 90, kStripTop + 524, 7.5, 1, kLegendDim.r,
+           kLegendDim.g, kLegendDim.b);
+      grMeter(cr, x + 8, kStripTop + 540, 104, 8, gr);
+      text(cr, "GR", x + 8, kStripTop + 564, 7.0, 0, kLegendDim.r,
+           kLegendDim.g, kLegendDim.b);
+    }
     ++shown;
   }
 
@@ -1038,13 +1268,8 @@ void Panel::drawDetailPage(cairo_t* cr, const Shared& shared,
     page_ = 0;
     return;
   }
-  const char* name = hub_.name(detail_);
   char title[96];
-  if (isDefaultName(name)) {
-    std::snprintf(title, sizeof(title), "CHANNEL %d", detail_ + 1);
-  } else {
-    std::snprintf(title, sizeof(title), "%s", name);
-  }
+  stripLabel(detail_, title, sizeof(title));
   text(cr, title, 560, 100, 15, 1, kLegend.r, kLegend.g, kLegend.b);
 
   for (const Widget& w : widgets_) {
@@ -1054,8 +1279,6 @@ void Panel::drawDetailPage(cairo_t* cr, const Shared& shared,
         pill(cr, w, "< MIX BUS", false);
       } else {
         std::snprintf(label, sizeof(label), "%d", w.index + 1);
-        const char* chan = hub_.name(w.index);
-        (void)chan;
         pill(cr, w, label, w.index == detail_);
       }
       continue;

@@ -151,6 +151,10 @@ private:
         if (ev.xbutton.button == Button1) {
           panel_.pointerDown(shared_, state, ev.xbutton.x, ev.xbutton.y,
                              (ev.xbutton.state & ShiftMask) != 0);
+        } else if (ev.xbutton.button == Button4) {
+          panel_.wheel(shared_, state, ev.xbutton.x, ev.xbutton.y, 1.0);
+        } else if (ev.xbutton.button == Button5) {
+          panel_.wheel(shared_, state, ev.xbutton.x, ev.xbutton.y, -1.0);
         }
         break;
       case ButtonRelease:
