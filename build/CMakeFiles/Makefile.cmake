@@ -58,6 +58,11 @@ set(CMAKE_MAKEFILE_PRODUCTS
 set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/suite_control.dir/DependInfo.cmake"
   "CMakeFiles/suite_control_bundle.dir/DependInfo.cmake"
+  "CMakeFiles/suite_control_lv2.dir/DependInfo.cmake"
+  "CMakeFiles/suite_control_lv2_ui.dir/DependInfo.cmake"
+  "CMakeFiles/suite_control_ttl_gen.dir/DependInfo.cmake"
+  "CMakeFiles/suite_control_lv2_bundle.dir/DependInfo.cmake"
+  "CMakeFiles/suite_lv2_host_test.dir/DependInfo.cmake"
   "CMakeFiles/suite_control_dsp_test.dir/DependInfo.cmake"
   "CMakeFiles/suite_control_preview.dir/DependInfo.cmake"
   "CMakeFiles/suite_control_panel_test.dir/DependInfo.cmake"

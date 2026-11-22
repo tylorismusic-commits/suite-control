@@ -87,6 +87,7 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o: /home/tylor/P
   /usr/include/bits/byteswap.h \
   /usr/include/bits/cloexec.h \
   /usr/include/bits/confname.h \
+  /usr/include/bits/cpu-set.h \
   /usr/include/bits/dirent.h \
   /usr/include/bits/dirent_ext.h \
   /usr/include/bits/dl_find_object.h \
@@ -126,7 +127,9 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o: /home/tylor/P
   /usr/include/bits/pthread_stack_min-dynamic.h \
   /usr/include/bits/pthreadtypes-arch.h \
   /usr/include/bits/pthreadtypes.h \
+  /usr/include/bits/sched.h \
   /usr/include/bits/select.h \
+  /usr/include/bits/setjmp.h \
   /usr/include/bits/sigaction.h \
   /usr/include/bits/sigcontext.h \
   /usr/include/bits/sigevent-consts.h \
@@ -180,8 +183,10 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o: /home/tylor/P
   /usr/include/bits/types/sigval_t.h \
   /usr/include/bits/types/stack_t.h \
   /usr/include/bits/types/struct_FILE.h \
+  /usr/include/bits/types/struct___jmp_buf_tag.h \
   /usr/include/bits/types/struct_iovec.h \
   /usr/include/bits/types/struct_itimerspec.h \
+  /usr/include/bits/types/struct_sched_param.h \
   /usr/include/bits/types/struct_sigstack.h \
   /usr/include/bits/types/struct_statx.h \
   /usr/include/bits/types/struct_statx_timestamp.h \
@@ -234,9 +239,11 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o: /home/tylor/P
   /usr/include/c++/16/bits/predefined_ops.h \
   /usr/include/c++/16/bits/ptr_traits.h \
   /usr/include/c++/16/bits/range_access.h \
+  /usr/include/c++/16/bits/refwrap.h \
   /usr/include/c++/16/bits/requires_hosted.h \
   /usr/include/c++/16/bits/specfun.h \
   /usr/include/c++/16/bits/std_abs.h \
+  /usr/include/c++/16/bits/std_thread.h \
   /usr/include/c++/16/bits/stdexcept_throw.h \
   /usr/include/c++/16/bits/stdexcept_throwfwd.h \
   /usr/include/c++/16/bits/stl_algo.h \
@@ -254,7 +261,9 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o: /home/tylor/P
   /usr/include/c++/16/bits/stl_vector.h \
   /usr/include/c++/16/bits/string_view.tcc \
   /usr/include/c++/16/bits/stringfwd.h \
+  /usr/include/c++/16/bits/this_thread_sleep.h \
   /usr/include/c++/16/bits/uniform_int_dist.h \
+  /usr/include/c++/16/bits/unique_ptr.h \
   /usr/include/c++/16/bits/uses_allocator.h \
   /usr/include/c++/16/bits/uses_allocator_args.h \
   /usr/include/c++/16/bits/utility.h \
@@ -289,6 +298,7 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o: /home/tylor/P
   /usr/include/c++/16/ratio \
   /usr/include/c++/16/string \
   /usr/include/c++/16/string_view \
+  /usr/include/c++/16/thread \
   /usr/include/c++/16/tr1/bessel_function.tcc \
   /usr/include/c++/16/tr1/beta_function.tcc \
   /usr/include/c++/16/tr1/ell_integral.tcc \
@@ -308,6 +318,8 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o: /home/tylor/P
   /usr/include/c++/16/x86_64-pc-linux-gnu/bits/c++config.h \
   /usr/include/c++/16/x86_64-pc-linux-gnu/bits/c++locale.h \
   /usr/include/c++/16/x86_64-pc-linux-gnu/bits/cpu_defines.h \
+  /usr/include/c++/16/x86_64-pc-linux-gnu/bits/gthr-default.h \
+  /usr/include/c++/16/x86_64-pc-linux-gnu/bits/gthr.h \
   /usr/include/c++/16/x86_64-pc-linux-gnu/bits/os_defines.h \
   /usr/include/ctype.h \
   /usr/include/dirent.h \
@@ -325,11 +337,14 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o: /home/tylor/P
   /usr/include/linux/limits.h \
   /usr/include/linux/openat2.h \
   /usr/include/linux/posix_types.h \
+  /usr/include/linux/sched/types.h \
   /usr/include/linux/stat.h \
   /usr/include/linux/stddef.h \
   /usr/include/linux/types.h \
   /usr/include/locale.h \
   /usr/include/math.h \
+  /usr/include/pthread.h \
+  /usr/include/sched.h \
   /usr/include/signal.h \
   /usr/include/stdc-predef.h \
   /usr/include/stdint.h \
@@ -406,6 +421,8 @@ suite_peer_integration: /usr/lib/Scrt1.o \
 
 /usr/include/stdlib.h:
 
+/usr/include/pthread.h:
+
 /usr/include/math.h:
 
 /usr/include/locale.h:
@@ -436,13 +453,15 @@ suite_peer_integration: /usr/lib/Scrt1.o \
 
 /usr/include/c++/16/x86_64-pc-linux-gnu/bits/os_defines.h:
 
+/usr/include/c++/16/x86_64-pc-linux-gnu/bits/gthr.h:
+
+/usr/include/c++/16/x86_64-pc-linux-gnu/bits/gthr-default.h:
+
 /usr/include/c++/16/x86_64-pc-linux-gnu/bits/cpu_defines.h:
 
 /usr/lib/gcc/x86_64-pc-linux-gnu/16/include/stdarg.h:
 
 /usr/include/c++/16/x86_64-pc-linux-gnu/bits/c++locale.h:
-
-/usr/include/c++/16/x86_64-pc-linux-gnu/bits/c++config.h:
 
 /usr/include/c++/16/x86_64-pc-linux-gnu/bits/c++allocator.h:
 
@@ -462,6 +481,8 @@ suite_peer_integration: /usr/lib/Scrt1.o \
 
 /usr/include/c++/16/tr1/beta_function.tcc:
 
+/usr/include/c++/16/thread:
+
 /usr/include/c++/16/string:
 
 /usr/include/c++/16/limits:
@@ -472,9 +493,9 @@ suite_peer_integration: /usr/lib/Scrt1.o \
 
 /usr/include/c++/16/debug/assertions.h:
 
-/usr/include/c++/16/cwchar:
+/usr/include/linux/sched/types.h:
 
-/usr/include/c++/16/ctime:
+/usr/include/c++/16/cwchar:
 
 /usr/include/c++/16/cstdio:
 
@@ -492,7 +513,25 @@ suite_peer_integration: /usr/lib/Scrt1.o \
 
 /usr/include/c++/16/bits/version.h:
 
-/usr/include/bits/select.h:
+/usr/include/c++/16/bits/utility.h:
+
+/usr/include/c++/16/bits/uses_allocator_args.h:
+
+/usr/include/c++/16/bits/unique_ptr.h:
+
+/usr/include/c++/16/bits/uniform_int_dist.h:
+
+/usr/include/c++/16/bits/stringfwd.h:
+
+/usr/include/c++/16/bits/string_view.tcc:
+
+/home/tylor/Projects/suite-control/third_party/clap/include/clap/ext/draft/triggers.h:
+
+/usr/include/bits/types/siginfo_t.h:
+
+/usr/include/c++/16/bits/memoryfwd.h:
+
+/usr/include/c++/16/bits/stl_construct.h:
 
 /usr/include/bits/pthreadtypes-arch.h:
 
@@ -516,8 +555,6 @@ suite_peer_integration: /usr/lib/Scrt1.o \
 
 /usr/include/alloca.h:
 
-/usr/include/bits/mathcalls-narrow.h:
-
 /usr/include/bits/signum-arch.h:
 
 /usr/include/bits/long-double.h:
@@ -529,14 +566,6 @@ suite_peer_integration: /usr/lib/Scrt1.o \
 /home/tylor/Projects/suite-control/third_party/clap/include/clap/stream.h:
 
 /usr/include/bits/libc-header-start.h:
-
-/usr/include/bits/sigaction.h:
-
-/usr/include/sys/stat.h:
-
-/home/tylor/Projects/suite-control/third_party/clap/include/clap/ext/audio-ports.h:
-
-/usr/include/c++/16/bits/cpp_type_traits.h:
 
 /usr/include/bits/iscanonical.h:
 
@@ -550,11 +579,17 @@ suite_peer_integration: /usr/lib/Scrt1.o \
 
 /usr/include/bits/fp-logb.h:
 
+/usr/include/c++/16/bits/stl_vector.h:
+
+/usr/include/asm-generic/errno.h:
+
 /home/tylor/Projects/suite-control/third_party/clap/include/clap/clap.h:
 
 /usr/include/wchar.h:
 
 /usr/include/bits/posix1_lim.h:
+
+/usr/include/sched.h:
 
 /usr/include/c++/16/tr1/hypergeometric.tcc:
 
@@ -592,6 +627,10 @@ suite_peer_integration: /usr/lib/Scrt1.o \
 
 /usr/include/bits/dirent_ext.h:
 
+/home/tylor/Projects/suite-control/third_party/clap/include/clap/ext/state.h:
+
+/usr/include/c++/16/bits/atomic_lockfree_defines.h:
+
 /usr/include/bits/byteswap.h:
 
 /usr/include/c++/16/bits/requires_hosted.h:
@@ -599,6 +638,10 @@ suite_peer_integration: /usr/lib/Scrt1.o \
 /usr/include/asm/posix_types_64.h:
 
 /usr/include/asm/bitsperlong.h:
+
+/usr/include/c++/16/bits/uses_allocator.h:
+
+/usr/include/asm-generic/posix_types.h:
 
 /usr/include/asm-generic/int-ll64.h:
 
@@ -636,10 +679,6 @@ suite_peer_integration: /usr/lib/Scrt1.o \
 
 /usr/include/bits/mman-map-flags-generic.h:
 
-/home/tylor/Projects/suite-control/third_party/clap/include/clap/ext/state.h:
-
-/usr/include/c++/16/bits/atomic_lockfree_defines.h:
-
 /home/tylor/Projects/suite-control/third_party/clap/include/clap/ext/draft/param-hovered.h:
 
 /usr/include/c++/16/clocale:
@@ -653,14 +692,6 @@ suite_peer_integration: /usr/lib/Scrt1.o \
 /home/tylor/Projects/suite-control/third_party/clap/include/clap/ext/draft/mini-curve-display.h:
 
 /home/tylor/Projects/suite-control/third_party/clap/include/clap/ext/posix-fd-support.h:
-
-/home/tylor/Projects/suite-control/third_party/clap/include/clap/ext/draft/triggers.h:
-
-/usr/include/bits/types/siginfo_t.h:
-
-/usr/include/c++/16/bits/memoryfwd.h:
-
-/usr/include/c++/16/bits/stl_construct.h:
 
 /home/tylor/Projects/suite-control/third_party/clap/include/clap/plugin.h:
 
@@ -720,10 +751,6 @@ suite_peer_integration: /usr/lib/Scrt1.o \
 
 /home/tylor/Projects/suite-control/third_party/clap/include/clap/ext/param-indication.h:
 
-/usr/include/asm-generic/errno.h:
-
-/usr/include/c++/16/bits/stl_vector.h:
-
 /home/tylor/Projects/suite-control/third_party/clap/include/clap/ext/configurable-audio-ports.h:
 
 /home/tylor/Projects/suite-control/third_party/clap/include/clap/ext/draft/project-location.h:
@@ -742,11 +769,11 @@ suite_peer_integration: /usr/lib/Scrt1.o \
 
 /home/tylor/Projects/suite-control/third_party/clap/include/clap/ext/draft/undo.h:
 
+/usr/include/bits/types/struct_sched_param.h:
+
 /usr/include/bits/openat2.h:
 
 /usr/include/c++/16/bits/cxxabi_forced.h:
-
-/usr/include/c++/16/bits/uniform_int_dist.h:
 
 /home/tylor/Projects/suite-control/third_party/clap/include/clap/ext/draft/background-activation.h:
 
@@ -774,8 +801,6 @@ suite_peer_integration: /usr/lib/Scrt1.o \
 
 /home/tylor/Projects/suite-control/third_party/clap/include/clap/ext/draft/extensible-audio-ports.h:
 
-/usr/include/c++/16/bits/uses_allocator_args.h:
-
 /usr/include/c++/16/tr1/riemann_zeta.tcc:
 
 /usr/include/c++/16/initializer_list:
@@ -783,6 +808,8 @@ suite_peer_integration: /usr/lib/Scrt1.o \
 /usr/include/bits/types/struct_sigstack.h:
 
 /usr/include/bits/dlfcn.h:
+
+/usr/include/bits/cpu-set.h:
 
 /home/tylor/Projects/suite-control/third_party/clap/include/clap/ext/latency.h:
 
@@ -818,6 +845,14 @@ suite_peer_integration: /usr/lib/Scrt1.o \
 
 /home/tylor/Projects/suite-control/third_party/clap/include/clap/ext/tail.h:
 
+/usr/include/sys/stat.h:
+
+/home/tylor/Projects/suite-control/third_party/clap/include/clap/ext/audio-ports.h:
+
+/usr/include/bits/sigaction.h:
+
+/usr/include/c++/16/bits/cpp_type_traits.h:
+
 /home/tylor/Projects/suite-control/third_party/clap/include/clap/audio-buffer.h:
 
 /usr/include/bits/types/struct_FILE.h:
@@ -838,15 +873,17 @@ suite_peer_integration: /usr/lib/Scrt1.o \
 
 /usr/include/c++/16/bits/stl_bvector.h:
 
-/usr/include/asm-generic/posix_types.h:
-
-/usr/include/c++/16/bits/uses_allocator.h:
-
 /usr/include/c++/16/bits/predefined_ops.h:
 
 /home/tylor/Projects/suite-control/third_party/clap/include/clap/ext/surround.h:
 
 /home/tylor/Projects/suite-control/third_party/clap/include/clap/plugin-features.h:
+
+/usr/include/bits/select.h:
+
+/usr/include/c++/16/x86_64-pc-linux-gnu/bits/c++config.h:
+
+/usr/include/bits/setjmp.h:
 
 /usr/include/bits/sigcontext.h:
 
@@ -881,6 +918,8 @@ suite_peer_integration: /usr/lib/Scrt1.o \
 /usr/include/bits/stat.h:
 
 /usr/include/c++/16/bits/stl_heap.h:
+
+/usr/include/c++/16/bits/this_thread_sleep.h:
 
 /usr/include/bits/statx-generic.h:
 
@@ -944,15 +983,13 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o:
 
 /usr/include/bits/timesize.h:
 
-/usr/include/bits/wchar.h:
-
-/usr/include/bits/waitstatus.h:
-
 /usr/include/bits/dl_find_object.h:
 
 /usr/include/bits/types.h:
 
 /usr/include/features.h:
+
+/usr/include/bits/sched.h:
 
 /usr/include/bits/types/__FILE.h:
 
@@ -1009,6 +1046,12 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o:
 /usr/include/c++/16/bits/memory_resource.h:
 
 /usr/include/bits/types/sigval_t.h:
+
+/usr/include/bits/wchar.h:
+
+/usr/include/bits/waitstatus.h:
+
+/usr/include/bits/types/struct___jmp_buf_tag.h:
 
 /usr/include/c++/16/cctype:
 
@@ -1070,8 +1113,6 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o:
 
 /usr/include/c++/16/bits/hash_bytes.h:
 
-/usr/include/c++/16/bits/utility.h:
-
 /usr/include/c++/16/bits/stdexcept_throwfwd.h:
 
 /usr/include/c++/16/bits/invoke.h:
@@ -1081,6 +1122,14 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o:
 /usr/include/c++/16/bits/new_allocator.h:
 
 /usr/include/c++/16/bits/new_except.h:
+
+/usr/include/bits/mathcalls-narrow.h:
+
+/usr/include/c++/16/bits/refwrap.h:
+
+/usr/include/c++/16/ctime:
+
+/usr/include/c++/16/bits/std_thread.h:
 
 /usr/include/c++/16/bits/stdexcept_throw.h:
 
@@ -1103,7 +1152,3 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o:
 /usr/include/c++/16/bits/stl_iterator_base_types.h:
 
 /usr/include/c++/16/bits/stl_uninitialized.h:
-
-/usr/include/c++/16/bits/string_view.tcc:
-
-/usr/include/c++/16/bits/stringfwd.h:

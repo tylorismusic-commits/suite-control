@@ -1,6 +1,6 @@
 # Suite Control
 
-**Version 0.1.0** · GPL-3.0-or-later · CLAP · Linux
+**Version 0.1.0** · GPL-3.0-or-later · CLAP + LV2 · Linux
 
 Suite Control lives on a folder or group track. It does two jobs:
 
@@ -23,6 +23,14 @@ Only Suite Channel Plus registers - plain Suite Channel is never affected.
 
 If the host runs plug-ins in separate processes the registry cannot be shared;
 Suite Control then still works as a mix bus but shows no strips.
+
+## LV2
+
+The LV2 bundle is `build/lv2/suite-control.lv2` (plugin + X11 UI).  Install it
+to `~/.lv2/suite-control.lv2` and rescan.  Parameter state is saved by the host
+through the control ports.  The channel **name table and mute states** are
+CLAP-only for now: LV2 has no place to store them without a custom state
+property, so in LV2 they last for the session.
 
 ## Requirements
 

@@ -25,6 +25,7 @@ find_package(Threads REQUIRED)
 pkg_check_modules(CAIRO REQUIRED IMPORTED_TARGET cairo)
 pkg_check_modules(FREETYPE REQUIRED IMPORTED_TARGET freetype2)
 pkg_check_modules(X11 REQUIRED IMPORTED_TARGET x11)
+pkg_check_modules(LV2 REQUIRED IMPORTED_TARGET lv2)
 
 set(SUITE_UI_SOURCES src/ui/panel.cpp)
 set(SUITE_DSP_SOURCES third_party/dusk-4k/FourKEQDSP.cpp)
@@ -60,6 +61,62 @@ add_custom_target(suite_control_bundle ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SUITE_RESOURCE_FILES}
           "${CLAP_RES}/"
   DEPENDS suite_control ${SUITE_RESOURCE_FILES})
+
+# ---------------------------------------------------------------------------
+# LV2 bundle
+# ---------------------------------------------------------------------------
+set(SC_LV2_DIR "${CMAKE_BINARY_DIR}/lv2/suite-control.lv2")
+
+add_library(suite_control_lv2 MODULE
+  src/suite_control_lv2.cpp
+  ${SUITE_DSP_SOURCES})
+target_include_directories(suite_control_lv2 PRIVATE
+  "${CMAKE_SOURCE_DIR}/src" "${HEARTH_DSP_DIR}/include" "${DUSK_EQ_DIR}")
+target_link_libraries(suite_control_lv2 PRIVATE PkgConfig::LV2)
+target_compile_features(suite_control_lv2 PRIVATE cxx_std_17)
+set_target_properties(suite_control_lv2 PROPERTIES
+  PREFIX ""
+  OUTPUT_NAME "suite_control"
+  LIBRARY_OUTPUT_DIRECTORY "${SC_LV2_DIR}")
+
+add_library(suite_control_lv2_ui MODULE
+  src/ui/lv2_ui.cpp
+  ${SUITE_UI_SOURCES})
+target_include_directories(suite_control_lv2_ui PRIVATE
+  "${CMAKE_SOURCE_DIR}/src" "${HEARTH_DSP_DIR}/include" "${DUSK_EQ_DIR}")
+target_link_libraries(suite_control_lv2_ui PRIVATE
+  PkgConfig::LV2 PkgConfig::CAIRO PkgConfig::FREETYPE PkgConfig::X11)
+target_compile_features(suite_control_lv2_ui PRIVATE cxx_std_17)
+set_target_properties(suite_control_lv2_ui PROPERTIES
+  PREFIX ""
+  OUTPUT_NAME "suite_control_ui"
+  LIBRARY_OUTPUT_DIRECTORY "${SC_LV2_DIR}")
+
+add_executable(suite_control_ttl_gen tools/gen_ttl.cpp)
+target_include_directories(suite_control_ttl_gen PRIVATE
+  "${CMAKE_SOURCE_DIR}/src" "${HEARTH_DSP_DIR}/include" "${DUSK_EQ_DIR}")
+target_compile_features(suite_control_ttl_gen PRIVATE cxx_std_17)
+
+add_custom_target(suite_control_lv2_bundle ALL
+  COMMAND ${CMAKE_COMMAND} -E make_directory "${SC_LV2_DIR}"
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          "${CMAKE_SOURCE_DIR}/lv2/manifest.ttl"
+          "${CMAKE_SOURCE_DIR}/lv2/suite_control.ttl"
+          "${SC_LV2_DIR}/"
+  DEPENDS suite_control_lv2 suite_control_lv2_ui)
+
+add_test(NAME suite_control_ttl
+  COMMAND suite_control_ttl_gen --check --root "${CMAKE_SOURCE_DIR}")
+
+add_executable(suite_lv2_host_test test/lv2_host_test.cpp)
+target_include_directories(suite_lv2_host_test PRIVATE
+  "${CMAKE_SOURCE_DIR}/src")
+target_link_libraries(suite_lv2_host_test PRIVATE
+  PkgConfig::LV2 ${CMAKE_DL_LIBS})
+target_compile_features(suite_lv2_host_test PRIVATE cxx_std_17)
+add_dependencies(suite_lv2_host_test suite_control_lv2_bundle)
+add_test(NAME suite_lv2_host
+  COMMAND suite_lv2_host_test "${SC_LV2_DIR}/suite_control.so")
 
 # ---------------------------------------------------------------------------
 # Tests

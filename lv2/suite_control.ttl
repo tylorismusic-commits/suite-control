@@ -1,0 +1,364 @@
+@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix units: <http://lv2plug.in/ns/ext/units#> .
+@prefix ui:   <http://lv2plug.in/ns/extensions/ui#> .
+
+<https://github.com/tylorismusic-commits/suite-control>
+    a lv2:Plugin , lv2:CompressorPlugin , lv2:EQPlugin ;
+    doap:name "Suite Control" ;
+    doap:license <http://opensource.org/licenses/GPL-3.0> ;
+    lv2:optionalFeature lv2:hardRTCapable ;
+    lv2:port
+        [ a lv2:AudioPort , lv2:InputPort ;
+          lv2:index 0 ;
+          lv2:symbol "in_l" ;
+          lv2:name "In L" ] ,
+        [ a lv2:AudioPort , lv2:InputPort ;
+          lv2:index 1 ;
+          lv2:symbol "in_r" ;
+          lv2:name "In R" ] ,
+        [ a lv2:AudioPort , lv2:OutputPort ;
+          lv2:index 2 ;
+          lv2:symbol "out_l" ;
+          lv2:name "Out L" ] ,
+        [ a lv2:AudioPort , lv2:OutputPort ;
+          lv2:index 3 ;
+          lv2:symbol "out_r" ;
+          lv2:name "Out R" ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 4 ;
+          lv2:symbol "comp_in" ;
+          lv2:name "Comp In" ;
+          lv2:default 1 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          lv2:portProperty lv2:toggled ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 5 ;
+          lv2:symbol "comp_threshold" ;
+          lv2:name "Threshold" ;
+          lv2:default 0.72 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          units:unit units:db ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 6 ;
+          lv2:symbol "comp_ratio" ;
+          lv2:name "Ratio" ;
+          lv2:default 0 ;
+          lv2:minimum 0 ;
+          lv2:maximum 2 ;
+          lv2:portProperty lv2:integer ;
+          lv2:scalePoint
+            [ rdfs:label "2" ; rdf:value 0 ] ,
+            [ rdfs:label "4" ; rdf:value 1 ] ,
+            [ rdfs:label "10" ; rdf:value 2 ] ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 7 ;
+          lv2:symbol "comp_attack" ;
+          lv2:name "Attack" ;
+          lv2:default 0.35 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          units:unit units:ms ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 8 ;
+          lv2:symbol "comp_release" ;
+          lv2:name "Release" ;
+          lv2:default 0.45 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          units:unit units:ms ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 9 ;
+          lv2:symbol "comp_auto" ;
+          lv2:name "Auto Release" ;
+          lv2:default 1 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          lv2:portProperty lv2:toggled ;
+          lv2:scalePoint
+            [ rdfs:label "MAN" ; rdf:value 0 ] ,
+            [ rdfs:label "AUTO" ; rdf:value 1 ] ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 10 ;
+          lv2:symbol "comp_mix" ;
+          lv2:name "Parallel" ;
+          lv2:default 1 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          units:unit units:pc ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 11 ;
+          lv2:symbol "eq_in" ;
+          lv2:name "EQ In" ;
+          lv2:default 1 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          lv2:portProperty lv2:toggled ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 12 ;
+          lv2:symbol "eq_type" ;
+          lv2:name "EQ Type" ;
+          lv2:default 0 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          lv2:portProperty lv2:toggled ;
+          lv2:scalePoint
+            [ rdfs:label "Brown" ; rdf:value 0 ] ,
+            [ rdfs:label "Black" ; rdf:value 1 ] ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 13 ;
+          lv2:symbol "eq_lf_gain" ;
+          lv2:name "LF Gain" ;
+          lv2:default 0.5 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          units:unit units:db ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 14 ;
+          lv2:symbol "eq_lf_freq" ;
+          lv2:name "LF Freq" ;
+          lv2:default 0.55 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          units:unit units:hz ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 15 ;
+          lv2:symbol "eq_lf_bell" ;
+          lv2:name "LF Bell" ;
+          lv2:default 0 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          lv2:portProperty lv2:toggled ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 16 ;
+          lv2:symbol "eq_lm_gain" ;
+          lv2:name "LMF Gain" ;
+          lv2:default 0.5 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          units:unit units:db ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 17 ;
+          lv2:symbol "eq_lm_freq" ;
+          lv2:name "LMF Freq" ;
+          lv2:default 0.45 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          units:unit units:hz ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 18 ;
+          lv2:symbol "eq_lm_q" ;
+          lv2:name "LMF Q" ;
+          lv2:default 0.4 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 19 ;
+          lv2:symbol "eq_hm_gain" ;
+          lv2:name "HMF Gain" ;
+          lv2:default 0.5 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          units:unit units:db ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 20 ;
+          lv2:symbol "eq_hm_freq" ;
+          lv2:name "HMF Freq" ;
+          lv2:default 0.55 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          units:unit units:hz ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 21 ;
+          lv2:symbol "eq_hm_q" ;
+          lv2:name "HMF Q" ;
+          lv2:default 0.4 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 22 ;
+          lv2:symbol "eq_hf_gain" ;
+          lv2:name "HF Gain" ;
+          lv2:default 0.5 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          units:unit units:db ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 23 ;
+          lv2:symbol "eq_hf_freq" ;
+          lv2:name "HF Freq" ;
+          lv2:default 0.6 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          units:unit units:hz ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 24 ;
+          lv2:symbol "eq_hf_bell" ;
+          lv2:name "HF Bell" ;
+          lv2:default 0 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          lv2:portProperty lv2:toggled ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 25 ;
+          lv2:symbol "sum_amount" ;
+          lv2:name "Summing" ;
+          lv2:default 0.35 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          units:unit units:pc ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 26 ;
+          lv2:symbol "input" ;
+          lv2:name "Input" ;
+          lv2:default 0.5 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          units:unit units:db ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 27 ;
+          lv2:symbol "output" ;
+          lv2:name "Output" ;
+          lv2:default 0.5 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          units:unit units:db ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 28 ;
+          lv2:symbol "limiter" ;
+          lv2:name "Limiter" ;
+          lv2:default 0 ;
+          lv2:minimum 0 ;
+          lv2:maximum 1 ;
+          lv2:portProperty lv2:toggled ;
+        ] ,
+        [ a lv2:ControlPort , lv2:InputPort ;
+          lv2:index 29 ;
+          lv2:symbol "bus" ;
+          lv2:name "Control Bus" ;
+          lv2:default 1 ;
+          lv2:minimum 0 ;
+          lv2:maximum 8 ;
+          lv2:portProperty lv2:integer ;
+          lv2:scalePoint
+            [ rdfs:label "All" ; rdf:value 0 ] ,
+            [ rdfs:label "A" ; rdf:value 1 ] ,
+            [ rdfs:label "B" ; rdf:value 2 ] ,
+            [ rdfs:label "C" ; rdf:value 3 ] ,
+            [ rdfs:label "D" ; rdf:value 4 ] ,
+            [ rdfs:label "E" ; rdf:value 5 ] ,
+            [ rdfs:label "F" ; rdf:value 6 ] ,
+            [ rdfs:label "G" ; rdf:value 7 ] ,
+            [ rdfs:label "H" ; rdf:value 8 ] ;
+        ] ,
+        [ a lv2:ControlPort , lv2:OutputPort ;
+          lv2:index 30 ;
+          lv2:symbol "gr" ;
+          lv2:name "Gain Reduction" ;
+          lv2:default 0 ;
+          lv2:minimum -120 ;
+          lv2:maximum 120 ] ,
+        [ a lv2:ControlPort , lv2:OutputPort ;
+          lv2:index 31 ;
+          lv2:symbol "in_peak_l" ;
+          lv2:name "Input Peak L" ;
+          lv2:default 0 ;
+          lv2:minimum -120 ;
+          lv2:maximum 120 ] ,
+        [ a lv2:ControlPort , lv2:OutputPort ;
+          lv2:index 32 ;
+          lv2:symbol "in_peak_r" ;
+          lv2:name "Input Peak R" ;
+          lv2:default 0 ;
+          lv2:minimum -120 ;
+          lv2:maximum 120 ] ,
+        [ a lv2:ControlPort , lv2:OutputPort ;
+          lv2:index 33 ;
+          lv2:symbol "out_peak_l" ;
+          lv2:name "Output Peak L" ;
+          lv2:default 0 ;
+          lv2:minimum -120 ;
+          lv2:maximum 120 ] ,
+        [ a lv2:ControlPort , lv2:OutputPort ;
+          lv2:index 34 ;
+          lv2:symbol "out_peak_r" ;
+          lv2:name "Output Peak R" ;
+          lv2:default 0 ;
+          lv2:minimum -120 ;
+          lv2:maximum 120 ] ,
+        [ a lv2:ControlPort , lv2:OutputPort ;
+          lv2:index 35 ;
+          lv2:symbol "latency" ;
+          lv2:name "Latency" ;
+          lv2:default 0 ;
+          lv2:minimum -120 ;
+          lv2:maximum 120 ] .
+
+<https://github.com/tylorismusic-commits/suite-control#ui>
+    a ui:X11UI ;
+    ui:binary <suite_control_ui.so> ;
+    rdfs:label "Suite Control UI" ;
+    lv2:requiredFeature ui:parent ;
+    lv2:optionalFeature ui:scaleFactor , ui:idleInterface , ui:resize ;
+    lv2:extensionData ui:idleInterface ;
+    ui:portNotification
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "comp_in" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "comp_threshold" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "comp_ratio" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "comp_attack" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "comp_release" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "comp_auto" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "comp_mix" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "eq_in" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "eq_type" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "eq_lf_gain" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "eq_lf_freq" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "eq_lf_bell" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "eq_lm_gain" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "eq_lm_freq" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "eq_lm_q" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "eq_hm_gain" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "eq_hm_freq" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "eq_hm_q" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "eq_hf_gain" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "eq_hf_freq" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "eq_hf_bell" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "sum_amount" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "input" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "output" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "limiter" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "bus" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "gr" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "in_peak_l" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "in_peak_r" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "out_peak_l" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "out_peak_r" ; ui:protocol ui:floatProtocol ] ,
+        [ ui:plugin <https://github.com/tylorismusic-commits/suite-control> ; ui:symbol "latency" ; ui:protocol ui:floatProtocol ] .

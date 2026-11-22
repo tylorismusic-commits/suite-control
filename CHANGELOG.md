@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.6
+
+- LV2 build: `suite-control.lv2` with the same engine, UI and remote surface
+  as the CLAP plug-in.  Channel names and mute states are not persisted in
+  LV2 (session only); parameters are saved through the control ports.
+
 ## 0.1.5
 
 - Fix controls snapping back and sticking: Suite Channel Plus used two

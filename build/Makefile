@@ -153,6 +153,71 @@ suite_control_bundle/fast:
 .PHONY : suite_control_bundle/fast
 
 #=============================================================================
+# Target rules for targets named suite_control_lv2
+
+# Build rule for target.
+suite_control_lv2: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 suite_control_lv2
+.PHONY : suite_control_lv2
+
+# fast build rule for target.
+suite_control_lv2/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_lv2.dir/build.make CMakeFiles/suite_control_lv2.dir/build
+.PHONY : suite_control_lv2/fast
+
+#=============================================================================
+# Target rules for targets named suite_control_lv2_ui
+
+# Build rule for target.
+suite_control_lv2_ui: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 suite_control_lv2_ui
+.PHONY : suite_control_lv2_ui
+
+# fast build rule for target.
+suite_control_lv2_ui/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_lv2_ui.dir/build.make CMakeFiles/suite_control_lv2_ui.dir/build
+.PHONY : suite_control_lv2_ui/fast
+
+#=============================================================================
+# Target rules for targets named suite_control_ttl_gen
+
+# Build rule for target.
+suite_control_ttl_gen: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 suite_control_ttl_gen
+.PHONY : suite_control_ttl_gen
+
+# fast build rule for target.
+suite_control_ttl_gen/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_ttl_gen.dir/build.make CMakeFiles/suite_control_ttl_gen.dir/build
+.PHONY : suite_control_ttl_gen/fast
+
+#=============================================================================
+# Target rules for targets named suite_control_lv2_bundle
+
+# Build rule for target.
+suite_control_lv2_bundle: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 suite_control_lv2_bundle
+.PHONY : suite_control_lv2_bundle
+
+# fast build rule for target.
+suite_control_lv2_bundle/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_lv2_bundle.dir/build.make CMakeFiles/suite_control_lv2_bundle.dir/build
+.PHONY : suite_control_lv2_bundle/fast
+
+#=============================================================================
+# Target rules for targets named suite_lv2_host_test
+
+# Build rule for target.
+suite_lv2_host_test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 suite_lv2_host_test
+.PHONY : suite_lv2_host_test
+
+# fast build rule for target.
+suite_lv2_host_test/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_lv2_host_test.dir/build.make CMakeFiles/suite_lv2_host_test.dir/build
+.PHONY : suite_lv2_host_test/fast
+
+#=============================================================================
 # Target rules for targets named suite_control_dsp_test
 
 # Build rule for target.
@@ -241,12 +306,61 @@ src/clap/suite_control_clap.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control.dir/build.make CMakeFiles/suite_control.dir/src/clap/suite_control_clap.cpp.s
 .PHONY : src/clap/suite_control_clap.cpp.s
 
+src/suite_control_lv2.o: src/suite_control_lv2.cpp.o
+.PHONY : src/suite_control_lv2.o
+
+# target to build an object file
+src/suite_control_lv2.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_lv2.dir/build.make CMakeFiles/suite_control_lv2.dir/src/suite_control_lv2.cpp.o
+.PHONY : src/suite_control_lv2.cpp.o
+
+src/suite_control_lv2.i: src/suite_control_lv2.cpp.i
+.PHONY : src/suite_control_lv2.i
+
+# target to preprocess a source file
+src/suite_control_lv2.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_lv2.dir/build.make CMakeFiles/suite_control_lv2.dir/src/suite_control_lv2.cpp.i
+.PHONY : src/suite_control_lv2.cpp.i
+
+src/suite_control_lv2.s: src/suite_control_lv2.cpp.s
+.PHONY : src/suite_control_lv2.s
+
+# target to generate assembly for a file
+src/suite_control_lv2.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_lv2.dir/build.make CMakeFiles/suite_control_lv2.dir/src/suite_control_lv2.cpp.s
+.PHONY : src/suite_control_lv2.cpp.s
+
+src/ui/lv2_ui.o: src/ui/lv2_ui.cpp.o
+.PHONY : src/ui/lv2_ui.o
+
+# target to build an object file
+src/ui/lv2_ui.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_lv2_ui.dir/build.make CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.o
+.PHONY : src/ui/lv2_ui.cpp.o
+
+src/ui/lv2_ui.i: src/ui/lv2_ui.cpp.i
+.PHONY : src/ui/lv2_ui.i
+
+# target to preprocess a source file
+src/ui/lv2_ui.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_lv2_ui.dir/build.make CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.i
+.PHONY : src/ui/lv2_ui.cpp.i
+
+src/ui/lv2_ui.s: src/ui/lv2_ui.cpp.s
+.PHONY : src/ui/lv2_ui.s
+
+# target to generate assembly for a file
+src/ui/lv2_ui.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_lv2_ui.dir/build.make CMakeFiles/suite_control_lv2_ui.dir/src/ui/lv2_ui.cpp.s
+.PHONY : src/ui/lv2_ui.cpp.s
+
 src/ui/panel.o: src/ui/panel.cpp.o
 .PHONY : src/ui/panel.o
 
 # target to build an object file
 src/ui/panel.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control.dir/build.make CMakeFiles/suite_control.dir/src/ui/panel.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_lv2_ui.dir/build.make CMakeFiles/suite_control_lv2_ui.dir/src/ui/panel.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_preview.dir/build.make CMakeFiles/suite_control_preview.dir/src/ui/panel.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_panel_test.dir/build.make CMakeFiles/suite_control_panel_test.dir/src/ui/panel.cpp.o
 .PHONY : src/ui/panel.cpp.o
@@ -257,6 +371,7 @@ src/ui/panel.i: src/ui/panel.cpp.i
 # target to preprocess a source file
 src/ui/panel.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control.dir/build.make CMakeFiles/suite_control.dir/src/ui/panel.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_lv2_ui.dir/build.make CMakeFiles/suite_control_lv2_ui.dir/src/ui/panel.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_preview.dir/build.make CMakeFiles/suite_control_preview.dir/src/ui/panel.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_panel_test.dir/build.make CMakeFiles/suite_control_panel_test.dir/src/ui/panel.cpp.i
 .PHONY : src/ui/panel.cpp.i
@@ -267,6 +382,7 @@ src/ui/panel.s: src/ui/panel.cpp.s
 # target to generate assembly for a file
 src/ui/panel.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control.dir/build.make CMakeFiles/suite_control.dir/src/ui/panel.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_lv2_ui.dir/build.make CMakeFiles/suite_control_lv2_ui.dir/src/ui/panel.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_preview.dir/build.make CMakeFiles/suite_control_preview.dir/src/ui/panel.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_panel_test.dir/build.make CMakeFiles/suite_control_panel_test.dir/src/ui/panel.cpp.s
 .PHONY : src/ui/panel.cpp.s
@@ -318,6 +434,30 @@ test/integration_test.s: test/integration_test.cpp.s
 test/integration_test.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_peer_integration.dir/build.make CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.s
 .PHONY : test/integration_test.cpp.s
+
+test/lv2_host_test.o: test/lv2_host_test.cpp.o
+.PHONY : test/lv2_host_test.o
+
+# target to build an object file
+test/lv2_host_test.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_lv2_host_test.dir/build.make CMakeFiles/suite_lv2_host_test.dir/test/lv2_host_test.cpp.o
+.PHONY : test/lv2_host_test.cpp.o
+
+test/lv2_host_test.i: test/lv2_host_test.cpp.i
+.PHONY : test/lv2_host_test.i
+
+# target to preprocess a source file
+test/lv2_host_test.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_lv2_host_test.dir/build.make CMakeFiles/suite_lv2_host_test.dir/test/lv2_host_test.cpp.i
+.PHONY : test/lv2_host_test.cpp.i
+
+test/lv2_host_test.s: test/lv2_host_test.cpp.s
+.PHONY : test/lv2_host_test.s
+
+# target to generate assembly for a file
+test/lv2_host_test.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_lv2_host_test.dir/build.make CMakeFiles/suite_lv2_host_test.dir/test/lv2_host_test.cpp.s
+.PHONY : test/lv2_host_test.cpp.s
 
 test/test_dsp.o: test/test_dsp.cpp.o
 .PHONY : test/test_dsp.o
@@ -397,6 +537,7 @@ third_party/dusk-4k/FourKEQDSP.o: third_party/dusk-4k/FourKEQDSP.cpp.o
 # target to build an object file
 third_party/dusk-4k/FourKEQDSP.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control.dir/build.make CMakeFiles/suite_control.dir/third_party/dusk-4k/FourKEQDSP.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_lv2.dir/build.make CMakeFiles/suite_control_lv2.dir/third_party/dusk-4k/FourKEQDSP.cpp.o
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_dsp_test.dir/build.make CMakeFiles/suite_control_dsp_test.dir/third_party/dusk-4k/FourKEQDSP.cpp.o
 .PHONY : third_party/dusk-4k/FourKEQDSP.cpp.o
 
@@ -406,6 +547,7 @@ third_party/dusk-4k/FourKEQDSP.i: third_party/dusk-4k/FourKEQDSP.cpp.i
 # target to preprocess a source file
 third_party/dusk-4k/FourKEQDSP.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control.dir/build.make CMakeFiles/suite_control.dir/third_party/dusk-4k/FourKEQDSP.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_lv2.dir/build.make CMakeFiles/suite_control_lv2.dir/third_party/dusk-4k/FourKEQDSP.cpp.i
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_dsp_test.dir/build.make CMakeFiles/suite_control_dsp_test.dir/third_party/dusk-4k/FourKEQDSP.cpp.i
 .PHONY : third_party/dusk-4k/FourKEQDSP.cpp.i
 
@@ -415,8 +557,33 @@ third_party/dusk-4k/FourKEQDSP.s: third_party/dusk-4k/FourKEQDSP.cpp.s
 # target to generate assembly for a file
 third_party/dusk-4k/FourKEQDSP.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control.dir/build.make CMakeFiles/suite_control.dir/third_party/dusk-4k/FourKEQDSP.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_lv2.dir/build.make CMakeFiles/suite_control_lv2.dir/third_party/dusk-4k/FourKEQDSP.cpp.s
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_dsp_test.dir/build.make CMakeFiles/suite_control_dsp_test.dir/third_party/dusk-4k/FourKEQDSP.cpp.s
 .PHONY : third_party/dusk-4k/FourKEQDSP.cpp.s
+
+tools/gen_ttl.o: tools/gen_ttl.cpp.o
+.PHONY : tools/gen_ttl.o
+
+# target to build an object file
+tools/gen_ttl.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_ttl_gen.dir/build.make CMakeFiles/suite_control_ttl_gen.dir/tools/gen_ttl.cpp.o
+.PHONY : tools/gen_ttl.cpp.o
+
+tools/gen_ttl.i: tools/gen_ttl.cpp.i
+.PHONY : tools/gen_ttl.i
+
+# target to preprocess a source file
+tools/gen_ttl.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_ttl_gen.dir/build.make CMakeFiles/suite_control_ttl_gen.dir/tools/gen_ttl.cpp.i
+.PHONY : tools/gen_ttl.cpp.i
+
+tools/gen_ttl.s: tools/gen_ttl.cpp.s
+.PHONY : tools/gen_ttl.s
+
+# target to generate assembly for a file
+tools/gen_ttl.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_control_ttl_gen.dir/build.make CMakeFiles/suite_control_ttl_gen.dir/tools/gen_ttl.cpp.s
+.PHONY : tools/gen_ttl.cpp.s
 
 # Help Target
 help:
@@ -428,15 +595,26 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... test"
 	@echo "... suite_control_bundle"
+	@echo "... suite_control_lv2_bundle"
 	@echo "... suite_control"
 	@echo "... suite_control_dsp_test"
 	@echo "... suite_control_host_test"
+	@echo "... suite_control_lv2"
+	@echo "... suite_control_lv2_ui"
 	@echo "... suite_control_panel_test"
 	@echo "... suite_control_preview"
+	@echo "... suite_control_ttl_gen"
+	@echo "... suite_lv2_host_test"
 	@echo "... suite_peer_integration"
 	@echo "... src/clap/suite_control_clap.o"
 	@echo "... src/clap/suite_control_clap.i"
 	@echo "... src/clap/suite_control_clap.s"
+	@echo "... src/suite_control_lv2.o"
+	@echo "... src/suite_control_lv2.i"
+	@echo "... src/suite_control_lv2.s"
+	@echo "... src/ui/lv2_ui.o"
+	@echo "... src/ui/lv2_ui.i"
+	@echo "... src/ui/lv2_ui.s"
 	@echo "... src/ui/panel.o"
 	@echo "... src/ui/panel.i"
 	@echo "... src/ui/panel.s"
@@ -446,6 +624,9 @@ help:
 	@echo "... test/integration_test.o"
 	@echo "... test/integration_test.i"
 	@echo "... test/integration_test.s"
+	@echo "... test/lv2_host_test.o"
+	@echo "... test/lv2_host_test.i"
+	@echo "... test/lv2_host_test.s"
 	@echo "... test/test_dsp.o"
 	@echo "... test/test_dsp.i"
 	@echo "... test/test_dsp.s"
@@ -458,6 +639,9 @@ help:
 	@echo "... third_party/dusk-4k/FourKEQDSP.o"
 	@echo "... third_party/dusk-4k/FourKEQDSP.i"
 	@echo "... third_party/dusk-4k/FourKEQDSP.s"
+	@echo "... tools/gen_ttl.o"
+	@echo "... tools/gen_ttl.i"
+	@echo "... tools/gen_ttl.s"
 .PHONY : help
 
 
