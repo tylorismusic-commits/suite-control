@@ -95,18 +95,18 @@ int main() {
     // Start both at a normal fader position.
     suite::peer::Client::writeRemote(c1.raw()->slot[a], suite::ch::kOutput, 0.75);
     suite::peer::Client::writeRemote(c2.raw()->slot[b], suite::ch::kOutput, 0.75);
-    p4.pointerDown(s4, st4, 40.0, 694.0, false);
+    p4.pointerDown(s4, st4, 40.0, 646.0, false);
     p4.pointerUp();
     check(on(a, c1) != on(b, c2), "mute disables exactly one channel");
     // Solo on the other strip: the muted one stays off, the soloed one on.
-    p4.pointerDown(s4, st4, 141.0 + 70.0, 694.0, false);
+    p4.pointerDown(s4, st4, 141.0 + 70.0, 646.0, false);
     p4.pointerUp();
     check(on(a, c1) != on(b, c2), "solo leaves one channel on");
-    p4.pointerDown(s4, st4, 141.0 + 70.0, 694.0, false);
+    p4.pointerDown(s4, st4, 141.0 + 70.0, 646.0, false);
     p4.pointerUp();
     check(on(a, c1) != on(b, c2), "mute survives solo release");
     // Unmute restores the fader.
-    p4.pointerDown(s4, st4, 40.0, 694.0, false);
+    p4.pointerDown(s4, st4, 40.0, 646.0, false);
     p4.pointerUp();
     check(on(a, c1) && on(b, c2), "unmute restores the fader");
     c1.unregisterSlot();
@@ -135,6 +135,28 @@ int main() {
           "second name commits on enter");
     c1.unregisterSlot();
     c2.unregisterSlot();
+  }
+
+  // Right-click editing: same control closes, another control switches,
+  // empty space closes.
+  {
+    suite::peer::Client c;
+    c.registerSlot(7, "Suite Channel Plus", suite::ch::kCount);
+    suite::Shared s6;
+    s6.set(suite::P_BUS, 7.0);
+    suite::PanelState st6;
+    suite::Panel p6;
+    p6.tick(s6, st6);
+    p6.beginTextEntry(s6, st6, 50.0, 194.0);
+    check(p6.editing(), "right-click opens the editor");
+    p6.beginTextEntry(s6, st6, 50.0, 194.0);
+    check(!p6.editing(), "second right-click closes the editor");
+    p6.beginTextEntry(s6, st6, 50.0, 194.0);
+    p6.beginTextEntry(s6, st6, 102.0, 194.0);
+    check(p6.editing(), "right-click on another knob switches target");
+    p6.beginTextEntry(s6, st6, 700.0, 400.0);
+    check(!p6.editing(), "right-click on empty space closes the editor");
+    c.unregisterSlot();
   }
 
   // A knob drag must stop when the mouse button is released.

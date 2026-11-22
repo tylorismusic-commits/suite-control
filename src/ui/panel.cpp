@@ -19,7 +19,7 @@ constexpr double kStripX0 = 16.0;
 constexpr double kStripW = 120.0;
 constexpr double kStripGap = 5.0;
 constexpr double kStripTop = 110.0;
-constexpr double kStripH = 626.0;
+constexpr double kStripH = 604.0;
 constexpr double kBusX = 1021.0;
 constexpr double kBusW = 251.0;
 constexpr int kVisible = 8;
@@ -810,7 +810,7 @@ void Panel::layoutBus(const Shared& shared, const PanelState& state) {
       m.kind = Kind::Mute;
       m.index = i;
       m.x = x + 10;
-      m.y = kStripTop + 584;
+      m.y = kStripTop + 526;
       m.w = 46;
       m.h = 22;
       m.label = "MUTE";
@@ -821,7 +821,7 @@ void Panel::layoutBus(const Shared& shared, const PanelState& state) {
       so.kind = Kind::Solo;
       so.index = i;
       so.x = x + 62;
-      so.y = kStripTop + 584;
+      so.y = kStripTop + 526;
       so.w = 46;
       so.h = 22;
       so.label = "SOLO";
@@ -996,6 +996,7 @@ void Panel::layout(const Shared& shared, const PanelState& state) {
 
 bool Panel::pointerDown(Shared& shared, PanelState& state, double x, double y,
                         bool fine) {
+  if (editing_) closeEdit();
   layout(shared, state);
   state.fine = fine;
   for (const Widget& w : widgets_) {
@@ -1164,10 +1165,43 @@ void Panel::pointerUp() {
   dragPlus_ = -1;
 }
 
+bool Panel::sameEditTarget(const Widget& w) const {
+  if (editKind_ == 0) {
+    return w.kind == Kind::Rename && w.index == editIndex_;
+  }
+  if (editKind_ == 1) {
+    return w.kind == Kind::Knob && static_cast<int>(w.param) == editParam_;
+  }
+  if (editKind_ == 2) {
+    return (w.kind == Kind::Remote || w.kind == Kind::RemoteFader) &&
+           w.index == editIndex_ && w.plus == editPlus_;
+  }
+  return false;
+}
+
+void Panel::closeEdit() {
+  editing_ = false;
+  editText_.clear();
+  editKey_ = -1;
+  editIndex_ = -1;
+  editParam_ = -1;
+  editPlus_ = -1;
+}
+
 bool Panel::beginTextEntry(Shared& shared, PanelState& state, double x,
                            double y) {
   layout(shared, state);
   const Widget* w = hitTest(x, y);
+  // A second right-click on the same control, or a right-click on empty
+  // space, closes the editor without applying.  A different control cancels
+  // the current entry and opens the new one.
+  if (editing_) {
+    if (!w || sameEditTarget(*w)) {
+      closeEdit();
+      return true;
+    }
+    closeEdit();
+  }
   if (!w) return false;
   if (w->kind == Kind::Rename) {
     editKind_ = 0;
@@ -1681,14 +1715,14 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
       text(cr, "OUT", x + 100, kStripTop + 484, 7.0, 1, kLegendDim.r,
            kLegendDim.g, kLegendDim.b);
     } else {
-      meter(cr, x + 8, kStripTop + 340, 44, 170, inL, inR);
-      meter(cr, x + 68, kStripTop + 340, 44, 170, outL, outR);
-      text(cr, "IN", x + 30, kStripTop + 524, 7.5, 1, kLegendDim.r,
+      meter(cr, x + 8, kStripTop + 316, 44, 140, inL, inR);
+      meter(cr, x + 68, kStripTop + 316, 44, 140, outL, outR);
+      text(cr, "IN", x + 30, kStripTop + 468, 7.5, 1, kLegendDim.r,
            kLegendDim.g, kLegendDim.b);
-      text(cr, "OUT", x + 90, kStripTop + 524, 7.5, 1, kLegendDim.r,
+      text(cr, "OUT", x + 90, kStripTop + 468, 7.5, 1, kLegendDim.r,
            kLegendDim.g, kLegendDim.b);
-      grMeter(cr, x + 8, kStripTop + 540, 104, 8, gr);
-      text(cr, "GR", x + 8, kStripTop + 564, 7.0, 0, kLegendDim.r,
+      grMeter(cr, x + 8, kStripTop + 476, 104, 8, gr);
+      text(cr, "GR", x + 8, kStripTop + 502, 7.0, 0, kLegendDim.r,
            kLegendDim.g, kLegendDim.b);
     }
     ++shown;

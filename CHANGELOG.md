@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.4
+
+- Fix the name table never loading: the loader required table version 1 while
+  the saver wrote 2.  Saved sessions now recall channel names.
+- Right-click a knob to type a value; right-click the same knob again closes it,
+  another knob switches the editor, empty space cancels.  Left-click also
+  cancels.  Keypad digits and keypad Enter are accepted.
+- Strips end above the corner screw; mute/solo moved up to fit.
+
 ## 0.1.3
 
 - Double-click resets a control to its default; right-click types a value in

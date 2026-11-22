@@ -184,6 +184,28 @@ private:
         } else if (n > 0) {
           panel_.textKey(shared_, state, 0,
                          static_cast<unsigned>(static_cast<unsigned char>(buf[0])));
+        } else {
+          // Keypad with NumLock off: X reports navigation keysyms.
+          int digit = -1;
+          switch (sym) {
+            case XK_KP_Insert: digit = '0'; break;
+            case XK_KP_End: digit = '1'; break;
+            case XK_KP_Down: digit = '2'; break;
+            case XK_KP_Next: digit = '3'; break;
+            case XK_KP_Left: digit = '4'; break;
+            case XK_KP_Begin: digit = '5'; break;
+            case XK_KP_Right: digit = '6'; break;
+            case XK_KP_Home: digit = '7'; break;
+            case XK_KP_Up: digit = '8'; break;
+            case XK_KP_Prior: digit = '9'; break;
+            case XK_KP_Decimal:
+            case XK_KP_Delete: digit = '.'; break;
+            case XK_KP_Subtract: digit = '-'; break;
+            default: break;
+          }
+          if (digit >= 0) {
+            panel_.textKey(shared_, state, 0, static_cast<unsigned>(digit));
+          }
         }
         break;
       }
@@ -388,7 +410,6 @@ bool stateLoad(const clap_plugin_t* p, const clap_istream_t* stream) {
   if (stream->read(stream, &magic, sizeof(magic)) == sizeof(magic) &&
       magic == 0x53434e4d &&
       stream->read(stream, &version, sizeof(version)) == sizeof(version) &&
-      version == 1 &&
       stream->read(stream, &slots, sizeof(slots)) == sizeof(slots) &&
       (version == 1 || version == 2) && slots <= suite::Shared::kNameSlots) {
     for (uint32_t i = 0; i < slots; ++i) {

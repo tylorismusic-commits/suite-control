@@ -106,6 +106,8 @@ private:
   void applyMuteSolo(Shared& shared);
   const Widget* hitTest(double x, double y) const;
   void resetWidget(Shared& shared, const Widget& w);
+  bool sameEditTarget(const Widget& w) const;
+  void closeEdit();
   void meter(cairo_t* cr, double x, double y, double w, double h, float dbL,
              float dbR) const;
   void grMeter(cairo_t* cr, double x, double y, double w, double h,

@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <algorithm>
 #include <cstring>
 #include <vector>
 
@@ -122,6 +123,43 @@ int main(int argc, char** argv) {
       return 1;
     }
   }
+  // Name table round-trip: a v2 state with a name must load and save back.
+  {
+    std::vector<char> buf;
+    auto put = [&](const void* p, size_t n) {
+      buf.insert(buf.end(), static_cast<const char*>(p),
+                 static_cast<const char*>(p) + n);
+    };
+    double values[suite::P_COUNT] = {};
+    put(values, sizeof(values));
+    const uint32_t magic = 0x53434e4d, ver = 2, count = suite::Shared::kNameSlots;
+    put(&magic, sizeof(magic));
+    put(&ver, sizeof(ver));
+    put(&count, sizeof(count));
+    for (uint32_t i = 0; i < count; ++i) {
+      char name[suite::Shared::kNameBytes] = {};
+      if (i == 5) std::snprintf(name, sizeof(name), "GTR L");
+      put(name, sizeof(name));
+      const uint8_t m = 0, forced = 0;
+      put(&m, 1);
+      put(&forced, 1);
+      const float g = 0.0f;
+      put(&g, sizeof(g));
+    }
+    MemStream in;
+    in.data = buf;
+    clap_istream_t is2{&in, memRead};
+    check(state->load(plugin, &is2), "v2 state loads");
+    MemStream out;
+    clap_ostream_t os2{&out, memWrite};
+    check(state->save(plugin, &os2), "state saves again");
+    const char needle[] = "GTR L";
+    const bool found =
+        std::search(out.data.begin(), out.data.end(), needle, needle + 5) !=
+        out.data.end();
+    check(found, "names survive a state round-trip");
+  }
+
   bool finite = true;
   for (int i = 0; i < 256; ++i) {
     if (!std::isfinite(l[static_cast<size_t>(i)]) ||
