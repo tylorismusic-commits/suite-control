@@ -50,6 +50,7 @@ struct Slot {
   std::atomic<uint32_t> bus{0};
   std::atomic<uint32_t> paramCount{0};
   std::atomic<uint32_t> serial{0};
+  std::atomic<int32_t> ownerPid{0};
   char name[kNameBytes] = {};
   Param param[kMaxParams];
   std::atomic<float> inPeakL{-120.0f};
@@ -159,6 +160,8 @@ public:
         s.paramCount.store(paramCount, std::memory_order_relaxed);
         s.bus.store(bus, std::memory_order_relaxed);
         s.serial.fetch_add(1, std::memory_order_relaxed);
+        s.ownerPid.store(static_cast<int32_t>(getpid()),
+                         std::memory_order_relaxed);
         s.beatMs.store(nowMs(), std::memory_order_relaxed);
         std::strncpy(s.name, name ? name : "", kNameBytes - 1);
         s.name[kNameBytes - 1] = '\0';
@@ -232,8 +235,19 @@ public:
     return seg_;
   }
 
+  // Liveness is the owning process, not the heartbeat: a plug-in that is
+  // loaded but not processing (transport stopped, track silent) must still be
+  // listed.  The heartbeat is only used to grey out stale meters.
   static bool alive(const Slot& s) noexcept {
     if (s.used.load(std::memory_order_acquire) == 0) return false;
+    const int32_t pid = s.ownerPid.load(std::memory_order_relaxed);
+    if (pid > 0 && kill(static_cast<pid_t>(pid), 0) != 0 && errno == ESRCH) {
+      return false;
+    }
+    return true;
+  }
+
+  static bool beatFresh(const Slot& s) noexcept {
     return nowMs() - s.beatMs.load(std::memory_order_relaxed) < kStaleMs;
   }
 
