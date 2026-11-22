@@ -1,0 +1,102 @@
+Start testing: Nov 22 09:53 EST
+----------------------------------------------------------
+1/4 Testing: suite_control_dsp
+1/4 Test: suite_control_dsp
+Command: "/home/tylor/Projects/suite-control/build/suite_control_dsp_test"
+Directory: /home/tylor/Projects/suite-control/build
+"suite_control_dsp" start time: Nov 22 09:53 EST
+Output:
+----------------------------------------------------------
+comp: 0.247 -> 0.113
+PASS  compressor reduces gain
+PASS  summing at 0 is bit-exact dry
+summing diff 0.0618 dc -0.0044
+PASS  summing stays finite
+PASS  summing colours the signal
+PASS  summing adds no DC
+PASS  summing is level-neutral
+eq 60Hz: 0.271 vs 0.141
+PASS  EQ low boost raises 60 Hz
+limiter peak 0.755
+PASS  limiter holds the ceiling
+latency 0
+PASS  reports a small latency
+0 failure(s)
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"suite_control_dsp" end time: Nov 22 09:53 EST
+"suite_control_dsp" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/4 Testing: suite_control_panel
+2/4 Test: suite_control_panel
+Command: "/home/tylor/Projects/suite-control/build/suite_control_panel_test"
+Directory: /home/tylor/Projects/suite-control/build
+"suite_control_panel" start time: Nov 22 09:53 EST
+Output:
+----------------------------------------------------------
+PASS  panel paints something
+PASS  panel draw is clean
+PASS  bus tab is clickable
+PASS  clicking B selects bus B
+PASS  capture without peers is safe
+PASS  EQ type pill toggles
+PASS  remote strip is discovered
+PASS  remote strip draws
+0 failure(s)
+<end of output>
+Test time =   0.07 sec
+----------------------------------------------------------
+Test Passed.
+"suite_control_panel" end time: Nov 22 09:53 EST
+"suite_control_panel" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/4 Testing: suite_control_host
+3/4 Test: suite_control_host
+Command: "/home/tylor/Projects/suite-control/build/suite_control_host_test" "/home/tylor/Projects/suite-control/build/clap/SuiteControl.clap"
+Directory: /home/tylor/Projects/suite-control/build
+"suite_control_host" start time: Nov 22 09:53 EST
+Output:
+----------------------------------------------------------
+loaded: Suite Control (com.tylorismusic.suitecontrol)
+0 failure(s)
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"suite_control_host" end time: Nov 22 09:53 EST
+"suite_control_host" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/4 Testing: suite_peer_integration
+4/4 Test: suite_peer_integration
+Command: "/home/tylor/Projects/suite-control/build/suite_peer_integration" "/home/tylor/.clap/SuiteChannelPlus.clap"
+Directory: /home/tylor/Projects/suite-control/build
+"suite_peer_integration" start time: Nov 22 09:53 EST
+Output:
+----------------------------------------------------------
+PASS  (null)
+PASS  plus entry
+PASS  plus instance
+PASS  plus activate
+PASS  plus params
+PASS  control attaches to the peer bus
+PASS  plus instance registers a slot
+PASS  plus reads input
+input after remote write: 0.910
+PASS  remote write reaches the plus parameter
+PASS  plus mirrors the value back
+PASS  deactivate drops the slot
+0 failure(s)
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"suite_peer_integration" end time: Nov 22 09:53 EST
+"suite_peer_integration" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Nov 22 09:53 EST

@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/suite_control_panel_test.dir/link.d CMakeFiles/suite_control_panel_test.dir/test/test_panel.cpp.o CMakeFiles/suite_control_panel_test.dir/src/ui/panel.cpp.o -o suite_control_panel_test  /usr/lib/libcairo.so /usr/lib/libfreetype.so
