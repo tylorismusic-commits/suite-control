@@ -810,7 +810,7 @@ void Panel::layoutBus(const Shared& shared, const PanelState& state) {
       m.kind = Kind::Mute;
       m.index = i;
       m.x = x + 10;
-      m.y = kStripTop + 526;
+      m.y = kStripTop + 556;
       m.w = 46;
       m.h = 22;
       m.label = "MUTE";
@@ -821,7 +821,7 @@ void Panel::layoutBus(const Shared& shared, const PanelState& state) {
       so.kind = Kind::Solo;
       so.index = i;
       so.x = x + 62;
-      so.y = kStripTop + 526;
+      so.y = kStripTop + 556;
       so.w = 46;
       so.h = 22;
       so.label = "SOLO";
@@ -1716,14 +1716,14 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
       text(cr, "OUT", x + 100, kStripTop + 484, 7.0, 1, kLegendDim.r,
            kLegendDim.g, kLegendDim.b);
     } else {
-      meter(cr, x + 8, kStripTop + 316, 44, 140, inL, inR);
-      meter(cr, x + 68, kStripTop + 316, 44, 140, outL, outR);
-      text(cr, "IN", x + 30, kStripTop + 468, 7.5, 1, kLegendDim.r,
+      meter(cr, x + 8, kStripTop + 336, 44, 160, inL, inR);
+      meter(cr, x + 68, kStripTop + 336, 44, 160, outL, outR);
+      text(cr, "IN", x + 30, kStripTop + 508, 7.5, 1, kLegendDim.r,
            kLegendDim.g, kLegendDim.b);
-      text(cr, "OUT", x + 90, kStripTop + 468, 7.5, 1, kLegendDim.r,
+      text(cr, "OUT", x + 90, kStripTop + 508, 7.5, 1, kLegendDim.r,
            kLegendDim.g, kLegendDim.b);
-      grMeter(cr, x + 8, kStripTop + 476, 104, 8, gr);
-      text(cr, "GR", x + 8, kStripTop + 502, 7.0, 0, kLegendDim.r,
+      grMeter(cr, x + 8, kStripTop + 516, 104, 8, gr);
+      text(cr, "GR", x + 8, kStripTop + 540, 7.0, 0, kLegendDim.r,
            kLegendDim.g, kLegendDim.b);
     }
     ++shown;

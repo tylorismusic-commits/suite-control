@@ -95,18 +95,18 @@ int main() {
     // Start both at a normal fader position.
     suite::peer::Client::writeRemote(c1.raw()->slot[a], suite::ch::kOutput, 0.75);
     suite::peer::Client::writeRemote(c2.raw()->slot[b], suite::ch::kOutput, 0.75);
-    p4.pointerDown(s4, st4, 40.0, 646.0, false);
+    p4.pointerDown(s4, st4, 40.0, 676.0, false);
     p4.pointerUp();
     check(on(a, c1) != on(b, c2), "mute disables exactly one channel");
     // Solo on the other strip: the muted one stays off, the soloed one on.
-    p4.pointerDown(s4, st4, 141.0 + 70.0, 646.0, false);
+    p4.pointerDown(s4, st4, 141.0 + 70.0, 676.0, false);
     p4.pointerUp();
     check(on(a, c1) != on(b, c2), "solo leaves one channel on");
-    p4.pointerDown(s4, st4, 141.0 + 70.0, 646.0, false);
+    p4.pointerDown(s4, st4, 141.0 + 70.0, 676.0, false);
     p4.pointerUp();
     check(on(a, c1) != on(b, c2), "mute survives solo release");
     // Unmute restores the fader.
-    p4.pointerDown(s4, st4, 40.0, 646.0, false);
+    p4.pointerDown(s4, st4, 40.0, 676.0, false);
     p4.pointerUp();
     check(on(a, c1) && on(b, c2), "unmute restores the fader");
     c1.unregisterSlot();
