@@ -33,7 +33,7 @@
 namespace {
 
 constexpr const char* kUiUri =
-    "https://github.com/tylorismusic-commits/suite-channel#ui";
+    "https://github.com/tylorismusic-commits/suite-channel-plus#ui";
 constexpr uint32_t kFirstParam = 4;
 constexpr auto kFrameInterval = std::chrono::milliseconds(33);
 
@@ -315,10 +315,14 @@ LV2UI_Handle uiInstantiate(const LV2UI_Descriptor*, const char* /*pluginUri*/,
     XSetWMNormalHints(ui->dpy, ui->win, &hints);
   }
 
-  ui->format = DefaultDepth(ui->dpy, screen) == 32 ? CAIRO_FORMAT_ARGB32
-                                                   : CAIRO_FORMAT_RGB24;
+  // Hosts embed us in a parent that may use an ARGB visual.  The surface must
+  // match the window's own visual and depth or cairo refuses to paint (the
+  // window then stays black).
+  XWindowAttributes wa{};
+  XGetWindowAttributes(ui->dpy, ui->win, &wa);
+  ui->format = wa.depth == 32 ? CAIRO_FORMAT_ARGB32 : CAIRO_FORMAT_RGB24;
   ui->windowSurface = cairo_xlib_surface_create(
-      ui->dpy, ui->win, DefaultVisual(ui->dpy, screen), ui->width, ui->height);
+      ui->dpy, ui->win, wa.visual, ui->width, ui->height);
   ui->rebuildSurfaces();
   XFlush(ui->dpy);
 
@@ -333,6 +337,10 @@ LV2UI_Handle uiInstantiate(const LV2UI_Descriptor*, const char* /*pluginUri*/,
                               static_cast<int>(ui->width),
                               static_cast<int>(ui->height));
   }
+
+  ui->panel.tick(ui->shared, ui->state);
+  ui->draw();
+  ui->dirty = false;
 
   *widget = reinterpret_cast<LV2UI_Widget>(static_cast<uintptr_t>(ui->win));
   return ui;

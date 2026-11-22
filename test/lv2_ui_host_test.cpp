@@ -149,6 +149,28 @@ int main(int argc, char** argv) {
   }
   check(idled, "idle() returns 0 and draws without crashing");
 
+  // The frame must actually contain pixels.  A fully black window was the
+  // visible symptom when the cairo surface did not match the window's visual.
+  {
+    XImage* img = XGetImage(dpy, window, 0, 0,
+                            static_cast<unsigned>(host.lastWidth),
+                            static_cast<unsigned>(host.lastHeight), AllPlanes,
+                            ZPixmap);
+    bool painted = false;
+    if (img) {
+      for (int y = 0; y < img->height && !painted; y += 8) {
+        for (int x = 0; x < img->width; x += 8) {
+          if (XGetPixel(img, x, y) != 0) {
+            painted = true;
+            break;
+          }
+        }
+      }
+      XDestroyImage(img);
+    }
+    check(painted, "UI paints a non-black frame");
+  }
+
   // Feed a gain-reduction value the way the host would, then idle again.
   if (idle) {
     const float gr = 6.5f;
