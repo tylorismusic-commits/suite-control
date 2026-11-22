@@ -468,6 +468,10 @@ struct Plugin {
   std::vector<float> monoRight;
   peer::Client peer;
   bool peerRegistered = false;
+  // Publishes the bus and parameters while the host is idle, so Suite Control
+  // follows BUS changes without transport roll or an open editor.
+  std::thread peerThread;
+  std::atomic<bool> peerRun{false};
 };
 
 const char* const kFeatures[] = {CLAP_PLUGIN_FEATURE_AUDIO_EFFECT,
@@ -881,6 +885,20 @@ bool pluginActivate(const clap_plugin_t* p, double sampleRate, uint32_t,
                            kPluginName, P_COUNT) >= 0) {
     s->peerRegistered = true;
   }
+  if (!s->peerRun.exchange(true)) {
+    s->peerThread = std::thread([s] {
+      while (s->peerRun.load(std::memory_order_relaxed)) {
+        if (s->peerRegistered) {
+          for (uint32_t i = 0; i < P_COUNT; ++i) {
+            s->peer.publish(static_cast<int>(i), s->shared.get(i));
+          }
+          s->peer.setBus(
+              static_cast<uint32_t>(s->shared.get(P_BUS) + 0.5));
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(60));
+      }
+    });
+  }
   s->reportedOversample.store(
       static_cast<int>(s->shared.get(P_OVERSAMPLE) + 0.5),
       std::memory_order_relaxed);
@@ -903,6 +921,9 @@ bool pluginActivate(const clap_plugin_t* p, double sampleRate, uint32_t,
 void pluginDeactivate(const clap_plugin_t* p) {
   Plugin* s = self(p);
   s->active.store(false, std::memory_order_relaxed);
+  if (s->peerRun.exchange(false) && s->peerThread.joinable()) {
+    s->peerThread.join();
+  }
   if (s->peerRegistered) {
     s->peer.unregisterSlot();
     s->peerRegistered = false;
