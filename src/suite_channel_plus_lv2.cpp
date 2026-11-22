@@ -15,7 +15,7 @@
 namespace {
 
 constexpr const char* kPluginUri =
-    "https://github.com/tylorismusic-commits/suite-channel";
+    "https://github.com/tylorismusic-commits/suite-channel-plus";
 
 enum Port : uint32_t {
   PORT_AUDIO_IN_L = 0,
