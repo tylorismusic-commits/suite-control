@@ -501,7 +501,7 @@
         lv2:index 42 ;
         lv2:symbol "bus" ;
         lv2:name "Control Bus" ;
-        lv2:default 0 ;
+        lv2:default 1 ;
         lv2:minimum 0 ;
         lv2:maximum 8 ;
         lv2:integer true ;

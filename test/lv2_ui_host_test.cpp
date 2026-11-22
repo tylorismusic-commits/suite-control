@@ -18,6 +18,7 @@
 #include <string>
 
 #include <chrono>
+#include <thread>
 
 #include "params.hpp"
 
@@ -84,9 +85,11 @@ int main(int argc, char** argv) {
   }
 
   const int screen = DefaultScreen(dpy);
+  // Like REAPER: the FX container is not mapped yet when the UI is created, so
+  // the first frame is discarded.  The UI has to repaint on its own because
+  // REAPER never calls the idle interface.
   Window parent = XCreateSimpleWindow(dpy, RootWindow(dpy, screen), 0, 0,
                                       1200, 800, 0, 0, 0);
-  XMapWindow(dpy, parent);
   XFlush(dpy);
 
   HostResize host;
@@ -139,6 +142,44 @@ int main(int argc, char** argv) {
           "PMaxSize hint advertises the 2.5x maximum");
   }
 
+  std::this_thread::sleep_for(std::chrono::milliseconds(120));
+  XMapWindow(dpy, parent);
+  XSync(dpy, False);
+
+  auto painted = [&]() {
+    XImage* img = XGetImage(dpy, window, 0, 0,
+                            static_cast<unsigned>(host.lastWidth),
+                            static_cast<unsigned>(host.lastHeight), AllPlanes,
+                            ZPixmap);
+    bool any = false;
+    if (img) {
+      for (int y = 0; y < img->height && !any; y += 8) {
+        for (int x = 0; x < img->width; x += 8) {
+          if (XGetPixel(img, x, y) != 0) {
+            any = true;
+            break;
+          }
+        }
+      }
+      XDestroyImage(img);
+    }
+    return any;
+  };
+  auto paintedWithin = [&](int millis) {
+    const auto end = std::chrono::steady_clock::now() +
+                     std::chrono::milliseconds(millis);
+    while (std::chrono::steady_clock::now() < end) {
+      XSync(dpy, False);
+      if (painted()) return true;
+      std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+    return false;
+  };
+
+  // No idle() call: this is the host path that left Suite Control black.
+  check(paintedWithin(1500),
+        "paints without the host calling idle (REAPER's path)");
+
   bool idled = true;
   if (idle) {
     for (int i = 0; i < 5; ++i) {
@@ -147,29 +188,7 @@ int main(int argc, char** argv) {
       }
     }
   }
-  check(idled, "idle() returns 0 and draws without crashing");
-
-  // The frame must actually contain pixels.  A fully black window was the
-  // visible symptom when the cairo surface did not match the window's visual.
-  {
-    XImage* img = XGetImage(dpy, window, 0, 0,
-                            static_cast<unsigned>(host.lastWidth),
-                            static_cast<unsigned>(host.lastHeight), AllPlanes,
-                            ZPixmap);
-    bool painted = false;
-    if (img) {
-      for (int y = 0; y < img->height && !painted; y += 8) {
-        for (int x = 0; x < img->width; x += 8) {
-          if (XGetPixel(img, x, y) != 0) {
-            painted = true;
-            break;
-          }
-        }
-      }
-      XDestroyImage(img);
-    }
-    check(painted, "UI paints a non-black frame");
-  }
+  check(idled, "idle() is safe when the host does call it");
 
   // Feed a gain-reduction value the way the host would, then idle again.
   if (idle) {
@@ -182,13 +201,11 @@ int main(int argc, char** argv) {
   // The host owns the size.  Adopting it must not bounce a resize back
   // through the host, or suil re-allocates and the window flickers/loops.
   // ---------------------------------------------------------------------
-  if (idle) {
+  {
     host.calls = 0;
     XResizeWindow(dpy, window, 1600, 800);
     XSync(dpy, False);
-    for (int i = 0; i < 5; ++i) {
-      idle->idle(handle);
-    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(120));
     XWindowAttributes attrs{};
     XGetWindowAttributes(dpy, window, &attrs);
     char label[128];
@@ -200,9 +217,7 @@ int main(int argc, char** argv) {
 
     XResizeWindow(dpy, window, 700, 420);
     XSync(dpy, False);
-    for (int i = 0; i < 5; ++i) {
-      idle->idle(handle);
-    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(120));
     XGetWindowAttributes(dpy, window, &attrs);
     std::snprintf(label, sizeof(label),
                   "shrinking follows the host allocation (got %dx%d)",
@@ -212,17 +227,15 @@ int main(int argc, char** argv) {
   }
 
   // A degenerate allocation must not crash or wedge the idle loop.
-  if (idle) {
+  {
     XResizeWindow(dpy, window, 40, 20);
     XSync(dpy, False);
-    for (int i = 0; i < 5; ++i) {
-      idle->idle(handle);
-    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(120));
     check(true, "degenerate allocation is survivable");
   }
 
-  // The idle caller runs from the host's main loop, so it must be cheap when
-  // nothing changed.  500 calls should be dominated by the 33 ms throttle.
+  // If the host does call idle from its main loop it must stay cheap: the
+  // frame loop is ours now, so idle only nudges it.
   if (idle) {
     const auto start = std::chrono::steady_clock::now();
     for (int i = 0; i < 500; ++i) {

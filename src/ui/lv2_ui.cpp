@@ -7,9 +7,10 @@
 // suil turns those into another GTK allocation, which arrives back as another
 // configure event, and the window flickers and eventually wedges Ardour.
 //
-// Redraws are throttled to ~30 Hz from the idle interface.  Hosts call idle
-// from a GTK idle handler, which can run thousands of times a second; drawing
-// every call starves the host's main loop.
+// The UI runs its own ~30 Hz frame loop.  The idle interface is optional for
+// hosts and REAPER does not implement it, so a UI that only draws from idle()
+// keeps a single frame that the server discards when the FX window is mapped;
+// the result is a black box.
 
 #include <lv2/core/lv2.h>
 #include <lv2/ui/ui.h>
@@ -18,12 +19,15 @@
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
 #include <cairo-xlib.h>
+#include <poll.h>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstring>
 #include <string>
+#include <thread>
 
 #include "params.hpp"
 #include "ui/geometry.hpp"
@@ -57,7 +61,20 @@ struct Ui {
   uint32_t width = suite::kPanelWidth;
   uint32_t height = suite::kPanelHeight;
 
-  bool dirty = true;
+  // Hosts (REAPER among them) echo values back through port_event while we are
+  // still applying our own write, so a click would be reverted by a stale echo.
+  double lastWriteValue[suite::P_COUNT] = {};
+  double lastWriteMs[suite::P_COUNT] = {};
+
+  static double nowMs() {
+    return std::chrono::duration<double, std::milli>(
+               std::chrono::steady_clock::now().time_since_epoch())
+        .count();
+  }
+
+  std::atomic<bool> dirty{true};
+  std::atomic<bool> running{false};
+  std::thread thread;
   std::chrono::steady_clock::time_point lastFrame{};
 
   // Largest uniform scale that fits the panel into the host allocation.
@@ -193,9 +210,9 @@ struct Ui {
         continue;
       }
       const float v = static_cast<float>(shared.get(i));
-      if (write) {
-        write(controller, kFirstParam + i, sizeof(float), 0, &v);
-      }
+      lastWriteValue[i] = static_cast<double>(v);
+      lastWriteMs[i] = nowMs();
+      if (write) write(controller, kFirstParam + i, sizeof(float), 0, &v);
     }
 
     // Letterbox: dark surround, panel centred and uniformly scaled.
@@ -221,18 +238,33 @@ struct Ui {
     XFlush(dpy);
   }
 
-  int idle() {
+  void processEvents() {
     while (dpy && XPending(dpy) > 0) {
       XEvent ev;
       XNextEvent(dpy, &ev);
       handleEvent(ev);
     }
-    const auto now = std::chrono::steady_clock::now();
-    if (dirty || now - lastFrame >= kFrameInterval) {
-      draw();
-      dirty = false;
-      lastFrame = now;
+  }
+
+  void runLoop() {
+    while (running.load(std::memory_order_relaxed)) {
+      processEvents();
+      const auto now = std::chrono::steady_clock::now();
+      if (dirty.load(std::memory_order_relaxed) ||
+          now - lastFrame >= kFrameInterval) {
+        draw();
+        dirty.store(false, std::memory_order_relaxed);
+        lastFrame = now;
+      }
+      pollfd pfd{ConnectionNumber(dpy), POLLIN, 0};
+      poll(&pfd, 1, 8);
     }
+  }
+
+  // Hosts may call idle(); it only nudges the frame loop so Xlib is only ever
+  // used from our own thread.
+  int idle() {
+    dirty.store(true, std::memory_order_relaxed);
     return 0;
   }
 };
@@ -342,12 +374,17 @@ LV2UI_Handle uiInstantiate(const LV2UI_Descriptor*, const char* /*pluginUri*/,
   ui->draw();
   ui->dirty = false;
 
+  ui->running.store(true, std::memory_order_relaxed);
+  ui->thread = std::thread([ui] { ui->runLoop(); });
+
   *widget = reinterpret_cast<LV2UI_Widget>(static_cast<uintptr_t>(ui->win));
   return ui;
 }
 
 void uiCleanup(LV2UI_Handle handle) {
   auto* ui = static_cast<Ui*>(handle);
+  ui->running.store(false, std::memory_order_relaxed);
+  if (ui->thread.joinable()) ui->thread.join();
   if (ui->cr) {
     cairo_destroy(ui->cr);
   }
@@ -372,7 +409,12 @@ void uiPortEvent(LV2UI_Handle handle, uint32_t port, uint32_t size,
   }
   const float v = *static_cast<const float*>(buffer);
   if (port >= kFirstParam && port < kFirstParam + suite::P_COUNT) {
-    ui->shared.setFromHost(port - kFirstParam, static_cast<double>(v));
+    const uint32_t id = port - kFirstParam;
+    if (Ui::nowMs() - ui->lastWriteMs[id] < 400.0 &&
+        std::fabs(static_cast<double>(v) - ui->lastWriteValue[id]) > 1e-9) {
+      return; // stale echo of a value we just replaced
+    }
+    ui->shared.setFromHost(id, static_cast<double>(v));
     ui->dirty = true;
     return;
   }

@@ -157,7 +157,7 @@ inline constexpr ParamSpec kParamSpecs[P_COUNT] = {
      "ms", {}},
     {"limiter", "Output Limiter", "Output", 0.0, 1.0, 1.0, true, false, true,
      nullptr, {}},
-    {"bus", "Control Bus", "Global", 0.0, 8.0, 0.0, true, false, false, nullptr,
+    {"bus", "Control Bus", "Global", 0.0, 8.0, 1.0, true, false, false, nullptr,
      labels(kBusLabels)},
 };
 
@@ -186,6 +186,11 @@ public:
     v = std::min(std::max(v, s.min), s.max);
     if (s.stepped) {
       v = static_cast<double>(static_cast<int>(v + (v >= 0 ? 0.5 : -0.5)));
+    }
+    if (v == values_[p].load(std::memory_order_relaxed)) {
+      // Hosts echo our own writes back as port events; marking an unchanged
+      // value dirty would write it straight back and loop forever.
+      return;
     }
     values_[p].store(v, std::memory_order_relaxed);
     dirty_[p].store(true, std::memory_order_release);

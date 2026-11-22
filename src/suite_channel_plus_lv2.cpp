@@ -5,7 +5,11 @@
 
 #include <lv2/core/lv2.h>
 
+#include <atomic>
+#include <chrono>
+#include <cmath>
 #include <cstring>
+#include <thread>
 
 #include "dsp/engine.hpp"
 #include "dsp/inline_display.hpp"
@@ -36,7 +40,7 @@ enum Port : uint32_t {
 struct Plugin {
   float sampleRate = 48000.0f;
   float lastPort[suite::P_COUNT] = {};
-  bool portsSeen = false;
+
   suite::Shared shared;
   suite::Engine engine;
   suite::Meters meters;
@@ -57,6 +61,12 @@ struct Plugin {
 
   suite::peer::Client peer;
   bool peerRegistered = false;
+  bool portsSynced = false;
+  // LV2 hosts only hand us new port values inside run(), which they skip while
+  // the transport is stopped.  Poll the ports so BUS changes reach Suite
+  // Control without playback.
+  std::thread peerThread;
+  std::atomic<bool> peerRun{false};
 
   suite::InlineDisplay display;
   const suite::InlineDisplayQueueDraw* queueDraw = nullptr;
@@ -114,10 +124,46 @@ void activate(LV2_Handle handle) {
   if (p->latency) {
     *p->latency = static_cast<float>(p->engine.latencySamples());
   }
+  if (!p->peerRun.exchange(true)) {
+    p->peerThread = std::thread([p] {
+      while (p->peerRun.load(std::memory_order_relaxed)) {
+        if (p->peerRegistered) {
+          for (uint32_t i = 0; i < suite::P_COUNT; ++i) {
+            const float* v = p->ports[PORT_FIRST_PARAM + i];
+            // The first pass adopts every port, including values that happen
+            // to equal the zero-initialised cache (bus Off is 0).
+            if (v && (!p->portsSynced || *v != p->lastPort[i])) {
+              p->shared.setFromHost(i, static_cast<double>(*v));
+              p->lastPort[i] = *v;
+            }
+          }
+          p->portsSynced = true;
+          for (uint32_t i = 0; i < suite::P_COUNT; ++i) {
+            double v = 0.0;
+            if (p->peer.takeRemote(static_cast<int>(i), &v) &&
+                std::fabs(v - p->shared.get(i)) > 1e-12) {
+              p->shared.set(i, v);
+              p->lastPort[i] = static_cast<float>(v);
+            }
+          }
+          for (uint32_t i = 0; i < suite::P_COUNT; ++i) {
+            p->peer.publish(static_cast<int>(i), p->shared.get(i));
+          }
+          p->peer.setBus(
+              static_cast<uint32_t>(p->shared.get(suite::P_BUS) + 0.5));
+          p->peer.beat();
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(40));
+      }
+    });
+  }
 }
 
 void deactivate(LV2_Handle handle) {
   auto* p = static_cast<Plugin*>(handle);
+  if (p->peerRun.exchange(false) && p->peerThread.joinable()) {
+    p->peerThread.join();
+  }
   if (p->peerRegistered) {
     p->peer.unregisterSlot();
     p->peerRegistered = false;
@@ -136,34 +182,11 @@ void run(LV2_Handle handle, uint32_t frames) {
     p->audioOutR = p->audioOutL;
   }
 
-  for (uint32_t i = 0; i < suite::P_COUNT; ++i) {
-    float* v = p->ports[PORT_FIRST_PARAM + i];
-    if (!v) {
-      continue;
-    }
-    if (!p->portsSeen || *v != p->lastPort[i]) {
-      p->shared.setFromHost(i, static_cast<double>(*v));
-      p->lastPort[i] = *v;
-    }
-  }
-  p->portsSeen = true;
-  if (p->peerRegistered) {
-    for (uint32_t i = 0; i < suite::P_COUNT; ++i) {
-      double v = 0.0;
-      if (p->peer.takeRemote(static_cast<int>(i), &v)) {
-        p->shared.set(i, v);
-        if (p->ports[i]) *p->ports[i] = static_cast<float>(v);
-      }
-    }
-    for (uint32_t i = 0; i < suite::P_COUNT; ++i) {
-      p->peer.publish(static_cast<int>(i), p->shared.get(i));
-    }
-    p->peer.setBus(static_cast<uint32_t>(p->shared.get(suite::P_BUS) + 0.5));
-    p->peer.publishMeters(p->meters.inPeakLDb, p->meters.inPeakRDb,
-                          p->meters.outPeakLDb, p->meters.outPeakRDb,
-                          p->meters.grDb);
-    p->peer.beat();
-  }
+  // Port -> parameter sync belongs to the peer thread above: the audio thread
+  // must not race it, and REAPER skips run() entirely while stopped.
+  p->peer.publishMeters(p->meters.inPeakLDb, p->meters.inPeakRDb,
+                        p->meters.outPeakLDb, p->meters.outPeakRDb,
+                        p->meters.grDb);
   p->engine.setControls(suite::controlsFrom(p->shared));
 
   if (p->audioOutL != p->audioInL) {
@@ -205,7 +228,13 @@ void run(LV2_Handle handle, uint32_t frames) {
   }
 }
 
-void cleanup(LV2_Handle handle) { delete static_cast<Plugin*>(handle); }
+void cleanup(LV2_Handle handle) {
+  auto* p = static_cast<Plugin*>(handle);
+  if (p->peerRun.exchange(false) && p->peerThread.joinable()) {
+    p->peerThread.join();
+  }
+  delete p;
+}
 
 suite::InlineDisplaySurface* renderInlineDisplay(void* instance, uint32_t width,
                                                  uint32_t height) {

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- LV2 UI runs its own 30 Hz frame/event loop (REAPER does not implement the
+  idle interface, so the window was frozen and clicks were ignored).
+- LV2 control ports are polled on a timer thread, so BUS changes reach Suite
+  Control without the transport running; the first poll adopts every port, so
+  a saved/Off value is not lost against the zero-initialised cache.
+- `Control Bus` now defaults to **A** instead of Off, so a freshly inserted
+  channel appears in Suite Control straight away.
+- Plug-ins and UIs hide their symbols apart from the entry points; hosts that
+  load every plugin with global scope were interposing each other's parameter
+  tables and UI classes (Suite Control was reading this plug-in's table).
 - Forked from Suite Channel 0.3.0 as **Suite Channel Plus**: identical DSP and
   presets, plus a `Control Bus` parameter, a BUS selector in the header, and a
   shared-memory peer registry for Suite Control.

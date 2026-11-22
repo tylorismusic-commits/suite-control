@@ -26,6 +26,16 @@ include_directories(
   "${HEARTH_DSP_DIR}/include"
   "${DUSK_EQ_DIR}")
 
+# Plug-ins and UIs from different bundles share a host process.  With default
+# visibility the dynamic linker can bind suite::Panel/kParamSpecs/Shared to a
+# different plug-in's copy (REAPER dlopens with global scope), so hide
+# everything except the entry points, which the export macros mark.
+function(suite_hide_symbols target)
+  set_target_properties(${target} PROPERTIES
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN YES)
+endfunction()
+
 enable_testing()
 
 set(CLAP_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/clap"
@@ -381,3 +391,15 @@ add_custom_target(dist
   DEPENDS suite_channel_plus_lv2_bundle suite_channel_plus_bundle
   COMMENT "Packing suite-channel-${PROJECT_VERSION}")
 endif()  # SUITE_X11
+
+if(TARGET suite_channel_plus)
+  suite_hide_symbols(suite_channel_plus)
+endif()
+
+if(TARGET suite_channel_plus_lv2)
+  suite_hide_symbols(suite_channel_plus_lv2)
+endif()
+
+if(TARGET suite_channel_plus_lv2_ui)
+  suite_hide_symbols(suite_channel_plus_lv2_ui)
+endif()

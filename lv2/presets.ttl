@@ -74,7 +74,7 @@
     [ lv2:symbol "output" ; pset:value 0.75 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_clean-vocal>
     a pset:Preset ;
@@ -119,7 +119,7 @@
     [ lv2:symbol "output" ; pset:value 0.765 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_forward-vocal>
     a pset:Preset ;
@@ -164,7 +164,7 @@
     [ lv2:symbol "output" ; pset:value 0.75 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_rock-vocal>
     a pset:Preset ;
@@ -209,7 +209,7 @@
     [ lv2:symbol "output" ; pset:value 0.7296 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_76-vocal-slam>
     a pset:Preset ;
@@ -254,7 +254,7 @@
     [ lv2:symbol "output" ; pset:value 0.7097 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_kick-punch>
     a pset:Preset ;
@@ -299,7 +299,7 @@
     [ lv2:symbol "output" ; pset:value 0.75 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_snare-crack>
     a pset:Preset ;
@@ -344,7 +344,7 @@
     [ lv2:symbol "output" ; pset:value 0.7296 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_drum-bus>
     a pset:Preset ;
@@ -389,7 +389,7 @@
     [ lv2:symbol "output" ; pset:value 0.765 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_room-crush>
     a pset:Preset ;
@@ -434,7 +434,7 @@
     [ lv2:symbol "output" ; pset:value 0.6903 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_bass-di>
     a pset:Preset ;
@@ -479,7 +479,7 @@
     [ lv2:symbol "output" ; pset:value 0.75 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_bass-amp>
     a pset:Preset ;
@@ -524,7 +524,7 @@
     [ lv2:symbol "output" ; pset:value 0.7296 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_aggressive-bass>
     a pset:Preset ;
@@ -569,7 +569,7 @@
     [ lv2:symbol "output" ; pset:value 0.7097 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_clean-guitar>
     a pset:Preset ;
@@ -614,7 +614,7 @@
     [ lv2:symbol "output" ; pset:value 0.75 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_double-guitar>
     a pset:Preset ;
@@ -659,7 +659,7 @@
     [ lv2:symbol "output" ; pset:value 0.75 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_lead-guitar>
     a pset:Preset ;
@@ -704,7 +704,7 @@
     [ lv2:symbol "output" ; pset:value 0.7296 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_mix-bus-glue>
     a pset:Preset ;
@@ -749,7 +749,7 @@
     [ lv2:symbol "output" ; pset:value 0.7296 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_mix-bus-punch>
     a pset:Preset ;
@@ -794,7 +794,7 @@
     [ lv2:symbol "output" ; pset:value 0.7296 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_mix-bus-air>
     a pset:Preset ;
@@ -839,7 +839,7 @@
     [ lv2:symbol "output" ; pset:value 0.7296 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_gate-tight>
     a pset:Preset ;
@@ -884,7 +884,7 @@
     [ lv2:symbol "output" ; pset:value 0.75 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_expander-gentle>
     a pset:Preset ;
@@ -929,7 +929,7 @@
     [ lv2:symbol "output" ; pset:value 0.75 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_colour-only>
     a pset:Preset ;
@@ -974,7 +974,7 @@
     [ lv2:symbol "output" ; pset:value 0.75 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_76-drum-smash>
     a pset:Preset ;
@@ -1019,7 +1019,7 @@
     [ lv2:symbol "output" ; pset:value 0.6999 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_bass-bus>
     a pset:Preset ;
@@ -1064,7 +1064,7 @@
     [ lv2:symbol "output" ; pset:value 0.75 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_adds-air>
     a pset:Preset ;
@@ -1109,7 +1109,7 @@
     [ lv2:symbol "output" ; pset:value 0.775338 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
 <https://github.com/tylorismusic-commits/suite-channel-plus#preset_take-the-blanket-off>
     a pset:Preset ;
@@ -1154,5 +1154,5 @@
     [ lv2:symbol "output" ; pset:value 0.728282 ] ,
     [ lv2:symbol "gate_hold" ; pset:value 0 ] ,
     [ lv2:symbol "limiter" ; pset:value 1 ] ,
-    [ lv2:symbol "bus" ; pset:value 0 ] .
+    [ lv2:symbol "bus" ; pset:value 1 ] .
 
