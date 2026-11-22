@@ -889,13 +889,23 @@ bool pluginActivate(const clap_plugin_t* p, double sampleRate, uint32_t,
     s->peerThread = std::thread([s] {
       while (s->peerRun.load(std::memory_order_relaxed)) {
         if (s->peerRegistered) {
+          // Adopt remote writes *before* publishing, so we never overwrite a
+          // newer value with a stale one.
+          for (uint32_t i = 0; i < P_COUNT; ++i) {
+            double v = 0.0;
+            if (s->peer.takeRemote(static_cast<int>(i), &v) &&
+                std::fabs(v - s->shared.get(i)) > 1e-12) {
+              s->shared.set(i, v);
+            }
+          }
           for (uint32_t i = 0; i < P_COUNT; ++i) {
             s->peer.publish(static_cast<int>(i), s->shared.get(i));
           }
           s->peer.setBus(
               static_cast<uint32_t>(s->shared.get(P_BUS) + 0.5));
+          s->peer.beat();
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(60));
+        std::this_thread::sleep_for(std::chrono::milliseconds(40));
       }
     });
   }
@@ -938,24 +948,11 @@ void pluginReset(const clap_plugin_t* p) {
   self(p)->engine.reset();
 }
 
-// Mirror the host parameters into the shared registry and pull back edits from
-// Suite Control.  Atomics only, so this is safe on the audio thread.
-void peerSync(Plugin* s) {
+// The peer timer thread owns the parameter mirror, so the audio thread only
+// refreshes meters and the heartbeat.  Two publishers would race: a stale
+// publish could overwrite a newer remote write before it was adopted.
+void peerMeters(Plugin* s) {
   if (!s->peerRegistered) return;
-  for (uint32_t i = 0; i < P_COUNT; ++i) {
-    double v = 0.0;
-    if (s->peer.takeRemote(static_cast<int>(i), &v) &&
-        std::fabs(v - s->shared.get(i)) > 1e-12) {
-      // Mark dirty so the host receives a parameter event and its automation
-      // lane follows the remote move.
-      s->shared.set(i, v);
-    }
-  }
-  for (uint32_t i = 0; i < P_COUNT; ++i) {
-    s->peer.publish(static_cast<int>(i), s->shared.get(i));
-  }
-  s->peer.setBus(
-      static_cast<uint32_t>(s->shared.get(P_BUS) + 0.5));
   s->peer.publishMeters(s->meters.inPeakLDb, s->meters.inPeakRDb,
                         s->meters.outPeakLDb, s->meters.outPeakRDb,
                         s->meters.grDb);
@@ -968,7 +965,7 @@ clap_process_status pluginProcess(const clap_plugin_t* p, const clap_process_t* 
   if (proc->in_events) {
     applyEvents(s, proc->in_events);
   }
-  peerSync(s);
+  peerMeters(s);
   emitDirty(s, proc->out_events);
 
   if (proc->audio_inputs_count == 0 || proc->audio_outputs_count == 0) {
