@@ -23,7 +23,7 @@ latency 0
 PASS  reports a small latency
 0 failure(s)
 <end of output>
-Test time =   0.07 sec
+Test time =   0.03 sec
 ----------------------------------------------------------
 Test Passed.
 "suite_control_dsp" end time: Nov 22 12:23 EST
@@ -60,7 +60,7 @@ PASS  drag changes the value
 PASS  drag stops on release
 0 failure(s)
 <end of output>
-Test time =   0.13 sec
+Test time =   0.05 sec
 ----------------------------------------------------------
 Test Passed.
 "suite_control_panel" end time: Nov 22 12:23 EST
@@ -105,7 +105,7 @@ PASS  plus mirrors the value back
 PASS  deactivate drops the slot
 0 failure(s)
 <end of output>
-Test time =   0.08 sec
+Test time =   0.07 sec
 ----------------------------------------------------------
 Test Passed.
 "suite_peer_integration" end time: Nov 22 12:23 EST

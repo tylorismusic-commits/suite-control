@@ -840,12 +840,13 @@ void Panel::layoutBus(const Shared& shared, const PanelState& state) {
 
   pill(P_EQ_IN, bx, 386, 40, 20, "EQ");
   pill(P_EQ_TYPE, bx + 48, 386, 60, 20, "TYPE");
-  knob(P_EQ_LF_GAIN, bx + 20, 466, 19, "LF", 1);
-  knob(P_EQ_LM_GAIN, bx + 72, 466, 19, "LMF", 0);
-  knob(P_EQ_HM_GAIN, bx + 124, 466, 19, "HMF", 3);
-  knob(P_EQ_HF_GAIN, bx + 176, 466, 19, "HF", 2);
+  // Left column shares one axis: THRESH, ATTACK, LF and SUM.
+  knob(P_EQ_LF_GAIN, bx + 30, 466, 19, "LF", 1);
+  knob(P_EQ_LM_GAIN, bx + 82, 466, 19, "LMF", 0);
+  knob(P_EQ_HM_GAIN, bx + 134, 466, 19, "HMF", 3);
+  knob(P_EQ_HF_GAIN, bx + 186, 466, 19, "HF", 2);
 
-  knob(P_SUM_AMOUNT, bx + 36, 600, 20, "SUM", 4);
+  knob(P_SUM_AMOUNT, bx + 30, 600, 20, "SUM", 4);
 
   pill(P_LIMITER, bx + 8, 676, 60, 20, "LIMIT");
   knob(P_INPUT, bx + 110, 700, 17, "IN", 0);
