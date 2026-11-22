@@ -698,11 +698,11 @@ void Panel::layoutDetail() {
   }
 
   // INPUT / COLOUR
-  pillWidget(0, 30, 140, 58, 20, "POWER");
-  pillWidget(2, 94, 140, 38, 20, "POL");
-  knobWidget(1, 62, 210, 22, "INPUT", 0);
-  knobWidget(4, 136, 210, 22, "COLOUR", 4);
-  pillWidget(3, 198, 198, 92, 22, "COLOUR");
+  pillWidget(0, 30, 138, 58, 20, "POWER");
+  pillWidget(2, 94, 138, 38, 20, "POL");
+  knobWidget(1, 66, 192, 20, "INPUT", 0);
+  knobWidget(4, 142, 192, 20, "COLOUR", 4);
+  pillWidget(3, 200, 180, 92, 22, "COLOUR");
 
   // DYNAMICS
   pillWidget(22, 30, 286, 58, 20, "COMP IN");
@@ -1016,10 +1016,10 @@ void Panel::knob(cairo_t* cr, const Widget& w, double value,
   cairo_stroke(cr);
 
   if (readout && readout[0]) {
-    text(cr, readout, cx, cy - r * 1.32 - 5.0, 8.5, 1, kLegend.r, kLegend.g,
+    text(cr, readout, cx, cy - r - 7.0, 8.5, 1, kLegend.r, kLegend.g,
          kLegend.b);
   }
-  text(cr, w.label, cx, cy + r * 1.32 + 12.0, 9.0, 1, kLegend.r, kLegend.g,
+  text(cr, w.label, cx, cy + r + 13.0, 9.0, 1, kLegend.r, kLegend.g,
        kLegend.b);
 }
 
@@ -1451,7 +1451,7 @@ void Panel::drawDetailPage(cairo_t* cr, const Shared& shared,
   text(cr, title, 700, 99, 15, 1, kLegend.r, kLegend.g, kLegend.b);
 
   // Same section grouping as Suite Channel, widened for the console.
-  plate(cr, 20, 110, 280, 140, "INPUT / COLOUR");
+  plate(cr, 20, 110, 280, 142, "INPUT / COLOUR");
   plate(cr, 20, 258, 280, 186, "DYNAMICS");
   plate(cr, 20, 452, 280, 180, "GATE / EXPANDER");
   plate(cr, 20, 640, 280, 104, "FILTERS");
