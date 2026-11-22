@@ -89,11 +89,11 @@ int main() {
     suite::Panel p4;
     p4.tick(s4, st4);
     auto on = [&](int slot, suite::peer::Client& c) {
-      return c.raw()->slot[slot].param[suite::ch::kEnabled].value.load() > 0.5;
+      return c.raw()->slot[slot].param[suite::ch::kOutput].value.load() > 0.01;
     };
-    // Start both on.
-    suite::peer::Client::writeRemote(c1.raw()->slot[a], suite::ch::kEnabled, 1.0);
-    suite::peer::Client::writeRemote(c2.raw()->slot[b], suite::ch::kEnabled, 1.0);
+    // Start both at a normal fader position.
+    suite::peer::Client::writeRemote(c1.raw()->slot[a], suite::ch::kOutput, 0.75);
+    suite::peer::Client::writeRemote(c2.raw()->slot[b], suite::ch::kOutput, 0.75);
     p4.pointerDown(s4, st4, 40.0, 694.0, false);
     p4.pointerUp();
     check(on(a, c1) != on(b, c2), "mute disables exactly one channel");
@@ -104,6 +104,10 @@ int main() {
     p4.pointerDown(s4, st4, 141.0 + 70.0, 694.0, false);
     p4.pointerUp();
     check(on(a, c1) != on(b, c2), "mute survives solo release");
+    // Unmute restores the fader.
+    p4.pointerDown(s4, st4, 40.0, 694.0, false);
+    p4.pointerUp();
+    check(on(a, c1) && on(b, c2), "unmute restores the fader");
     c1.unregisterSlot();
     c2.unregisterSlot();
   }

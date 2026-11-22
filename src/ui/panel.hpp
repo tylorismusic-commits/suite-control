@@ -105,7 +105,7 @@ private:
   void meter(cairo_t* cr, double x, double y, double w, double h, float dbL,
              float dbR) const;
   void grMeter(cairo_t* cr, double x, double y, double w, double h,
-               float grDb) const;
+               float grDb, bool vertical = false) const;
 
   bool dragging_ = false;
   int dragKind_ = -1;  // 0 local, 1 remote
@@ -130,7 +130,7 @@ private:
   bool editing_ = false;
   int editKey_ = -1;
   std::string editText_;
-  std::vector<int> forced_;  // name-table keys currently forced off
+
   double captureNoticeUntil_ = 0.0;
   int captureCount_ = -1;
 

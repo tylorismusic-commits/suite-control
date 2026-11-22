@@ -161,6 +161,8 @@ public:
   char names[kNameSlots][kNameBytes] = {};
   bool muted[kNameSlots] = {};
   bool soloed[kNameSlots] = {};
+  bool gainForced[kNameSlots] = {};   // we pulled this channel's fader down
+  float savedGain[kNameSlots] = {};   // fader value to restore
 
   std::atomic<float> inPeakDb{-120.0f};
   std::atomic<float> outPeakDb{-120.0f};

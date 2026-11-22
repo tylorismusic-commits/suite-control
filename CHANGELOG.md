@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.2
+
+- Mute and solo now ride the channel's output fader instead of its bypass,
+  restoring the saved fader position when released.  Mute state and the saved
+  fader are stored in the plug-in state.
+- Vertical GR meters fill from the top like a console ladder; the strip GR bar
+  stays a left-to-right fill.
+- Channel page mirrors Suite Channel's section layout, with explicit VCA/76 and
+  Brown/Black buttons.
+- Channel names persist per bus position in the plug-in state.
+
 ## 0.1.1
 
 - The console page scrolls through every channel (8 per screen) with `<`/`>`

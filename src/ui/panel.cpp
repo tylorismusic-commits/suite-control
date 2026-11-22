@@ -343,16 +343,17 @@ void Panel::applyMuteSolo(Shared& shared) {
   for (int i = 0; i < hub_.size(); ++i) {
     if (!visible(i)) continue;
     const int key = nameKey(i);
-    const bool wantOn = !shared.muted[key] &&
-                        (!anySolo || shared.soloed[key]);
-    auto it = std::find(forced_.begin(), forced_.end(), key);
-    const bool forced = it != forced_.end();
-    if (!wantOn && !forced) {
-      hub_.write(i, ch::kEnabled, 0.0);
-      forced_.push_back(key);
-    } else if (wantOn && forced) {
-      hub_.write(i, ch::kEnabled, 1.0);
-      forced_.erase(it);
+    const bool audible = !shared.muted[key] &&
+                         (!anySolo || shared.soloed[key]);
+    if (!audible) {
+      if (!shared.gainForced[key]) {
+        shared.savedGain[key] = static_cast<float>(hub_.value(i, ch::kOutput));
+        shared.gainForced[key] = true;
+      }
+      hub_.write(i, ch::kOutput, 0.0);
+    } else if (shared.gainForced[key]) {
+      hub_.write(i, ch::kOutput, shared.savedGain[key]);
+      shared.gainForced[key] = false;
     }
   }
 }
@@ -1112,13 +1113,18 @@ void Panel::meter(cairo_t* cr, double x, double y, double w, double h,
 }
 
 void Panel::grMeter(cairo_t* cr, double x, double y, double w, double h,
-                    float grDb) const {
+                    float grDb, bool vertical) const {
   roundRect(cr, x, y, w, h, 3);
   setRgb(cr, {0.06, 0.07, 0.08});
   cairo_fill(cr);
   const double t = clamp01(grDb / 24.0);
   setRgb(cr, {0.95, 0.55, 0.20});
-  cairo_rectangle(cr, x + 2.0, y + 2.0, (w - 4.0) * t, h - 4.0);
+  if (vertical) {
+    // Reduction hangs from the top, like a console GR ladder.
+    cairo_rectangle(cr, x + 2.0, y + 2.0, w - 4.0, (h - 4.0) * t);
+  } else {
+    cairo_rectangle(cr, x + 2.0, y + 2.0, (w - 4.0) * t, h - 4.0);
+  }
   cairo_fill(cr);
 }
 
@@ -1424,7 +1430,7 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
   }
 
   grMeter(cr, kBusX + 198, kPlateY + 60, 9, 168,
-          shared.grDb.load(std::memory_order_relaxed));
+          shared.grDb.load(std::memory_order_relaxed), true);
   meter(cr, kBusX + 212, kPlateY + 60, 22, 168,
         shared.inPeakLDb.load(std::memory_order_relaxed),
         shared.outPeakLDb.load(std::memory_order_relaxed));
@@ -1456,7 +1462,7 @@ void Panel::drawDetailPage(cairo_t* cr, const Shared& shared,
   float inL = 0, inR = 0, outL = 0, outR = 0, gr = 0;
   hub_.meter(detail_, &inL, &inR, &outL, &outR, &gr);
   meter(cr, 1140, 190, 16, 430, outL, outR);
-  grMeter(cr, 1168, 190, 10, 430, gr);
+  grMeter(cr, 1168, 190, 10, 430, gr, true);
   text(cr, "OUT", 1148, 636, 7.5, 1, kLegendDim.r, kLegendDim.g, kLegendDim.b);
   text(cr, "GR", 1173, 636, 7.5, 1, kLegendDim.r, kLegendDim.g, kLegendDim.b);
 

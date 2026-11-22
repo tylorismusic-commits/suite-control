@@ -340,7 +340,7 @@ bool stateSave(const clap_plugin_t* p, const clap_ostream_t* stream) {
   }
   // Console name table + mute states, appended after the parameters.
   constexpr uint32_t kMagic = 0x53434e4d;  // SCNM
-  constexpr uint32_t kTableVersion = 1;
+  constexpr uint32_t kTableVersion = 2;
   const uint32_t count = suite::Shared::kNameSlots;
   if (stream->write(stream, &kMagic, sizeof(kMagic)) != sizeof(kMagic) ||
       stream->write(stream, &kTableVersion, sizeof(kTableVersion)) !=
@@ -355,6 +355,12 @@ bool stateSave(const clap_plugin_t* p, const clap_ostream_t* stream) {
     }
     const uint8_t m = s->shared.muted[i] ? 1 : 0;
     if (stream->write(stream, &m, 1) != 1) return false;
+    const uint8_t forced = s->shared.gainForced[i] ? 1 : 0;
+    if (stream->write(stream, &forced, 1) != 1) return false;
+    if (stream->write(stream, &s->shared.savedGain[i],
+                      sizeof(float)) != sizeof(float)) {
+      return false;
+    }
   }
   return true;
 }
@@ -378,7 +384,7 @@ bool stateLoad(const clap_plugin_t* p, const clap_istream_t* stream) {
       stream->read(stream, &version, sizeof(version)) == sizeof(version) &&
       version == 1 &&
       stream->read(stream, &slots, sizeof(slots)) == sizeof(slots) &&
-      slots <= suite::Shared::kNameSlots) {
+      (version == 1 || version == 2) && slots <= suite::Shared::kNameSlots) {
     for (uint32_t i = 0; i < slots; ++i) {
       if (stream->read(stream, s->shared.names[i],
                        suite::Shared::kNameBytes) !=
@@ -388,6 +394,15 @@ bool stateLoad(const clap_plugin_t* p, const clap_istream_t* stream) {
       uint8_t m = 0;
       if (stream->read(stream, &m, 1) != 1) break;
       s->shared.muted[i] = m != 0;
+      if (version >= 2) {
+        uint8_t forced = 0;
+        if (stream->read(stream, &forced, 1) != 1) break;
+        s->shared.gainForced[i] = forced != 0;
+        if (stream->read(stream, &s->shared.savedGain[i], sizeof(float)) !=
+            sizeof(float)) {
+          break;
+        }
+      }
     }
   }
   return true;
