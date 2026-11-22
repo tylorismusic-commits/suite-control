@@ -10,6 +10,7 @@
 #include "dsp/engine.hpp"
 #include "dsp/inline_display.hpp"
 #include "params.hpp"
+#include "peer.hpp"
 
 namespace {
 
@@ -53,6 +54,9 @@ struct Plugin {
   float* inPeakL = nullptr;
   float* inPeakR = nullptr;
   float* latency = nullptr;
+
+  suite::peer::Client peer;
+  bool peerRegistered = false;
 
   suite::InlineDisplay display;
   const suite::InlineDisplayQueueDraw* queueDraw = nullptr;
@@ -102,12 +106,23 @@ void connectPort(LV2_Handle handle, uint32_t port, void* data) {
 void activate(LV2_Handle handle) {
   auto* p = static_cast<Plugin*>(handle);
   p->engine.reset();
+  if (p->peer.registerSlot(
+          static_cast<uint32_t>(p->shared.get(suite::P_BUS) + 0.5),
+          "Suite Channel Plus", suite::P_COUNT) >= 0) {
+    p->peerRegistered = true;
+  }
   if (p->latency) {
     *p->latency = static_cast<float>(p->engine.latencySamples());
   }
 }
 
-void deactivate(LV2_Handle) {}
+void deactivate(LV2_Handle handle) {
+  auto* p = static_cast<Plugin*>(handle);
+  if (p->peerRegistered) {
+    p->peer.unregisterSlot();
+    p->peerRegistered = false;
+  }
+}
 
 void run(LV2_Handle handle, uint32_t frames) {
   auto* p = static_cast<Plugin*>(handle);
@@ -132,6 +147,23 @@ void run(LV2_Handle handle, uint32_t frames) {
     }
   }
   p->portsSeen = true;
+  if (p->peerRegistered) {
+    for (uint32_t i = 0; i < suite::P_COUNT; ++i) {
+      double v = 0.0;
+      if (p->peer.takeRemote(static_cast<int>(i), &v)) {
+        p->shared.set(i, v);
+        if (p->ports[i]) *p->ports[i] = static_cast<float>(v);
+      }
+    }
+    for (uint32_t i = 0; i < suite::P_COUNT; ++i) {
+      p->peer.publish(static_cast<int>(i), p->shared.get(i));
+    }
+    p->peer.setBus(static_cast<uint32_t>(p->shared.get(suite::P_BUS) + 0.5));
+    p->peer.publishMeters(p->meters.inPeakLDb, p->meters.inPeakRDb,
+                          p->meters.outPeakLDb, p->meters.outPeakRDb,
+                          p->meters.grDb);
+    p->peer.beat();
+  }
   p->engine.setControls(suite::controlsFrom(p->shared));
 
   if (p->audioOutL != p->audioInL) {
