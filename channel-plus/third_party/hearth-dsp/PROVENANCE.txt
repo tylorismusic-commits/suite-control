@@ -1,0 +1,4 @@
+Vendored hearth-dsp copy
+commit: 53d94d6f7ca6335a07fe11cf43ac94e61aa736f0
+source: https://github.com/tylorismusic-commits/hearth-dsp
+license: GPL-3.0-or-later
