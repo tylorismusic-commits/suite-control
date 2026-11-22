@@ -143,7 +143,11 @@ void activate(LV2_Handle handle) {
             if (p->peer.takeRemote(static_cast<int>(i), &v) &&
                 std::fabs(v - p->shared.get(i)) > 1e-12) {
               p->shared.set(i, v);
-              p->lastPort[i] = static_cast<float>(v);
+              // Leave lastPort alone.  The host's control port still holds the
+              // pre-edit value; if we recorded the remote value as "seen", the
+              // next poll would treat the untouched port as a host change and
+              // undo the edit - the knob would snap back and the strip would
+              // never move.
             }
           }
           for (uint32_t i = 0; i < suite::P_COUNT; ++i) {

@@ -7,6 +7,10 @@
 - LV2 control ports are polled on a timer thread, so BUS changes reach Suite
   Control without the transport running; the first poll adopts every port, so
   a saved/Off value is not lost against the zero-initialised cache.
+- Remote edits from Suite Control now survive the port poll: adopting a remote
+  value no longer records it as "the host's value", so the next poll no longer
+  treated the untouched control port as a host change and reverted the edit
+  (strip knobs, mute and solo snapped back and never reached the DSP).
 - `Control Bus` now defaults to **A** instead of Off, so a freshly inserted
   channel appears in Suite Control straight away.
 - Plug-ins and UIs hide their symbols apart from the entry points; hosts that
