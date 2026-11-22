@@ -154,7 +154,8 @@ std::string manifestTtl() {
   out += "<" + std::string(kUri) + ">\n";
   out += "    a lv2:Plugin ;\n";
   out += "    lv2:binary <" + std::string(kBinary) + "> ;\n";
-  out += "    rdfs:seeAlso <suite_control.ttl> .\n\n";
+  out += "    rdfs:seeAlso <suite_control.ttl> ;\n";
+  out += "    ui:ui <" + std::string(kUiUri) + "> .\n\n";
   out += "<" + std::string(kUiUri) + ">\n";
   out += "    a ui:X11UI ;\n";
   out += "    ui:binary <" + std::string(kUiBinary) + "> .\n";

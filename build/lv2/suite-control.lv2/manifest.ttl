@@ -5,7 +5,8 @@
 <https://github.com/tylorismusic-commits/suite-control>
     a lv2:Plugin ;
     lv2:binary <suite_control.so> ;
-    rdfs:seeAlso <suite_control.ttl> .
+    rdfs:seeAlso <suite_control.ttl> ;
+    ui:ui <https://github.com/tylorismusic-commits/suite-control#ui> .
 
 <https://github.com/tylorismusic-commits/suite-control#ui>
     a ui:X11UI ;
