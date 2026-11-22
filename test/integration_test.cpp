@@ -4,7 +4,9 @@
 #include <clap/all.h>
 #include <dlfcn.h>
 
+#include <chrono>
 #include <cmath>
+#include <thread>
 #include <cstdio>
 #include <cstring>
 #include <vector>
@@ -102,6 +104,8 @@ int main(int argc, char** argv) {
 
   // The surface writes INPUT; the plug-in must adopt it.
   suite::peer::Client::writeRemote(seg->slot[slot], 1, 0.91);
+  // The peer timer thread adopts remote writes; give it a cycle.
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
   process(plugin);
   double v = 0.0;
   check(params->get_value(plugin, 1, &v), "plus reads input");

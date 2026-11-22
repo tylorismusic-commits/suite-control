@@ -525,7 +525,11 @@ void Panel::applyMuteSolo(Shared& shared) {
                          (!anySolo || shared.soloed[key]);
     if (!audible) {
       if (!shared.gainForced[key]) {
-        shared.savedGain[key] = static_cast<float>(hub_.value(i, ch::kOutput));
+        // Capture the fader position, but never adopt a zero: a stale read
+        // during a fast mute/unmute cycle would leave the channel silent.
+        const double current = hub_.value(i, ch::kOutput);
+        shared.savedGain[key] =
+            static_cast<float>(current > 0.001 ? current : 0.75);
         shared.gainForced[key] = true;
       }
       hub_.write(i, ch::kOutput, 0.0);

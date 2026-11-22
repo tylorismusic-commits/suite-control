@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.5
+
+- Fix controls snapping back and sticking: Suite Channel Plus used two
+  publishers (audio + timer), so a stale publish could overwrite a newer remote
+  write before it was adopted.  The timer thread is now the single writer and
+  adopts remote changes before publishing, so edits apply without playback.
+- Mute never captures a stale zero for its restore value.
+
 ## 0.1.4
 
 - Fix the name table never loading: the loader required table version 1 while

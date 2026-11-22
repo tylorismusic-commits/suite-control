@@ -87,31 +87,37 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o: \
  /home/tylor/Projects/suite-control/third_party/clap/include/clap/ext/draft/undo.h \
  /home/tylor/Projects/suite-control/third_party/clap/include/clap/ext/draft/webview.h \
  /usr/include/dlfcn.h /usr/include/bits/dlfcn.h \
- /usr/include/bits/dl_find_object.h /usr/include/c++/16/cmath \
- /usr/include/c++/16/bits/requires_hosted.h \
+ /usr/include/bits/dl_find_object.h /usr/include/c++/16/chrono \
+ /usr/include/c++/16/bits/chrono.h /usr/include/c++/16/ratio \
+ /usr/include/c++/16/type_traits /usr/include/c++/16/limits \
+ /usr/include/c++/16/ctime /usr/include/time.h /usr/include/bits/time.h \
+ /usr/include/bits/timex.h /usr/include/bits/types/struct_timeval.h \
+ /usr/include/bits/types/clock_t.h /usr/include/bits/types/time_t.h \
+ /usr/include/bits/types/struct_tm.h \
+ /usr/include/bits/types/struct_timespec.h /usr/include/bits/endian.h \
+ /usr/include/bits/endianness.h /usr/include/bits/types/clockid_t.h \
+ /usr/include/bits/types/timer_t.h \
+ /usr/include/bits/types/struct_itimerspec.h \
+ /usr/include/bits/types/locale_t.h /usr/include/bits/types/__locale_t.h \
+ /usr/include/c++/16/bits/parse_numbers.h \
+ /usr/include/c++/16/ext/numeric_traits.h \
  /usr/include/c++/16/bits/cpp_type_traits.h \
- /usr/include/c++/16/type_traits /usr/include/c++/16/ext/type_traits.h \
- /usr/include/math.h /usr/include/bits/math-vector.h \
- /usr/include/bits/libm-simd-decl-stubs.h /usr/include/bits/floatn.h \
- /usr/include/bits/floatn-common.h /usr/include/bits/flt-eval-method.h \
- /usr/include/bits/fp-logb.h /usr/include/bits/fp-fast.h \
- /usr/include/bits/mathcalls-macros.h \
+ /usr/include/c++/16/ext/type_traits.h /usr/include/c++/16/cmath \
+ /usr/include/c++/16/bits/requires_hosted.h /usr/include/math.h \
+ /usr/include/bits/math-vector.h /usr/include/bits/libm-simd-decl-stubs.h \
+ /usr/include/bits/floatn.h /usr/include/bits/floatn-common.h \
+ /usr/include/bits/flt-eval-method.h /usr/include/bits/fp-logb.h \
+ /usr/include/bits/fp-fast.h /usr/include/bits/mathcalls-macros.h \
  /usr/include/bits/mathcalls-helper-functions.h \
  /usr/include/bits/mathcalls.h /usr/include/bits/mathcalls-narrow.h \
  /usr/include/bits/iscanonical.h /usr/include/c++/16/bits/std_abs.h \
  /usr/include/stdlib.h /usr/include/bits/waitflags.h \
- /usr/include/bits/waitstatus.h /usr/include/bits/types/locale_t.h \
- /usr/include/bits/types/__locale_t.h /usr/include/sys/types.h \
- /usr/include/bits/types/clock_t.h /usr/include/bits/types/clockid_t.h \
- /usr/include/bits/types/time_t.h /usr/include/bits/types/timer_t.h \
- /usr/include/endian.h /usr/include/bits/endian.h \
- /usr/include/bits/endianness.h /usr/include/bits/byteswap.h \
+ /usr/include/bits/waitstatus.h /usr/include/sys/types.h \
+ /usr/include/endian.h /usr/include/bits/byteswap.h \
  /usr/include/bits/uintn-identity.h /usr/include/sys/select.h \
  /usr/include/bits/select.h /usr/include/bits/types/sigset_t.h \
- /usr/include/bits/types/__sigset_t.h \
- /usr/include/bits/types/struct_timeval.h \
- /usr/include/bits/types/struct_timespec.h \
- /usr/include/bits/pthreadtypes.h /usr/include/bits/thread-shared-types.h \
+ /usr/include/bits/types/__sigset_t.h /usr/include/bits/pthreadtypes.h \
+ /usr/include/bits/thread-shared-types.h \
  /usr/include/bits/pthreadtypes-arch.h \
  /usr/include/bits/atomic_wide_counter.h /usr/include/bits/struct_mutex.h \
  /usr/include/bits/struct_rwlock.h /usr/include/alloca.h \
@@ -121,7 +127,6 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o: \
  /usr/include/c++/16/bits/exception_defines.h \
  /usr/include/c++/16/bits/stdexcept_throwfwd.h \
  /usr/include/c++/16/bits/stl_algobase.h \
- /usr/include/c++/16/ext/numeric_traits.h \
  /usr/include/c++/16/bits/stl_pair.h /usr/include/c++/16/bits/move.h \
  /usr/include/c++/16/bits/utility.h \
  /usr/include/c++/16/bits/stl_iterator_base_types.h \
@@ -133,8 +138,7 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o: \
  /usr/include/c++/16/bits/predefined_ops.h \
  /usr/include/c++/16/bits/stl_function.h \
  /usr/include/c++/16/backward/binders.h /usr/include/c++/16/bit \
- /usr/include/c++/16/concepts /usr/include/c++/16/limits \
- /usr/include/c++/16/tr1/gamma.tcc \
+ /usr/include/c++/16/concepts /usr/include/c++/16/tr1/gamma.tcc \
  /usr/include/c++/16/tr1/special_function_util.h \
  /usr/include/c++/16/tr1/bessel_function.tcc \
  /usr/include/c++/16/tr1/beta_function.tcc \
@@ -145,12 +149,41 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o: \
  /usr/include/c++/16/tr1/modified_bessel_func.tcc \
  /usr/include/c++/16/tr1/poly_hermite.tcc \
  /usr/include/c++/16/tr1/poly_laguerre.tcc \
- /usr/include/c++/16/tr1/riemann_zeta.tcc /usr/include/c++/16/cstdio \
- /usr/include/stdio.h \
+ /usr/include/c++/16/tr1/riemann_zeta.tcc /usr/include/c++/16/thread \
+ /usr/include/c++/16/bits/std_thread.h /usr/include/c++/16/iosfwd \
+ /usr/include/c++/16/bits/stringfwd.h \
+ /usr/include/c++/16/bits/memoryfwd.h /usr/include/c++/16/bits/postypes.h \
+ /usr/include/c++/16/cwchar /usr/include/wchar.h \
  /usr/lib/gcc/x86_64-pc-linux-gnu/16/include/stdarg.h \
- /usr/include/bits/types/__fpos_t.h /usr/include/bits/types/__mbstate_t.h \
- /usr/include/bits/types/__fpos64_t.h /usr/include/bits/types/__FILE.h \
- /usr/include/bits/types/FILE.h /usr/include/bits/types/struct_FILE.h \
+ /usr/include/bits/types/wint_t.h /usr/include/bits/types/mbstate_t.h \
+ /usr/include/bits/types/__mbstate_t.h /usr/include/bits/types/__FILE.h \
+ /usr/include/bits/types/FILE.h /usr/include/c++/16/tuple \
+ /usr/include/c++/16/bits/uses_allocator.h \
+ /usr/include/c++/16/bits/invoke.h \
+ /usr/include/c++/16/bits/functional_hash.h \
+ /usr/include/c++/16/bits/hash_bytes.h /usr/include/c++/16/bits/refwrap.h \
+ /usr/include/c++/16/bits/unique_ptr.h \
+ /usr/include/c++/16/x86_64-pc-linux-gnu/bits/gthr.h \
+ /usr/include/c++/16/x86_64-pc-linux-gnu/bits/gthr-default.h \
+ /usr/include/pthread.h /usr/include/sched.h /usr/include/bits/sched.h \
+ /usr/include/linux/sched/types.h /usr/include/linux/types.h \
+ /usr/include/asm/types.h /usr/include/asm-generic/types.h \
+ /usr/include/asm-generic/int-ll64.h /usr/include/asm/bitsperlong.h \
+ /usr/include/asm-generic/bitsperlong.h /usr/include/linux/posix_types.h \
+ /usr/include/linux/stddef.h /usr/include/asm/posix_types.h \
+ /usr/include/asm/posix_types_64.h /usr/include/asm-generic/posix_types.h \
+ /usr/include/bits/types/struct_sched_param.h /usr/include/bits/cpu-set.h \
+ /usr/include/bits/setjmp.h \
+ /usr/include/bits/types/struct___jmp_buf_tag.h \
+ /usr/include/bits/pthread_stack_min-dynamic.h \
+ /usr/include/c++/16/bits/this_thread_sleep.h /usr/include/c++/16/cerrno \
+ /usr/include/errno.h /usr/include/bits/errno.h \
+ /usr/include/linux/errno.h /usr/include/asm/errno.h \
+ /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
+ /usr/include/bits/types/error_t.h /usr/include/c++/16/cstdio \
+ /usr/include/stdio.h /usr/include/bits/types/__fpos_t.h \
+ /usr/include/bits/types/__fpos64_t.h \
+ /usr/include/bits/types/struct_FILE.h \
  /usr/include/bits/types/cookie_io_functions_t.h \
  /usr/include/bits/stdio_lim.h /usr/include/bits/stdio.h \
  /usr/include/c++/16/cstring /usr/include/string.h /usr/include/strings.h \
@@ -160,7 +193,6 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o: \
  /usr/include/c++/16/bits/exception.h \
  /usr/include/c++/16/bits/new_except.h \
  /usr/include/c++/16/bits/new_throw.h \
- /usr/include/c++/16/bits/memoryfwd.h \
  /usr/include/c++/16/bits/stl_construct.h \
  /usr/include/c++/16/bits/stl_uninitialized.h \
  /usr/include/c++/16/ext/alloc_traits.h \
@@ -168,14 +200,10 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o: \
  /usr/include/c++/16/bits/stl_vector.h \
  /usr/include/c++/16/initializer_list \
  /usr/include/c++/16/bits/stl_bvector.h \
- /usr/include/c++/16/bits/functional_hash.h \
- /usr/include/c++/16/bits/hash_bytes.h \
  /usr/include/c++/16/bits/range_access.h \
  /usr/include/c++/16/bits/erase_if.h /usr/include/c++/16/bits/vector.tcc \
  /usr/include/c++/16/bits/memory_resource.h \
- /usr/include/c++/16/bits/uses_allocator.h \
- /usr/include/c++/16/bits/uses_allocator_args.h /usr/include/c++/16/tuple \
- /usr/include/c++/16/bits/invoke.h \
+ /usr/include/c++/16/bits/uses_allocator_args.h \
  /home/tylor/Projects/suite-control/src/peer.hpp \
  /usr/include/c++/16/algorithm /usr/include/c++/16/bits/stl_algo.h \
  /usr/include/c++/16/bits/algorithmfwd.h \
@@ -185,33 +213,17 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o: \
  /usr/include/c++/16/pstl/glue_algorithm_defs.h \
  /usr/include/c++/16/pstl/execution_defs.h /usr/include/c++/16/atomic \
  /usr/include/c++/16/bits/atomic_base.h \
- /usr/include/c++/16/bits/atomic_lockfree_defines.h \
- /usr/include/c++/16/cerrno /usr/include/errno.h \
- /usr/include/bits/errno.h /usr/include/linux/errno.h \
- /usr/include/asm/errno.h /usr/include/asm-generic/errno.h \
- /usr/include/asm-generic/errno-base.h /usr/include/bits/types/error_t.h \
- /usr/include/c++/16/chrono /usr/include/c++/16/bits/chrono.h \
- /usr/include/c++/16/ratio /usr/include/c++/16/ctime /usr/include/time.h \
- /usr/include/bits/time.h /usr/include/bits/timex.h \
- /usr/include/bits/types/struct_tm.h \
- /usr/include/bits/types/struct_itimerspec.h \
- /usr/include/c++/16/bits/parse_numbers.h /usr/include/dirent.h \
+ /usr/include/c++/16/bits/atomic_lockfree_defines.h /usr/include/dirent.h \
  /usr/include/bits/dirent.h /usr/include/bits/posix1_lim.h \
  /usr/include/bits/local_lim.h /usr/include/linux/limits.h \
- /usr/include/bits/pthread_stack_min-dynamic.h \
  /usr/include/bits/dirent_ext.h /usr/include/fcntl.h \
  /usr/include/bits/fcntl.h /usr/include/bits/fcntl-linux.h \
  /usr/include/bits/types/struct_iovec.h /usr/include/bits/cloexec.h \
  /usr/include/linux/falloc.h /usr/include/linux/openat2.h \
- /usr/include/linux/types.h /usr/include/asm/types.h \
- /usr/include/asm-generic/types.h /usr/include/asm-generic/int-ll64.h \
- /usr/include/asm/bitsperlong.h /usr/include/asm-generic/bitsperlong.h \
- /usr/include/linux/posix_types.h /usr/include/linux/stddef.h \
- /usr/include/asm/posix_types.h /usr/include/asm/posix_types_64.h \
- /usr/include/asm-generic/posix_types.h /usr/include/bits/openat2.h \
- /usr/include/bits/stat.h /usr/include/bits/struct_stat.h \
- /usr/include/signal.h /usr/include/bits/signum-generic.h \
- /usr/include/bits/signum-arch.h /usr/include/bits/types/sig_atomic_t.h \
+ /usr/include/bits/openat2.h /usr/include/bits/stat.h \
+ /usr/include/bits/struct_stat.h /usr/include/signal.h \
+ /usr/include/bits/signum-generic.h /usr/include/bits/signum-arch.h \
+ /usr/include/bits/types/sig_atomic_t.h \
  /usr/include/bits/types/siginfo_t.h /usr/include/bits/types/__sigval_t.h \
  /usr/include/bits/siginfo-arch.h /usr/include/bits/siginfo-consts.h \
  /usr/include/bits/siginfo-consts-arch.h \
@@ -226,16 +238,12 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o: \
  /usr/include/linux/close_range.h /usr/include/bits/ss_flags.h \
  /usr/include/bits/types/struct_sigstack.h /usr/include/bits/sigthread.h \
  /usr/include/bits/signal_ext.h /usr/include/c++/16/string \
- /usr/include/c++/16/bits/stringfwd.h \
  /usr/include/c++/16/bits/char_traits.h \
- /usr/include/c++/16/bits/postypes.h /usr/include/c++/16/cwchar \
- /usr/include/wchar.h /usr/include/bits/types/wint_t.h \
- /usr/include/bits/types/mbstate_t.h /usr/include/c++/16/bits/localefwd.h \
+ /usr/include/c++/16/bits/localefwd.h \
  /usr/include/c++/16/x86_64-pc-linux-gnu/bits/c++locale.h \
  /usr/include/c++/16/clocale /usr/include/locale.h \
- /usr/include/bits/locale.h /usr/include/c++/16/iosfwd \
- /usr/include/c++/16/cctype /usr/include/ctype.h \
- /usr/include/c++/16/bits/ostream_insert.h \
+ /usr/include/bits/locale.h /usr/include/c++/16/cctype \
+ /usr/include/ctype.h /usr/include/c++/16/bits/ostream_insert.h \
  /usr/include/c++/16/bits/cxxabi_forced.h \
  /usr/include/c++/16/bits/basic_string.h /usr/include/c++/16/string_view \
  /usr/include/c++/16/bits/string_view.tcc \
