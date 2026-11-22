@@ -9,6 +9,7 @@
 // syscalls on the audio thread.
 #pragma once
 
+#include <algorithm>
 #include <atomic>
 #include <cerrno>
 #include <chrono>
@@ -19,6 +20,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <string>
+#include <vector>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -263,6 +265,125 @@ private:
   int slot_ = -1;
   double mirror_[kMaxParams] = {};
   uint32_t seen_[kMaxParams] = {};
+};
+
+
+// ---------------------------------------------------------------------------
+// Consumer hub
+// ---------------------------------------------------------------------------
+// Every host process (and every plug-in process, when the host isolates them)
+// owns its own segment.  The surface scans /dev/shm and aggregates all live
+// segments, so it works whether Suite Channel Plus runs in this process or in
+// a dedicated one.
+class Hub {
+public:
+  struct Entry {
+    Segment* seg = nullptr;
+    int slot = -1;
+    int serial = 0;
+  };
+
+  void refresh() noexcept {
+    const int64_t now = nowMs();
+    if (now - lastScan_ < 500 && !entries_.empty()) return;
+    lastScan_ = now;
+    // Drop segments that disappeared (host exited, stale cleanup).
+    DIR* dir = opendir("/dev/shm");
+    std::vector<std::string> names;
+    if (dir) {
+      const std::string prefix = "suitepeer-v1-";
+      while (dirent* e = readdir(dir)) {
+        if (std::strncmp(e->d_name, prefix.c_str(), prefix.size()) == 0) {
+          names.push_back(std::string("/dev/shm/") + e->d_name);
+        }
+      }
+      closedir(dir);
+    }
+    // Keep existing mappings, add new ones.
+    for (const std::string& path : names) {
+      bool have = false;
+      for (const Map& m : maps_) {
+        if (m.path == path) {
+          have = true;
+          break;
+        }
+      }
+      if (have) continue;
+      const int fd = open(path.c_str(), O_RDWR);
+      if (fd < 0) continue;
+      struct stat st {};
+      if (fstat(fd, &st) != 0 ||
+          static_cast<size_t>(st.st_size) < sizeof(Segment)) {
+        ::close(fd);
+        continue;
+      }
+      void* p = mmap(nullptr, sizeof(Segment), PROT_READ | PROT_WRITE,
+                     MAP_SHARED, fd, 0);
+      ::close(fd);
+      if (p == MAP_FAILED) continue;
+      auto* seg = static_cast<Segment*>(p);
+      if (seg->magic.load(std::memory_order_acquire) != kMagic ||
+          seg->version.load(std::memory_order_acquire) != kVersion ||
+          seg->ready.load(std::memory_order_acquire) == 0) {
+        munmap(p, sizeof(Segment));
+        continue;
+      }
+      maps_.push_back({seg, path});
+    }
+
+    entries_.clear();
+    for (const Map& m : maps_) {
+      for (int i = 0; i < kSlots; ++i) {
+        if (!Client::alive(m.seg->slot[i])) continue;
+        Entry e;
+        e.seg = m.seg;
+        e.slot = i;
+        e.serial = static_cast<int>(
+            m.seg->slot[i].serial.load(std::memory_order_relaxed));
+        entries_.push_back(e);
+      }
+    }
+    std::stable_sort(entries_.begin(), entries_.end(),
+                     [](const Entry& a, const Entry& b) {
+                       if (a.serial != b.serial) return a.serial < b.serial;
+                       return a.slot < b.slot;
+                     });
+  }
+
+  int size() const noexcept { return static_cast<int>(entries_.size()); }
+  const Entry& entry(int i) const { return entries_[static_cast<size_t>(i)]; }
+
+  uint32_t bus(int i) const noexcept {
+    const Entry& e = entries_[static_cast<size_t>(i)];
+    return e.seg->slot[e.slot].bus.load(std::memory_order_relaxed);
+  }
+  double value(int i, int param) const noexcept {
+    const Entry& e = entries_[static_cast<size_t>(i)];
+    return e.seg->slot[e.slot].param[param].value.load(std::memory_order_relaxed);
+  }
+  bool write(int i, int param, double v) noexcept {
+    const Entry& e = entries_[static_cast<size_t>(i)];
+    return Client::writeRemote(e.seg->slot[e.slot], param, v);
+  }
+  void meter(int i, float* inL, float* inR, float* outL, float* outR,
+             float* gr) const noexcept {
+    const Entry& e = entries_[static_cast<size_t>(i)];
+    const Slot& s = e.seg->slot[e.slot];
+    *inL = s.inPeakL.load(std::memory_order_relaxed);
+    *inR = s.inPeakR.load(std::memory_order_relaxed);
+    *outL = s.outPeakL.load(std::memory_order_relaxed);
+    *outR = s.outPeakR.load(std::memory_order_relaxed);
+    *gr = s.grDb.load(std::memory_order_relaxed);
+  }
+
+private:
+  struct Map {
+    Segment* seg = nullptr;
+    std::string path;
+  };
+  std::vector<Map> maps_;
+  std::vector<Entry> entries_;
+  int64_t lastScan_ = 0;
 };
 
 } // namespace suite::peer

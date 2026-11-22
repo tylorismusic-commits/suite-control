@@ -77,6 +77,21 @@ int main() {
     c.unregisterSlot();
   }
 
+  // A knob drag must stop when the mouse button is released.
+  {
+    suite::Shared s3;
+    suite::PanelState st3;
+    suite::Panel p3;
+    const double before = s3.get(suite::P_COMP_THRESHOLD);
+    p3.pointerDown(s3, st3, 1059.0, 218.0, false);
+    p3.pointerMove(s3, st3, 1059.0, 208.0, false);
+    const double moved = s3.get(suite::P_COMP_THRESHOLD);
+    p3.pointerUp();
+    p3.pointerMove(s3, st3, 1059.0, 150.0, false);
+    check(moved != before, "drag changes the value");
+    check(s3.get(suite::P_COMP_THRESHOLD) == moved, "drag stops on release");
+  }
+
   cairo_destroy(cr);
   cairo_surface_destroy(surface);
   std::printf("%d failure(s)\n", failures);

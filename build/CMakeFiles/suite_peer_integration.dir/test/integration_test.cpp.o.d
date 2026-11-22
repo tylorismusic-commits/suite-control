@@ -177,7 +177,14 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o: \
  /usr/include/c++/16/bits/uses_allocator_args.h /usr/include/c++/16/tuple \
  /usr/include/c++/16/bits/invoke.h \
  /home/tylor/Projects/suite-control/src/peer.hpp \
- /usr/include/c++/16/atomic /usr/include/c++/16/bits/atomic_base.h \
+ /usr/include/c++/16/algorithm /usr/include/c++/16/bits/stl_algo.h \
+ /usr/include/c++/16/bits/algorithmfwd.h \
+ /usr/include/c++/16/bits/stl_heap.h \
+ /usr/include/c++/16/bits/uniform_int_dist.h \
+ /usr/include/c++/16/bits/stl_tempbuf.h /usr/include/c++/16/cstdlib \
+ /usr/include/c++/16/pstl/glue_algorithm_defs.h \
+ /usr/include/c++/16/pstl/execution_defs.h /usr/include/c++/16/atomic \
+ /usr/include/c++/16/bits/atomic_base.h \
  /usr/include/c++/16/bits/atomic_lockfree_defines.h \
  /usr/include/c++/16/cerrno /usr/include/errno.h \
  /usr/include/bits/errno.h /usr/include/linux/errno.h \
@@ -232,7 +239,7 @@ CMakeFiles/suite_peer_integration.dir/test/integration_test.cpp.o: \
  /usr/include/c++/16/bits/cxxabi_forced.h \
  /usr/include/c++/16/bits/basic_string.h /usr/include/c++/16/string_view \
  /usr/include/c++/16/bits/string_view.tcc \
- /usr/include/c++/16/ext/string_conversions.h /usr/include/c++/16/cstdlib \
+ /usr/include/c++/16/ext/string_conversions.h \
  /usr/include/c++/16/bits/charconv.h \
  /usr/include/c++/16/bits/basic_string.tcc /usr/include/sys/mman.h \
  /usr/include/bits/mman.h /usr/include/bits/mman-map-flags-generic.h \

@@ -18,8 +18,7 @@ namespace suite {
 constexpr int kPanelWidth = 1280;
 constexpr int kPanelHeight = 760;
 
-// Suite Channel Plus parameter indices this surface mirrors.  The contract is
-// fixed by that plug-in's appended-only parameter table.
+// Suite Channel Plus parameter indices this surface mirrors.
 namespace ch {
 constexpr int kEnabled = 0;
 constexpr int kInput = 1;
@@ -34,14 +33,7 @@ constexpr int kCount = 39;
 
 struct PanelState {
   int selectedStrip = 0;
-  int dragKind = -1;   // 0 = local param, 1 = remote param
-  int dragParam = -1;
-  int dragSlot = -1;
-  int dragPlus = -1;
-  double dragY = 0.0;
-  double dragStart = 0.0;
   bool fine = false;
-  float peakHold[8][2] = {};
 };
 
 class Panel {
@@ -65,7 +57,7 @@ public:
   void textKey(Shared&, PanelState&, int, unsigned) {}
   void importDroppedFile(Shared&, PanelState&, const std::string&) {}
 
-  int stripCount() const { return static_cast<int>(strips_.size()); }
+  int stripCount() const { return hub_.size(); }
 
   static constexpr int kTextEnter = -2;
   static constexpr int kTextEscape = -1;
@@ -77,36 +69,38 @@ private:
   struct Widget {
     Kind kind = Kind::Knob;
     uint32_t param = 0;
-    int slot = -1;
+    int index = -1;   // hub entry for remote widgets
     int plus = -1;
     double x = 0.0, y = 0.0, r = 0.0, w = 0.0, h = 0.0;
     const char* label = "";
+    int palette = 0;  // knob colour group
     double value = 0.0;
   };
 
-  struct StripRef {
-    int slot = -1;
-    uint32_t serial = 0;
-  };
-
   void layout(const Shared& shared, const PanelState& state);
-  void refreshStrips();
   void text(cairo_t* cr, const char* s, double x, double y, double size,
             int align, double r, double g, double b) const;
   void knob(cairo_t* cr, const Widget& w, double value, const char* readout,
-            bool active) const;
+            int palette) const;
   void pill(cairo_t* cr, const Widget& w, const char* label, bool on) const;
+  void plate(cairo_t* cr, double x, double y, double w, double h,
+             const char* title) const;
   void meter(cairo_t* cr, double x, double y, double w, double h, float dbL,
              float dbR) const;
   void grMeter(cairo_t* cr, double x, double y, double w, double h,
                float grDb) const;
-  double slotValue(const StripRef& s, int plus) const;
-  void writeSlot(const StripRef& s, int plus, double v);
+
+  bool dragging_ = false;
+  int dragKind_ = -1;  // 0 local, 1 remote
+  int dragParam_ = -1;
+  int dragIndex_ = -1;
+  int dragPlus_ = -1;
+  double dragY_ = 0.0;
+  double dragStart_ = 0.0;
 
   std::vector<Widget> widgets_;
-  std::vector<StripRef> strips_;
-  peer::Client peer_;
-  unsigned long lastSerial_ = 0;
+  peer::Hub hub_;
+  int bus_ = 1;
 
   FT_Library ft_ = nullptr;
   FT_Face ftFace_ = nullptr;
