@@ -1,0 +1,4 @@
+Vendored from dusk-audio/dusk-audio-plugins
+commit: 51537da6219f9d3f344b012da0cdc1ff19820a42
+source: plugins/shared-daf/dsp
+license: GPL-3.0 (see LICENSE)
