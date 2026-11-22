@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.9
+
+- Remote edits on the strip surface reach the channel plug-ins again (they were
+  reverted by the channel's control-port poll, so knobs, mute and solo looked
+  dead).  Verified in REAPER 7.84: strip input, output fader, mute and solo now
+  change the channel's shared state and stay there.
+
 ## 0.1.8
 
 - LV2 UI is now driven by its own frame/event loop.  REAPER never calls the
