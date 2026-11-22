@@ -99,6 +99,7 @@ public:
   explicit Editor(Shared& shared) : shared_(shared) {}
 
   std::function<void()> requestFlush;
+  std::function<void()> onTick;
 
   double scale() const { return scale_.load(std::memory_order_relaxed); }
   UiSize size() const { return sizeForScale(scale()); }
@@ -158,6 +159,7 @@ public:
   // Called when the user changes a control, so the host can ask for a
   // process call and pick up the new values.
   std::function<void()> requestFlush;
+  std::function<void()> onTick;
 
   double scale() const { return scale_.load(std::memory_order_relaxed); }
   UiSize size() const { return sizeForScale(scale()); }
@@ -921,7 +923,8 @@ void peerSync(Plugin* s) {
   if (!s->peerRegistered) return;
   for (uint32_t i = 0; i < P_COUNT; ++i) {
     double v = 0.0;
-    if (s->peer.takeRemote(static_cast<int>(i), &v)) {
+    if (s->peer.takeRemote(static_cast<int>(i), &v) &&
+        std::fabs(v - s->shared.get(i)) > 1e-12) {
       // Mark dirty so the host receives a parameter event and its automation
       // lane follows the remote move.
       s->shared.set(i, v);

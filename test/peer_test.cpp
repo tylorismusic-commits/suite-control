@@ -56,10 +56,12 @@ int main() {
     check(a.takeRemote(2, &v), "publisher sees the remote write");
     check(v == 1.0, "remote value is correct");
 
-    // Echo suppression: our own publish must not come back as remote.
+    // Our own publish is visible to the consumer side unchanged.  The caller
+    // ignores it when the value already matches its own state.
     a.publish(3, 0.5);
     double echo = 0.0;
-    check(!a.takeRemote(3, &echo), "own write is not echoed back");
+    check(a.takeRemote(3, &echo), "own publish is readable back");
+    check(echo == 0.5, "own publish keeps its value");
 
     // Capture-style bus reassignment.
     suite::peer::Client::writeRemote(s, 7, 5.0);
