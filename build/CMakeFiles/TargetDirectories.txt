@@ -5,6 +5,7 @@
 /home/tylor/Projects/suite-control/build/CMakeFiles/suite_control_ttl_gen.dir
 /home/tylor/Projects/suite-control/build/CMakeFiles/suite_control_lv2_bundle.dir
 /home/tylor/Projects/suite-control/build/CMakeFiles/suite_lv2_host_test.dir
+/home/tylor/Projects/suite-control/build/CMakeFiles/suite_lv2_ui_host_test.dir
 /home/tylor/Projects/suite-control/build/CMakeFiles/suite_control_dsp_test.dir
 /home/tylor/Projects/suite-control/build/CMakeFiles/suite_control_preview.dir
 /home/tylor/Projects/suite-control/build/CMakeFiles/suite_control_panel_test.dir

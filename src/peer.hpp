@@ -11,19 +11,27 @@
 
 #include <algorithm>
 #include <atomic>
-#include <cerrno>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <string>
+#include <vector>
+
+// The peer bus is a Linux feature.  Everywhere else (including the macOS
+// builds) it compiles to a no-op so the rest of the plug-in is unaffected.
+#if defined(__linux__) && !defined(SUITE_PEER_STUB)
+#define SUITE_PEER_NATIVE 1
+#include <cerrno>
 #include <dirent.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <string>
-#include <vector>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#else
+#define SUITE_PEER_NATIVE 0
+#endif
 
 namespace suite::peer {
 
@@ -69,6 +77,8 @@ struct Segment {
   std::atomic<uint32_t> slotCount{0};
   Slot slot[kSlots];
 };
+
+#if SUITE_PEER_NATIVE
 
 inline std::string segmentName() noexcept {
   char buf[64];
@@ -421,5 +431,60 @@ private:
   std::vector<Entry> entries_;
   int64_t lastScan_ = 0;
 };
+
+#else
+// ---------------------------------------------------------------- no-op stubs
+class Client {
+public:
+  bool attach() noexcept { return false; }
+  void detach() noexcept {}
+  bool attached() const noexcept { return false; }
+  Segment* raw() const noexcept { return nullptr; }
+  int registerSlot(uint32_t, const char*, uint32_t) noexcept { return -1; }
+  void unregisterSlot() noexcept {}
+  void beat() noexcept {}
+  void setBus(uint32_t) noexcept {}
+  void publish(int, double) noexcept {}
+  bool takeRemote(int, double*) noexcept { return false; }
+  void publishMeters(float, float, float, float, float) noexcept {}
+  Segment* segment() const noexcept { return nullptr; }
+  static bool alive(const Slot&) noexcept { return false; }
+  static bool beatFresh(const Slot&) noexcept { return false; }
+  static bool writeRemote(Slot&, int, double) noexcept { return false; }
+  static void writeBus(Slot&, uint32_t) noexcept {}
+  static void writeSlotName(Slot&, const char*) noexcept {}
+};
+
+class Hub {
+public:
+  struct Entry {
+    Segment* seg = nullptr;
+    int slot = -1;
+    int serial = 0;
+  };
+  void refresh() noexcept {}
+  int size() const noexcept { return 0; }
+  int segments() const noexcept { return 0; }
+  int rawSlots() const noexcept { return 0; }
+  const Entry& entry(int) const {
+    static const Entry empty;
+    return empty;
+  }
+  uint32_t bus(int) const noexcept { return 0; }
+  double value(int, int) const noexcept { return 0.0; }
+  bool write(int, int, double) noexcept { return false; }
+  void meter(int, float* inL, float* inR, float* outL, float* outR,
+             float* gr) const noexcept {
+    if (inL) *inL = -120.0f;
+    if (inR) *inR = -120.0f;
+    if (outL) *outL = -120.0f;
+    if (outR) *outR = -120.0f;
+    if (gr) *gr = 0.0f;
+  }
+  const char* name(int) const noexcept { return ""; }
+  void setName(int, const char*) noexcept {}
+};
+
+#endif
 
 } // namespace suite::peer

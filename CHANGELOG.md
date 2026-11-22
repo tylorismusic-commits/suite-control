@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.7
+
+- LV2 UI opens again: the cairo surface now matches the host window's visual
+  and depth (ARGB hosts stayed black), and the first frame is painted at open.
+- Peer layer is Linux-only; other platforms compile a no-op so the macOS builds
+  are unaffected.
+- New LV2 UI host test grabs the window and fails on an all-black frame.
+
 ## 0.1.6
 
 - LV2 build: `suite-control.lv2` with the same engine, UI and remote surface

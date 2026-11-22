@@ -119,6 +119,24 @@ add_dependencies(suite_lv2_host_test suite_control_lv2_bundle)
 add_test(NAME suite_lv2_host
   COMMAND suite_lv2_host_test "${SC_LV2_DIR}/suite_control.so")
 
+add_executable(suite_lv2_ui_host_test test/lv2_ui_host_test.cpp)
+target_include_directories(suite_lv2_ui_host_test PRIVATE
+  "${CMAKE_SOURCE_DIR}/src")
+target_link_libraries(suite_lv2_ui_host_test PRIVATE
+  PkgConfig::X11 PkgConfig::LV2 PkgConfig::CAIRO PkgConfig::FREETYPE
+  ${CMAKE_DL_LIBS})
+target_compile_features(suite_lv2_ui_host_test PRIVATE cxx_std_17)
+add_dependencies(suite_lv2_ui_host_test suite_control_lv2_bundle)
+find_program(XVFB_RUN xvfb-run)
+if(XVFB_RUN)
+  add_test(NAME suite_lv2_ui_host
+    COMMAND "${XVFB_RUN}" -a -s "-screen 0 1600x1200x24"
+      "$<TARGET_FILE:suite_lv2_ui_host_test>" "${SC_LV2_DIR}")
+else()
+  add_test(NAME suite_lv2_ui_host
+    COMMAND suite_lv2_ui_host_test "${SC_LV2_DIR}")
+endif()
+
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------

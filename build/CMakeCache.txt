@@ -222,6 +222,9 @@ PKG_CONFIG_ARGN:STRING=
 //pkg-config executable
 PKG_CONFIG_EXECUTABLE:FILEPATH=/usr/bin/pkg-config
 
+//Path to a program.
+XVFB_RUN:FILEPATH=/usr/bin/xvfb-run
+
 //Path to a library.
 pkgcfg_lib_CAIRO_cairo:FILEPATH=/usr/lib/libcairo.so
 

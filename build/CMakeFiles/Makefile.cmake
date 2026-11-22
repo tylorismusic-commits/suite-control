@@ -63,6 +63,7 @@ set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/suite_control_ttl_gen.dir/DependInfo.cmake"
   "CMakeFiles/suite_control_lv2_bundle.dir/DependInfo.cmake"
   "CMakeFiles/suite_lv2_host_test.dir/DependInfo.cmake"
+  "CMakeFiles/suite_lv2_ui_host_test.dir/DependInfo.cmake"
   "CMakeFiles/suite_control_dsp_test.dir/DependInfo.cmake"
   "CMakeFiles/suite_control_preview.dir/DependInfo.cmake"
   "CMakeFiles/suite_control_panel_test.dir/DependInfo.cmake"

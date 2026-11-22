@@ -218,6 +218,19 @@ suite_lv2_host_test/fast:
 .PHONY : suite_lv2_host_test/fast
 
 #=============================================================================
+# Target rules for targets named suite_lv2_ui_host_test
+
+# Build rule for target.
+suite_lv2_ui_host_test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 suite_lv2_ui_host_test
+.PHONY : suite_lv2_ui_host_test
+
+# fast build rule for target.
+suite_lv2_ui_host_test/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_lv2_ui_host_test.dir/build.make CMakeFiles/suite_lv2_ui_host_test.dir/build
+.PHONY : suite_lv2_ui_host_test/fast
+
+#=============================================================================
 # Target rules for targets named suite_control_dsp_test
 
 # Build rule for target.
@@ -459,6 +472,30 @@ test/lv2_host_test.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_lv2_host_test.dir/build.make CMakeFiles/suite_lv2_host_test.dir/test/lv2_host_test.cpp.s
 .PHONY : test/lv2_host_test.cpp.s
 
+test/lv2_ui_host_test.o: test/lv2_ui_host_test.cpp.o
+.PHONY : test/lv2_ui_host_test.o
+
+# target to build an object file
+test/lv2_ui_host_test.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_lv2_ui_host_test.dir/build.make CMakeFiles/suite_lv2_ui_host_test.dir/test/lv2_ui_host_test.cpp.o
+.PHONY : test/lv2_ui_host_test.cpp.o
+
+test/lv2_ui_host_test.i: test/lv2_ui_host_test.cpp.i
+.PHONY : test/lv2_ui_host_test.i
+
+# target to preprocess a source file
+test/lv2_ui_host_test.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_lv2_ui_host_test.dir/build.make CMakeFiles/suite_lv2_ui_host_test.dir/test/lv2_ui_host_test.cpp.i
+.PHONY : test/lv2_ui_host_test.cpp.i
+
+test/lv2_ui_host_test.s: test/lv2_ui_host_test.cpp.s
+.PHONY : test/lv2_ui_host_test.s
+
+# target to generate assembly for a file
+test/lv2_ui_host_test.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/suite_lv2_ui_host_test.dir/build.make CMakeFiles/suite_lv2_ui_host_test.dir/test/lv2_ui_host_test.cpp.s
+.PHONY : test/lv2_ui_host_test.cpp.s
+
 test/test_dsp.o: test/test_dsp.cpp.o
 .PHONY : test/test_dsp.o
 
@@ -605,6 +642,7 @@ help:
 	@echo "... suite_control_preview"
 	@echo "... suite_control_ttl_gen"
 	@echo "... suite_lv2_host_test"
+	@echo "... suite_lv2_ui_host_test"
 	@echo "... suite_peer_integration"
 	@echo "... src/clap/suite_control_clap.o"
 	@echo "... src/clap/suite_control_clap.i"
@@ -627,6 +665,9 @@ help:
 	@echo "... test/lv2_host_test.o"
 	@echo "... test/lv2_host_test.i"
 	@echo "... test/lv2_host_test.s"
+	@echo "... test/lv2_ui_host_test.o"
+	@echo "... test/lv2_ui_host_test.i"
+	@echo "... test/lv2_ui_host_test.s"
 	@echo "... test/test_dsp.o"
 	@echo "... test/test_dsp.i"
 	@echo "... test/test_dsp.s"
