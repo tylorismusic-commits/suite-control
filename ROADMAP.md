@@ -47,6 +47,9 @@ slots per channel; Rack Suite stays deferred.
 
 ## Phase 4 — Space Suite and Common Sense EQ inserts
 
+- Readouts are already exact: each insert publishes its own formatted value
+  text (protocol v4), so a new adapter only needs metadata + a formatter.
+
 - Adapters for the remaining trio; metadata-driven tabs only, no per-plug-in UI
   code in Suite Control. Rack Suite stays deferred.
 

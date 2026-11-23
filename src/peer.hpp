@@ -36,7 +36,7 @@
 namespace suite::peer {
 
 constexpr uint32_t kMagic = 0x53505231u;  // "SPR1"
-constexpr uint32_t kVersion = 3;
+constexpr uint32_t kVersion = 4;
 constexpr int kSlots = 64;
 constexpr int kMaxParams = 64;
 constexpr int kNameBytes = 32;
@@ -44,6 +44,7 @@ constexpr int kBusCount = 8;
 constexpr int kInsertSlots = 4;
 constexpr int kMaxLabels = 12;
 constexpr int kLabelBytes = 12;
+constexpr int kDisplayBytes = 20;
 constexpr int64_t kStaleMs = 700;
 
 // Slot kinds.
@@ -93,6 +94,11 @@ struct Param {
   std::atomic<uint32_t> gen{0};         // owner publish counter
   std::atomic<double> request{0.0};     // written by consumers
   std::atomic<uint32_t> requestGen{0};  // consumer request counter
+  // The owner's own formatted readout ("-11.6 dB", "5.0:1", "76Blue").  Only
+  // the plug-in knows its model-dependent mapping, so the generic insert page
+  // displays this instead of guessing from min/max.
+  std::atomic<uint32_t> textSeq{0};
+  char display[kDisplayBytes] = {};
 };
 
 struct Slot {
@@ -134,7 +140,7 @@ struct Segment {
 
 inline std::string segmentName() noexcept {
   char buf[64];
-  std::snprintf(buf, sizeof(buf), "/suitepeer-v3-%ld",
+  std::snprintf(buf, sizeof(buf), "/suitepeer-v4-%ld",
                 static_cast<long>(getpid()));
   return buf;
 }
@@ -143,7 +149,7 @@ inline std::string segmentName() noexcept {
 inline void reapStale() noexcept {
   DIR* dir = opendir("/dev/shm");
   if (!dir) return;
-  const std::string prefix = "suitepeer-v3-";
+  const std::string prefix = "suitepeer-v4-";
   while (dirent* e = readdir(dir)) {
     const char* n = e->d_name;
     if (std::strncmp(n, prefix.c_str(), prefix.size()) != 0) continue;
@@ -247,6 +253,7 @@ public:
         for (uint32_t p = 0; p < paramCount; ++p) {
           s.param[p].gen.store(0, std::memory_order_relaxed);
           s.param[p].requestGen.store(0, std::memory_order_relaxed);
+          s.param[p].textSeq.store(0, std::memory_order_relaxed);
         }
         slot_ = i;
         seenLinkStamp_ = 0;
@@ -326,6 +333,25 @@ public:
     if (value == s.param[p].value.load(std::memory_order_relaxed)) return;
     s.param[p].value.store(value, std::memory_order_relaxed);
     s.param[p].gen.fetch_add(1, std::memory_order_release);
+  }
+
+  // Publishes the owner's formatted readout (seqlock, so a reader never sees a
+  // half-updated string).
+  void publishText(int p, const char* text) noexcept {
+    if (!seg_ || slot_ < 0 || p < 0 || p >= kMaxParams || !text) return;
+    Slot& s = seg_->slot[slot_];
+    if (p >= static_cast<int>(s.paramCount.load(std::memory_order_relaxed)))
+      return;
+    char trimmed[kDisplayBytes] = {};
+    std::strncpy(trimmed, text, sizeof(trimmed) - 1);
+    if (std::strncmp(s.param[p].display, trimmed, sizeof(trimmed)) == 0) {
+      return;
+    }
+    const uint32_t seq =
+        s.param[p].textSeq.load(std::memory_order_relaxed);
+    s.param[p].textSeq.store(seq + 1, std::memory_order_release);
+    std::memcpy(s.param[p].display, trimmed, sizeof(trimmed));
+    s.param[p].textSeq.store(seq + 2, std::memory_order_release);
   }
 
   // Returns true (and the value) when a consumer asked for a new value.
@@ -446,7 +472,7 @@ public:
     DIR* dir = opendir("/dev/shm");
     std::vector<std::string> names;
     if (dir) {
-      const std::string prefix = "suitepeer-v3-";
+      const std::string prefix = "suitepeer-v4-";
       while (dirent* e = readdir(dir)) {
         if (std::strncmp(e->d_name, prefix.c_str(), prefix.size()) == 0) {
           names.push_back(std::string("/dev/shm/") + e->d_name);
@@ -552,6 +578,26 @@ public:
     const Entry& e = entries_[static_cast<size_t>(i)];
     return e.seg->slot[e.slot].meta[param];
   }
+  // Copies the owner's formatted readout; empty when none was published.
+  void text(int i, int param, char* out, size_t size) const noexcept {
+    if (!out || size == 0) return;
+    out[0] = '\0';
+    const Entry& e = entries_[static_cast<size_t>(i)];
+    const Param& p = e.seg->slot[e.slot].param[param];
+    for (int attempt = 0; attempt < 8; ++attempt) {
+      const uint32_t before = p.textSeq.load(std::memory_order_acquire);
+      if (before & 1u) continue;
+      char copy[kDisplayBytes] = {};
+      std::memcpy(copy, p.display, sizeof(copy));
+      std::atomic_thread_fence(std::memory_order_acquire);
+      if (p.textSeq.load(std::memory_order_acquire) == before) {
+        std::strncpy(out, copy, size - 1);
+        out[size - 1] = '\0';
+        return;
+      }
+    }
+  }
+
   LinkInfo link(int i) const noexcept {
     const Entry& e = entries_[static_cast<size_t>(i)];
     const Slot& s = e.seg->slot[e.slot];
@@ -622,6 +668,7 @@ public:
     return -1;
   }
   void publishMeta(const ParamMeta*, uint32_t) noexcept {}
+  void publishText(int, const char*) noexcept {}
   uint64_t id() const noexcept { return 0; }
   void publishLink(uint32_t, uint32_t, uint32_t) noexcept {}
   bool takeRemoteLink(LinkInfo*) noexcept { return false; }
@@ -664,6 +711,9 @@ public:
   const ParamMeta& meta(int, int) const noexcept {
     static const ParamMeta empty;
     return empty;
+  }
+  void text(int, int, char* out, size_t size) const noexcept {
+    if (out && size) out[0] = '\0';
   }
   LinkInfo link(int) const noexcept { return {}; }
   void setLink(int, uint32_t, uint32_t, uint32_t) noexcept {}

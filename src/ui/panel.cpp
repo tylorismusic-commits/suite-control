@@ -1027,7 +1027,7 @@ void Panel::layoutBus(const Shared& shared, const PanelState& state) {
           c.index = i;
           c.value = slot;
           c.x = x + 6 + ((slot - 1) % 2) * 56;
-          c.y = kStripTop + 36 + ((slot - 1) / 2) * 22;
+          c.y = kStripTop + 40 + ((slot - 1) / 2) * 22;
           c.w = 52;
           c.h = 18;
           widgets_.push_back(c);
@@ -2103,8 +2103,8 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
     float inL = 0, inR = 0, outL = 0, outR = 0, gr = 0;
     hub_.meter(i, &inL, &inR, &outL, &outR, &gr);
     if (view_ == 4) {
-      text(cr, "INSERTS", x + 6, kStripTop + 30, 6.5, 0, kLegendDim.r,
-           kLegendDim.g, kLegendDim.b);
+      text(cr, "INSERTS", x + kStripW * 0.5, kStripTop + 37, 6.0, 1,
+           kLegendDim.r, kLegendDim.g, kLegendDim.b);
       meter(cr, x + 96, kStripTop + 96, 16, 366, outL, outR);
       text(cr, "OUT", x + 104, kStripTop + 478, 7.0, 1, kLegendDim.r,
            kLegendDim.g, kLegendDim.b);
@@ -2188,15 +2188,21 @@ void Panel::drawInsertPage(cairo_t* cr, const Shared&) {
       const double normalised =
           live ? dragValue_
                : insertNormalised(w.index, static_cast<uint32_t>(w.plus));
-      char readout[32];
-      const double natural =
-          m.min + normalised * (m.max - m.min);
-      insertValueText(m, natural, readout, sizeof(readout));
+      char readout[32] = {};
+      hub_.text(w.index, w.plus, readout, sizeof(readout));
+      if (!readout[0]) {
+        const double natural = m.min + normalised * (m.max - m.min);
+        insertValueText(m, natural, readout, sizeof(readout));
+      }
       knob(cr, w, normalised, readout, w.palette);
     } else if (w.kind == Kind::InsertPill) {
       const peer::ParamMeta& m = hub_.meta(w.index, w.plus);
-      char readout[32];
-      insertValueText(m, hub_.value(w.index, w.plus), readout, sizeof(readout));
+      char readout[32] = {};
+      hub_.text(w.index, w.plus, readout, sizeof(readout));
+      if (!readout[0]) {
+        insertValueText(m, hub_.value(w.index, w.plus), readout,
+                        sizeof(readout));
+      }
       text(cr, m.name, w.x + w.w * 0.5, w.y - 6.0, 8.0, 1, kLegend.r,
            kLegend.g, kLegend.b);
       pill(cr, w, readout, true);

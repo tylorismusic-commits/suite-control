@@ -87,6 +87,16 @@ int main() {
             link.slot == 0,
         "link can be cleared");
 
+  // Formatted readouts travel with the values; the surface shows the plug-in's
+  // own text (dB, ms, model-dependent ratio) rather than the raw step.
+  insert.publishText(0, "-11.6 dB");
+  char text[32] = {};
+  hub.text(entry, 0, text, sizeof(text));
+  check(std::strcmp(text, "-11.6 dB") == 0, "display text round-trips");
+  insert.publishText(0, "5.0:1");
+  hub.text(entry, 0, text, sizeof(text));
+  check(std::strcmp(text, "5.0:1") == 0, "display text updates");
+
   // Own publishes are values, not requests; a stale publish cannot clobber a
   // request that arrived since the last poll.
   insert.publish(1, 0.25);

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.1
+
+- Insert pages show the plug-in's own formatted readouts instead of raw steps:
+  `6.0:1` for a ratio, `-20.0 dB`, `253 us`, `60 %`, `On`, `76Blue`.  The
+  insert publishes the string with each value (protocol v4, seqlock-protected),
+  so model-dependent mappings (ratio/input/threshold across the Comp models)
+  always match what the plug-in is doing.
+- The `INSERTS` caption is centred in the gap between the strip name and the
+  insert cells instead of colliding with the name.
+
 ## 0.6.0 — Inserts (Linux pilot)
 
 - Peer protocol v3: stable instance ids, published parameter metadata, slot
