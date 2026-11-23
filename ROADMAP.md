@@ -45,13 +45,15 @@ picker assignment, `●`/`○` bypass, metadata-driven Comp page, remote paramet
 edits, links restored from the plug-in's saved state after a reload.  Four
 slots per channel; Rack Suite stays deferred.
 
-## Phase 4 — Space Suite and Common Sense EQ inserts
+## Phase 4 — Space Suite and Common Sense EQ inserts (done)
 
 - Readouts are already exact: each insert publishes its own formatted value
   text (protocol v4), so a new adapter only needs metadata + a formatter.
 
 - Adapters for the remaining trio; metadata-driven tabs only, no per-plug-in UI
   code in Suite Control. Rack Suite stays deferred.
+- Verified in REAPER: three insert cells, tabs, bypass, scrolling EQ page,
+  model/label-accurate readouts and remote edits.
 
 ## Phase 5 — macOS
 

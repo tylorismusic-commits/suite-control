@@ -147,6 +147,8 @@ private:
   int scroll_ = 0;     // first visible strip
   int detail_ = -1;    // hub index for the channel page
   int insertSlot_ = 0; // 0 = CHANNEL tab, 1..4 = insert tab
+  int insertScroll_ = 0;
+  int insertMaxScroll_ = 0;
   bool pickerOpen_ = false;
   int pickerBus_ = 0;
   int pickerChannel_ = 0;

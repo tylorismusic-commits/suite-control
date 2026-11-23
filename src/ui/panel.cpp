@@ -513,6 +513,25 @@ std::string shortInsertName(const char* name) {
   return out;
 }
 
+int labelIndex(const suite::peer::ParamMeta& m, double value) {
+  int best = 0;
+  double delta = 1.0e9;
+  for (uint32_t i = 0; i < m.labelCount; ++i) {
+    const double d = std::fabs(static_cast<double>(m.labelValue[i]) - value);
+    if (d < delta) {
+      delta = d;
+      best = static_cast<int>(i);
+    }
+  }
+  return best;
+}
+
+int nextLabel(const suite::peer::ParamMeta& m, double value) {
+  const int current = labelIndex(m, value);
+  const int next = current + 1;
+  return next >= static_cast<int>(m.labelCount) ? 0 : next;
+}
+
 void insertValueText(const suite::peer::ParamMeta& m, double v, char* out,
                      size_t size) {
   if (m.labelCount > 0) {
@@ -558,9 +577,7 @@ void Panel::layoutInsertPage() {
   if (entry < 0) return;
   const uint32_t count = hub_.paramCount(entry);
 
-  // Group the parameters by their module, keeping the order in which each
-  // group first appears.  The table order is not grouped (Output reappears
-  // after Limiter), and an unsorted page wastes rows and collides.
+  // Group the parameters by module, keeping first-appearance order.
   std::vector<uint32_t> order;
   std::vector<std::string> groups;
   for (uint32_t p = 0; p < count; ++p) {
@@ -584,8 +601,23 @@ void Panel::layoutInsertPage() {
                    });
 
   constexpr int kCols = 7;
+  constexpr int kVisibleRows = 8;
   const double x0 = 56.0, y0 = 150.0, rowH = 74.0;
   const double headerW = 118.0, cellW = 142.0;
+
+  struct Placement {
+    uint32_t param;
+    int row;
+    int col;
+    int palette;
+  };
+  std::vector<Placement> places;
+  struct Header {
+    std::string text;
+    int row;
+  };
+  std::vector<Header> headers;
+
   int row = -1;
   int col = 0;
   int palette = -1;
@@ -598,38 +630,53 @@ void Panel::layoutInsertPage() {
       ++row;
       col = 0;
       ++palette;
-      insertHeaders_.push_back({group, x0, y0 + row * rowH + 34.0});
+      headers.push_back({group, row});
     } else if (col == kCols) {
       ++row;
       col = 0;
     }
-    const double x = x0 + headerW + col * cellW;
-    const double y = y0 + row * rowH;
+    places.push_back({p, row, col, palette % 5});
+    ++col;
+  }
+
+  insertMaxScroll_ = std::max(0, row + 1 - kVisibleRows);
+  insertScroll_ = std::clamp(insertScroll_, 0, insertMaxScroll_);
+
+  for (const Header& h : headers) {
+    const int visible = h.row - insertScroll_;
+    if (visible < 0 || visible >= kVisibleRows) continue;
+    insertHeaders_.push_back({h.text, x0, y0 + visible * rowH + 34.0});
+  }
+  for (const Placement& pl : places) {
+    const int visible = pl.row - insertScroll_;
+    if (visible < 0 || visible >= kVisibleRows) continue;
+    const peer::ParamMeta& m = hub_.meta(entry, static_cast<int>(pl.param));
+    const double x = x0 + headerW + pl.col * cellW;
+    const double y = y0 + visible * rowH;
     if (m.labelCount > 0 || (m.flags & peer::kMetaToggle)) {
       Widget w;
       w.kind = Kind::InsertPill;
       w.index = entry;
-      w.plus = static_cast<int>(p);
+      w.plus = static_cast<int>(pl.param);
       w.x = x;
       w.y = y + 20.0;
       w.w = 110.0;
       w.h = 22.0;
       w.label = m.name;
-      w.palette = palette % 5;
+      w.palette = pl.palette;
       widgets_.push_back(w);
     } else {
       Widget w;
       w.kind = Kind::InsertKnob;
       w.index = entry;
-      w.plus = static_cast<int>(p);
+      w.plus = static_cast<int>(pl.param);
       w.x = x + 52.0;
       w.y = y + 32.0;
       w.r = 18.0;
       w.label = m.name;
-      w.palette = palette % 5;
+      w.palette = pl.palette;
       widgets_.push_back(w);
     }
-    ++col;
   }
 }
 
@@ -780,17 +827,25 @@ void Panel::wheel(Shared& shared, PanelState& state, double x, double y,
       const peer::ParamMeta& m = hub_.meta(w->index, w->plus);
       const double v = hub_.value(w->index, w->plus);
       if (m.labelCount > 0) {
-        int next = static_cast<int>(v + 0.5) + (d > 0 ? 1 : -1);
+        const int current = labelIndex(m, v);
+        int next = current + (d > 0 ? 1 : -1);
         if (next < 0) next = static_cast<int>(m.labelCount) - 1;
         if (next >= static_cast<int>(m.labelCount)) next = 0;
-        hub_.write(w->index, w->plus, static_cast<double>(next));
+        hub_.write(w->index, w->plus,
+                   static_cast<double>(m.labelValue[next]));
       } else {
         hub_.write(w->index, w->plus, d > 0 ? 1.0 : 0.0);
       }
       return;
     }
   }
-  if (page_ != 0) return;
+  if (page_ != 0) {
+    if (insertSlot_ > 0 && !w) {
+      insertScroll_ = std::clamp(insertScroll_ + (d > 0 ? -1 : 1), 0,
+                                 insertMaxScroll_);
+    }
+    return;
+  }
   if (x > kBusX - 10 || y < kStripTop - 20) return;
   scroll_ = std::clamp(scroll_ - static_cast<int>(d), 0, maxScroll());
 }
@@ -1348,9 +1403,9 @@ bool Panel::pointerDown(Shared& shared, PanelState& state, double x, double y,
         const peer::ParamMeta& m = hub_.meta(w.index, w.plus);
         const double v = hub_.value(w.index, w.plus);
         if (m.labelCount > 0) {
-          int next = static_cast<int>(v + 0.5) + 1;
-          if (next >= static_cast<int>(m.labelCount)) next = 0;
-          hub_.write(w.index, w.plus, static_cast<double>(next));
+          const int next = nextLabel(m, v);
+          hub_.write(w.index, w.plus,
+                     static_cast<double>(m.labelValue[next]));
         } else {
           hub_.write(w.index, w.plus, v > 0.5 ? 0.0 : 1.0);
         }
@@ -2235,7 +2290,11 @@ void Panel::drawDetailPage(cairo_t* cr, const Shared& shared,
     }
   }
   if (insertSlot_ > 0) {
+    cairo_save(cr);
+    cairo_rectangle(cr, 20.0, 118.0, 1240.0, 630.0);
+    cairo_clip(cr);
     drawInsertPage(cr, shared);
+    cairo_restore(cr);
     return;
   }
 

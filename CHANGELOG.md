@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.0 — Inserts, all three plug-ins
+
+- Space Suite and Common Sense EQ join Comp Suite as inserts.  Assigning one
+  adds its tab (`CHANNEL | COMP | SPACE | EQ`) and its page, all generated
+  from published metadata.
+- Insert pages scroll with the wheel and are clipped below the tab bar, so the
+  EQ's 101 parameters fit without a separate layout.
+- Enum pills use the plug-in's value for each label instead of the label
+  index, so EQ slopes (6/12/18/24/30 dB/Oct) and processing modes land on the
+  real values.
+- Protocol v5: up to 128 parameters per insert and per-label values.
+
 ## 0.6.1
 
 - Insert pages show the plug-in's own formatted readouts instead of raw steps:

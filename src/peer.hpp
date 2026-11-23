@@ -36,9 +36,9 @@
 namespace suite::peer {
 
 constexpr uint32_t kMagic = 0x53505231u;  // "SPR1"
-constexpr uint32_t kVersion = 4;
+constexpr uint32_t kVersion = 5;
 constexpr int kSlots = 64;
-constexpr int kMaxParams = 64;
+constexpr int kMaxParams = 128;
 constexpr int kNameBytes = 32;
 constexpr int kBusCount = 8;
 constexpr int kInsertSlots = 4;
@@ -65,6 +65,9 @@ struct ParamMeta {
   uint32_t flags = 0;
   uint32_t labelCount = 0;
   char label[kMaxLabels][kLabelBytes] = {};
+  // The real parameter value for each label, for enums whose values are not
+  // 0..count-1 (EQ slopes, filter types, ...).  Filled by the plug-in.
+  float labelValue[kMaxLabels] = {};
 };
 
 // ParamMeta::flags
@@ -140,7 +143,7 @@ struct Segment {
 
 inline std::string segmentName() noexcept {
   char buf[64];
-  std::snprintf(buf, sizeof(buf), "/suitepeer-v4-%ld",
+  std::snprintf(buf, sizeof(buf), "/suitepeer-v5-%ld",
                 static_cast<long>(getpid()));
   return buf;
 }
@@ -149,7 +152,7 @@ inline std::string segmentName() noexcept {
 inline void reapStale() noexcept {
   DIR* dir = opendir("/dev/shm");
   if (!dir) return;
-  const std::string prefix = "suitepeer-v4-";
+  const std::string prefix = "suitepeer-v5-";
   while (dirent* e = readdir(dir)) {
     const char* n = e->d_name;
     if (std::strncmp(n, prefix.c_str(), prefix.size()) != 0) continue;
@@ -472,7 +475,7 @@ public:
     DIR* dir = opendir("/dev/shm");
     std::vector<std::string> names;
     if (dir) {
-      const std::string prefix = "suitepeer-v4-";
+      const std::string prefix = "suitepeer-v5-";
       while (dirent* e = readdir(dir)) {
         if (std::strncmp(e->d_name, prefix.c_str(), prefix.size()) == 0) {
           names.push_back(std::string("/dev/shm/") + e->d_name);
