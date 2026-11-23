@@ -247,6 +247,12 @@ private:
   Rect oscSyncRect_;
   Rect oscCloseRect_;
   int editPortKind_ = -1;  // 0 send, 1 receive
+  // Keep a just-set host control until its feedback arrives; OSC state lags
+  // behind the drag, especially while the transport is running.
+  double oscHoldVolume_[kHostTracks] = {};
+  double oscHoldPan_[kHostTracks] = {};
+  double oscHoldVolumeUntil_[kHostTracks] = {};
+  double oscHoldPanUntil_[kHostTracks] = {};
   int editSend_ = 0;
   int editRecv_ = 0;
   void oscSettingsGeometry();

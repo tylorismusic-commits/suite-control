@@ -1738,6 +1738,8 @@ bool Panel::pointerDown(Shared& shared, PanelState& state, double x, double y,
         const double top = w.y;
         const double bottom = w.y + w.h;
         const double v = clamp01((bottom - y) / std::max(1.0, bottom - top));
+        oscHoldVolume_[w.index] = v;
+        oscHoldVolumeUntil_[w.index] = steadyMs() + 600.0;
         dragging_ = true;
         dragKind_ = 4;
         dragIndex_ = w.index;
@@ -1924,6 +1926,13 @@ bool Panel::pointerMove(Shared& shared, PanelState& state, double x, double y,
     const double span = (fine || state.fine) ? 640.0 : 190.0;
     const double v = clamp01(dragStart_ + (dragY_ - y) / span);
     dragValue_ = v;
+    if (dragKind_ == 4) {
+      oscHoldVolume_[dragIndex_] = v;
+      oscHoldVolumeUntil_[dragIndex_] = steadyMs() + 600.0;
+    } else {
+      oscHoldPan_[dragIndex_] = v;
+      oscHoldPanUntil_[dragIndex_] = steadyMs() + 600.0;
+    }
     if (state.hostControl) {
       state.hostControl(dragIndex_,
                         dragKind_ == 4 ? kHostVolume : kHostPan, v);
@@ -2641,7 +2650,12 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
         const HostTrack& h = state.host[static_cast<size_t>(w.index)];
         const bool live = dragging_ && dragKind_ == 5 &&
                           w.index == dragIndex_;
-        const double v = live ? dragValue_ : h.pan;
+        const double now = steadyMs();
+        double v = live ? dragValue_ : h.pan;
+        if (!live && oscHoldPanUntil_[w.index] > now &&
+            std::fabs(h.pan - oscHoldPan_[w.index]) > 0.004) {
+          v = oscHoldPan_[w.index];
+        }
         char ro[16];
         if (std::fabs(v - 0.5) < 0.01) {
           std::snprintf(ro, sizeof(ro), "C");
@@ -2659,7 +2673,12 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
         const HostTrack& h = state.host[static_cast<size_t>(w.index)];
         const bool live = dragging_ && dragKind_ == 4 &&
                           w.index == dragIndex_;
-        const double v = live ? dragValue_ : h.volume;
+        const double now = steadyMs();
+        double v = live ? dragValue_ : h.volume;
+        if (!live && oscHoldVolumeUntil_[w.index] > now &&
+            std::fabs(h.volume - oscHoldVolume_[w.index]) > 0.004) {
+          v = oscHoldVolume_[w.index];
+        }
         const double cx = w.x;
         const double top = w.y;
         roundRect(cr, cx - 7, top, 14, w.h, 5);
