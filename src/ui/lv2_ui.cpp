@@ -28,6 +28,7 @@
 #include "params.hpp"
 #include "ui/geometry.hpp"
 #include "ui/osc.hpp"
+#include "ui/osc_panel.hpp"
 #include "ui/panel.hpp"
 
 namespace {
@@ -49,7 +50,7 @@ struct Ui {
   // Console names/mute state is edited here but saved by the plug-in, so both
   // sides meet in a tiny per-process segment.
   suite::ConsoleBridge console;
-  suite::OscLink osc;
+  suite::OscLink osc{suite::OscProtocol::Auto};
   uint32_t consoleSeq = 0;
   bool consoleDirty = false;
 
@@ -298,9 +299,8 @@ struct Ui {
 
   void draw() {
     if (!cr || !windowSurface || width < 8 || height < 8) return;
-    state.playing = osc.playing();
-    state.recording = osc.recording();
-    state.osc = osc.valid() ? osc.online() : false;
+    osc.poll();
+    suite::applyOscState(osc, state);
     if (consoleDirty) {
       publishConsole();
       consoleDirty = false;
@@ -484,16 +484,7 @@ LV2UI_Handle uiInstantiate(const LV2UI_Descriptor*, const char*,
 
   ui->console.open();
   ui->osc.open();
-  ui->state.transport = [ui](int action) {
-    switch (action) {
-      case suite::kTransportRewind: ui->osc.action(40042); break;
-      case suite::kTransportPlay: ui->osc.trigger("/play"); break;
-      case suite::kTransportStop: ui->osc.trigger("/stop"); break;
-      case suite::kTransportRecord: ui->osc.trigger("/record"); break;
-      case suite::kTransportForward: ui->osc.action(40043); break;
-      default: break;
-    }
-  };
+  suite::bindOsc(ui->osc, ui->state);
   ui->adoptConsole();
   ui->panel.tick(ui->shared, ui->state);
   ui->draw();

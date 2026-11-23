@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.11.0
+
+- The strip view gains an `OSC` page: eight strips mirror the host's tracks
+  (name, level, pan, mute, solo, record arm, meters) and the header arrows
+  change the track bank.  CLAP talks REAPER's OSC; LV2 auto-detects and also
+  speaks Ardour's address space.
+- `SYNC` asks the host for its state again.  REAPER only publishes track
+  details through its selection sweep, so this is how names and levels are
+  fetched; the track number decides which strip a name belongs to, which also
+  drops stale names beyond the end of the project.
+- OSC settings sheet (the OSC button in the transport row): protocol, send and
+  receive ports, live status, host setup instructions, SYNC and CLOSE.  Ports
+  can be typed in; they are session-only, with `SUITE_OSC_SEND_PORT` /
+  `SUITE_OSC_RECV_PORT` as the persistent defaults.
+- The transport row now has loop, a time display and a setup button, with a
+  chevron that collapses the whole row to a small OSC chip.  Buttons flash
+  green when pressed.  The row is narrower per button so everything fits in the
+  same space.
+- Channel Plus's LV2 UI kept the peer's stale value over a fresh click, so the
+  BUS pill skipped clicks; edited parameters now win until they are written.
+
 ## 0.10.0
 
 - Optional OSC transport: play, stop, record, go to start and go to end in the

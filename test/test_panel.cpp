@@ -183,23 +183,99 @@ int main() {
     std::vector<int> actions;
     pst.transport = [&](int action) { actions.push_back(action); };
     pp.tick(st, pst);
-    const double x0 = 20.0 + (980.0 - (5 * 46.0 + 4 * 8.0)) * 0.5;
+    const double buttons = 5 * 40.0 + 4 * 6.0;
+    const double total =
+        buttons + 10.0 + 46.0 + 10.0 + 88.0 + 8.0 + 44.0 + 8.0 + 16.0;
+    const double x0 = 20.0 + (980.0 - total) * 0.5;
     for (int i = 0; i < 5; ++i) {
-      pp.pointerDown(st, pst, x0 + i * 54.0 + 23.0, 735.0, false);
+      pp.pointerDown(st, pst, x0 + i * 46.0 + 20.0, 735.0, false);
       pp.pointerUp();
     }
-    check(actions.size() == 5 && actions[0] == suite::kTransportRewind &&
+    const double loopX = x0 + buttons + 10.0 + 23.0;
+    pp.pointerDown(st, pst, loopX, 735.0, false);  // loop
+    pp.pointerUp();
+    check(actions.size() == 6 && actions[0] == suite::kTransportRewind &&
               actions[1] == suite::kTransportPlay &&
               actions[2] == suite::kTransportStop &&
               actions[3] == suite::kTransportRecord &&
-              actions[4] == suite::kTransportForward,
+              actions[4] == suite::kTransportForward &&
+              actions[5] == suite::kTransportLoop,
           "transport buttons send their actions");
 
     // Play/record lights follow the host feedback.
     pst.playing = true;
     pst.recording = true;
+    pst.loop = true;
+    std::snprintf(pst.time, sizeof(pst.time), "1:23.4");
     pp.draw(cairo_create(surface), st, pst);
     check(true, "transport row draws with feedback state");
+
+    // The chevron collapses the row to a chip; clicking the chip restores it.
+    const double hideX = x0 + total - 8.0;
+    pp.pointerDown(st, pst, hideX, 735.0, false);
+    pp.pointerUp();
+    pp.draw(cairo_create(surface), st, pst);
+    actions.clear();
+    pp.pointerDown(st, pst, 510.0, 735.0, false);  // the chip
+    pp.pointerUp();
+    check(actions.empty(), "the collapsed chip does not send transport");
+    pp.pointerDown(st, pst, x0 + 46.0 + 20.0, 735.0, false);  // play again
+    pp.pointerUp();
+    check(actions.size() == 1 && actions[0] == suite::kTransportPlay,
+          "the chip restores the transport row");
+
+    // OSC settings sheet: sync and editable ports.
+    pst.oscSendPort = 8000;
+    pst.oscRecvPort = 9000;
+    int syncs = 0, cfgSend = 0, cfgRecv = 0;
+    pst.oscSync = [&] { ++syncs; };
+    pst.oscConfigure = [&](int sendPort, int recvPort) {
+      cfgSend = sendPort;
+      cfgRecv = recvPort;
+    };
+    const double setupX = x0 + buttons + 10.0 + 46.0 + 10.0 + 88.0 + 8.0 + 22.0;
+    pp.pointerDown(st, pst, setupX, 735.0, false);
+    pp.pointerUp();
+    pp.draw(cairo_create(surface), st, pst);
+    check(true, "OSC settings sheet draws");
+    pp.pointerDown(st, pst, 330.0 + 85.0, 170.0 + 352.0, false);  // SYNC
+    pp.pointerUp();
+    check(syncs == 1, "OSC sync asks the host for its state");
+    pp.pointerDown(st, pst, 330.0 + 218.0, 170.0 + 97.0, false);  // send port
+    pp.pointerUp();
+    for (int i = 0; i < 4; ++i) {
+      pp.textKey(st, pst, suite::Panel::kTextBackspace, 0);
+    }
+    for (char c : std::string("8001")) {
+      pp.textKey(st, pst, 0, static_cast<unsigned char>(c));
+    }
+    pp.textKey(st, pst, suite::Panel::kTextEnter, 0);
+    check(cfgSend == 8001 && cfgRecv == 9000, "OSC send port is applied");
+    pp.pointerDown(st, pst, 330.0 + 555.0, 170.0 + 352.0, false);  // CLOSE
+    pp.pointerUp();
+    actions.clear();
+    pp.pointerDown(st, pst, x0 + 46.0 + 20.0, 735.0, false);
+    pp.pointerUp();
+    check(actions.size() == 1, "transport works after closing OSC settings");
+  }
+
+  // -------------------------------------------------------------- OSC view
+  {
+    suite::Shared st;
+    suite::PanelState pst;
+    suite::Panel po;
+    pst.osc = true;
+    pst.hostBank = 1;
+    std::snprintf(pst.host[0].name, sizeof(pst.host[0].name), "Drums");
+    std::snprintf(pst.host[0].gain, sizeof(pst.host[0].gain), "-6.0 dB");
+    pst.host[0].volume = 0.72;
+    pst.host[0].valid = true;
+    pst.host[0].vuL = pst.host[0].vuR = -18.0f;
+    po.tick(st, pst);
+    po.pointerDown(st, pst, 905.0, 92.0, false);  // OSC view pill
+    po.pointerUp();
+    po.draw(cairo_create(surface), st, pst);
+    check(true, "OSC view draws host strips");
   }
 
   // ---------------------------------------------------------- inserts
@@ -233,7 +309,7 @@ int main() {
     suite::PanelState sti;
     suite::Panel pi;
     pi.tick(si, sti);
-    pi.pointerDown(si, sti, 890.0, 92.0, false);  // OUT view
+    pi.pointerDown(si, sti, 748.0, 92.0, false);  // OUT view
     pi.pointerUp();
     pi.tick(si, sti);
 

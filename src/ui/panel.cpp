@@ -858,7 +858,7 @@ const Panel::Widget* Panel::hitTest(double x, double y) const {
   for (const Widget& w : widgets_) {
     const bool hit =
         (w.kind == Kind::Knob || w.kind == Kind::Remote ||
-         w.kind == Kind::InsertKnob)
+         w.kind == Kind::InsertKnob || w.kind == Kind::OscKnob)
             ? ((x - w.x) * (x - w.x) + (y - w.y) * (y - w.y) <=
                w.r * w.r * 1.6)
             : (x >= w.x && x <= w.x + w.w && y >= w.y && y <= w.y + w.h);
@@ -949,14 +949,16 @@ void Panel::layoutBus(const Shared& shared, const PanelState& state) {
   }
 
   // View selector row across the console area.
-  static const char* kViews[] = {"MIX", "INPUT", "EQ", "DYN", "OUT"};
-  for (int v = 0; v < 5; ++v) {
+  static const char* kViews[] = {"MIX", "INPUT", "EQ", "DYN", "OUT", "OSC"};
+  constexpr double kViewGap = 8.0;
+  const double viewW = (980.0 - 48.0 - 5.0 * kViewGap) / 6.0;
+  for (int v = 0; v < 6; ++v) {
     Widget w;
     w.kind = Kind::View;
     w.value = static_cast<double>(v);
-    w.x = 48.0 + v * 188.0;
+    w.x = 48.0 + v * (viewW + kViewGap);
     w.y = 78.0;
-    w.w = 180.0;
+    w.w = viewW;
     w.h = 24.0;
     w.label = kViews[v];
     widgets_.push_back(w);
@@ -1013,6 +1015,9 @@ void Panel::layoutBus(const Shared& shared, const PanelState& state) {
     widgets_.push_back(b);
   };
 
+  if (view_ == 5) {
+    layoutHostStrips(state);
+  } else {
   int shown = 0;
   int idx = 0;
   for (int i = 0; i < hub_.size() && shown < kVisible; ++i) {
@@ -1130,6 +1135,7 @@ void Panel::layoutBus(const Shared& shared, const PanelState& state) {
     }
     ++shown;
   }
+  }
 
   const double bx = kBusX + 8;
   pill(P_COMP_IN, bx, 138, 54, 20, "COMP");
@@ -1154,19 +1160,295 @@ void Panel::layoutBus(const Shared& shared, const PanelState& state) {
   knob(P_OUTPUT, bx + 172, 700, 19, "OUT", 0);
 
   // Transport row between the bottom corner screws.
-  constexpr double kTransportW = 46.0;
-  constexpr double kTransportGap = 8.0;
-  const double cluster = 5 * kTransportW + 4 * kTransportGap;
-  const double transportX = 20.0 + (1000.0 - 20.0 - cluster) * 0.5;
-  for (int i = 0; i < 5; ++i) {
-    Widget t;
-    t.kind = Kind::Transport;
-    t.value = static_cast<double>(i);
-    t.x = transportX + i * (kTransportW + kTransportGap);
-    t.y = 724.0;
-    t.w = kTransportW;
-    t.h = 22.0;
-    widgets_.push_back(t);
+  if (oscHidden_) {
+    Widget chip;
+    chip.kind = Kind::OscHide;
+    chip.x = 478.0;
+    chip.y = 724.0;
+    chip.w = 64.0;
+    chip.h = 22.0;
+    widgets_.push_back(chip);
+    transportX0_ = chip.x;
+    transportRowW_ = chip.w;
+    transportChip_ = true;
+  } else {
+    constexpr double kTransportW = 40.0;
+    constexpr double kTransportGap = 6.0;
+    constexpr double kLoopW = 46.0;
+    constexpr double kTimeW = 88.0;
+    constexpr double kHideW = 16.0;
+    constexpr double kSetupW = 44.0;
+    const double cluster = 5 * kTransportW + 4 * kTransportGap;
+    const double total = cluster + 10.0 + kLoopW + 10.0 + kTimeW + 8.0 +
+                         kSetupW + 8.0 + kHideW;
+    const double transportX = 20.0 + (1000.0 - 20.0 - total) * 0.5;
+    transportX0_ = transportX;
+    transportRowW_ = total;
+    transportChip_ = false;
+    for (int i = 0; i < 5; ++i) {
+      Widget t;
+      t.kind = Kind::Transport;
+      t.value = static_cast<double>(i);
+      t.x = transportX + i * (kTransportW + kTransportGap);
+      t.y = 724.0;
+      t.w = kTransportW;
+      t.h = 22.0;
+      widgets_.push_back(t);
+    }
+    const double loopX = transportX + cluster + 10.0;
+    Widget loop;
+    loop.kind = Kind::Transport;
+    loop.value = static_cast<double>(kTransportLoop);
+    loop.x = loopX;
+    loop.y = 724.0;
+    loop.w = kLoopW;
+    loop.h = 22.0;
+    widgets_.push_back(loop);
+    timeX_ = loopX + kLoopW + 10.0;
+    timeW_ = kTimeW;
+    Widget setup;
+    setup.kind = Kind::OscSetup;
+    setup.x = timeX_ + kTimeW + 8.0;
+    setup.y = 724.0;
+    setup.w = kSetupW;
+    setup.h = 22.0;
+    widgets_.push_back(setup);
+    Widget hide;
+    hide.kind = Kind::OscHide;
+    hide.x = setup.x + kSetupW + 8.0;
+    hide.y = 724.0;
+    hide.w = kHideW;
+    hide.h = 22.0;
+    widgets_.push_back(hide);
+  }
+}
+
+void Panel::layoutHostStrips(const PanelState& state) {
+  (void)state;
+  for (int t = 0; t < kHostTracks; ++t) {
+    const double x = kStripX0 + t * (kStripW + kStripGap);
+    Widget name;
+    name.kind = Kind::OscStrip;
+    name.index = t;
+    name.x = x;
+    name.y = kStripTop + 2;
+    name.w = kStripW;
+    name.h = 26.0;
+    widgets_.push_back(name);
+
+    Widget pan;
+    pan.kind = Kind::OscKnob;
+    pan.index = t;
+    pan.value = kHostPan;
+    pan.x = x + 30;
+    pan.y = kStripTop + 80;
+    pan.r = 17;
+    pan.label = "PAN";
+    widgets_.push_back(pan);
+
+    Widget fader;
+    fader.kind = Kind::OscFader;
+    fader.index = t;
+    fader.value = kHostVolume;
+    fader.x = x + 90;
+    fader.y = kStripTop + 52;
+    fader.h = 250;
+    widgets_.push_back(fader);
+
+    struct ButtonSpec {
+      int control;
+      double bx;
+      double by;
+      double w;
+      const char* label;
+    };
+    const ButtonSpec buttons[] = {
+        {kHostMute, 8, 318, 46, "MUTE"},
+        {kHostSolo, 66, 318, 46, "SOLO"},
+        {kHostRec, 8, 346, 46, "REC"},
+        {kHostSelect, 66, 346, 46, "SEL"},
+    };
+    for (const ButtonSpec& b : buttons) {
+      Widget pill;
+      pill.kind = Kind::OscPill;
+      pill.index = t;
+      pill.value = b.control;
+      pill.x = x + b.bx;
+      pill.y = kStripTop + b.by;
+      pill.w = b.w;
+      pill.h = 22;
+      pill.label = b.label;
+      widgets_.push_back(pill);
+    }
+  }
+}
+
+void Panel::oscSettingsGeometry() {
+  constexpr double px = 330.0, py = 170.0, pw = 620.0, ph = 390.0;
+  oscSendRect_ = {px + 170.0, py + 84.0, 96.0, 26.0};
+  oscRecvRect_ = {px + 170.0, py + 122.0, 96.0, 26.0};
+  oscSyncRect_ = {px + 20.0, py + ph - 54.0, 130.0, 32.0};
+  oscCloseRect_ = {px + pw - 110.0, py + ph - 54.0, 90.0, 32.0};
+}
+
+void Panel::drawOscSettings(cairo_t* cr, const PanelState& state) {
+  oscSettingsGeometry();
+  constexpr double px = 330.0, py = 170.0, pw = 620.0, ph = 390.0;
+
+  cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.55);
+  cairo_paint(cr);
+  plate(cr, px, py, pw, ph, nullptr);
+
+  text(cr, "OSC SETTINGS", px + 20, py + 32, 14, 0, kLegend.r, kLegend.g,
+       kLegend.b);
+  const char* host = state.oscProtocol == 1
+                         ? "ARDOUR"
+                         : (state.oscProtocol == 2 ? "AUTO (ARDOUR + REAPER)"
+                                                   : "REAPER");
+  text(cr, host, px + 20, py + 58, 10, 0, kLegendDim.r, kLegendDim.g,
+       kLegendDim.b);
+  cairo_arc(cr, px + pw - 116, py + 54, 3.5, 0.0, 6.2831853);
+  setRgb(cr, state.osc ? Rgb{0.24, 0.76, 0.50} : Rgb{0.55, 0.34, 0.30});
+  cairo_fill(cr);
+  text(cr, state.osc ? "ONLINE" : "OFFLINE", px + pw - 106, py + 57, 8,
+       0, kLegendDim.r, kLegendDim.g, kLegendDim.b);
+
+  auto portRow = [&](const Rect& rect, const char* label, const char* hint,
+                     int value, bool edit) {
+    text(cr, label, px + 20, rect.y + 18, 9, 0, kLegend.r, kLegend.g,
+         kLegend.b);
+    roundRect(cr, rect.x, rect.y, rect.w, rect.h, 3);
+    setRgb(cr, {0.07, 0.08, 0.09});
+    cairo_fill(cr);
+    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.10);
+    cairo_set_line_width(cr, 1.0);
+    roundRect(cr, rect.x + 0.5, rect.y + 0.5, rect.w - 1, rect.h - 1, 3);
+    cairo_stroke(cr);
+    char buf[16];
+    if (edit) {
+      std::snprintf(buf, sizeof(buf), "%s_", editText_.c_str());
+    } else {
+      std::snprintf(buf, sizeof(buf), "%d", value);
+    }
+    text(cr, buf, rect.x + rect.w * 0.5, rect.y + 18, 11, 1, kLegend.r,
+         kLegend.g, kLegend.b);
+    text(cr, hint, rect.x + rect.w + 12, rect.y + 17, 8, 0, kLegendDim.r,
+         kLegendDim.g, kLegendDim.b);
+  };
+  const bool editingSend =
+      editing_ && editKind_ == 3 && editPortKind_ == 0;
+  const bool editingRecv =
+      editing_ && editKind_ == 3 && editPortKind_ == 1;
+  portRow(oscSendRect_, "SEND PORT", "plug-in to host, e.g. 8000",
+          state.oscSendPort, editingSend);
+  portRow(oscRecvRect_, "RECEIVE PORT", "host to plug-in, e.g. 9000",
+          state.oscRecvPort, editingRecv);
+
+  if (state.oscProtocol != 0) {
+    text(cr, "Ardour: Preferences > Control Surfaces > Open Sound Control",
+         px + 20, py + 186, 9, 0, kLegendDim.r, kLegendDim.g, kLegendDim.b);
+    text(cr, "Ardour listens on UDP 3819 and replies to the RECEIVE port.",
+         px + 20, py + 204, 9, 0, kLegendDim.r, kLegendDim.g, kLegendDim.b);
+  }
+  if (state.oscProtocol != 1) {
+    text(cr, "REAPER: Preferences > Control/OSC/web > Add > OSC",
+         px + 20, py + 222, 9, 0, kLegendDim.r, kLegendDim.g, kLegendDim.b);
+    text(cr, "Mode: Configure device IP+local port   Device IP: 127.0.0.1",
+         px + 20, py + 240, 9, 0, kLegendDim.r, kLegendDim.g, kLegendDim.b);
+    text(cr, "Device port = RECEIVE   Local listen port = SEND   Pattern: Default",
+         px + 20, py + 258, 9, 0, kLegendDim.r, kLegendDim.g, kLegendDim.b);
+    text(cr, "REAPER publishes each track as the sweep selects it; SYNC re-reads.",
+         px + 20, py + 276, 8.5, 0, kLegendDim.r, kLegendDim.g,
+         kLegendDim.b);
+  }
+  text(cr, "Ports are session-only; set SUITE_OSC_SEND_PORT / SUITE_OSC_RECV_PORT",
+       px + 20, py + 300, 8.5, 0, kLegendDim.r, kLegendDim.g, kLegendDim.b);
+  text(cr, "to keep them.", px + 20, py + 316, 8.5, 0, kLegendDim.r,
+       kLegendDim.g, kLegendDim.b);
+
+  auto button = [&](const Rect& rect, const char* label, bool accent) {
+    roundRect(cr, rect.x, rect.y, rect.w, rect.h, 4);
+    setRgb(cr, accent ? kAccent : kBtnOff);
+    cairo_fill(cr);
+    cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.30);
+    cairo_set_line_width(cr, 1.0);
+    roundRect(cr, rect.x + 0.5, rect.y + 0.5, rect.w - 1, rect.h - 1, 4);
+    cairo_stroke(cr);
+    text(cr, label, rect.x + rect.w * 0.5, rect.y + 21, 9, 1,
+         accent ? 1.0 : kBtnText.r, accent ? 1.0 : kBtnText.g,
+         accent ? 1.0 : kBtnText.b);
+  };
+  button(oscSyncRect_, "SYNC TRACKS", true);
+  button(oscCloseRect_, "CLOSE", false);
+}
+
+bool Panel::pointerDownOscSettings(Shared& shared, PanelState& state,
+                                   double x, double y) {
+  (void)shared;
+  oscSettingsGeometry();
+  constexpr double px = 330.0, py = 170.0, pw = 620.0, ph = 390.0;
+  if (oscCloseRect_.hit(x, y)) {
+    oscSettings_ = false;
+    editPortKind_ = -1;
+    return true;
+  }
+  if (oscSyncRect_.hit(x, y)) {
+    if (state.oscSync) state.oscSync();
+    return true;
+  }
+  auto beginPortEdit = [&](int kind, int value) {
+    editing_ = true;
+    editKind_ = 3;
+    editPortKind_ = kind;
+    editSend_ = state.oscSendPort;
+    editRecv_ = state.oscRecvPort;
+    editText_.clear();
+    char buf[8];
+    std::snprintf(buf, sizeof(buf), "%d", value);
+    editText_ = buf;
+  };
+  if (oscSendRect_.hit(x, y)) {
+    beginPortEdit(0, state.oscSendPort);
+    return true;
+  }
+  if (oscRecvRect_.hit(x, y)) {
+    beginPortEdit(1, state.oscRecvPort);
+    return true;
+  }
+  if (x >= px && x <= px + pw && y >= py && y <= py + ph) {
+    return true;  // modal sheet: swallow clicks inside
+  }
+  oscSettings_ = false;
+  editPortKind_ = -1;
+  return true;
+}
+
+void Panel::drawHostStrips(cairo_t* cr, const PanelState& state) {
+  for (int t = 0; t < kHostTracks; ++t) {
+    const double x = kStripX0 + t * (kStripW + kStripGap);
+    const HostTrack& h = state.host[t];
+    roundRect(cr, x, kStripTop, kStripW, kStripH, 6);
+    cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.14);
+    cairo_fill(cr);
+    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.06);
+    cairo_set_line_width(cr, 1.0);
+    roundRect(cr, x + 0.5, kStripTop + 0.5, kStripW - 1, kStripH - 1, 6);
+    cairo_stroke(cr);
+
+    if (h.gain[0]) {
+      text(cr, h.gain, x + 30, kStripTop + 142, 8.0, 1, kLegendDim.r,
+           kLegendDim.g, kLegendDim.b);
+    }
+    text(cr, "VOL", x + 90, kStripTop + 312, 7.0, 1, kLegendDim.r,
+         kLegendDim.g, kLegendDim.b);
+    char number[16];
+    std::snprintf(number, sizeof(number), "TRK %d",
+                  state.hostBank * kHostTracks + t + 1);
+    text(cr, number, x + 90, kStripTop + 420, 7.0, 1, kLegendDim.r,
+         kLegendDim.g, kLegendDim.b);
+    meter(cr, x + 8, kStripTop + 382, 44, 150, h.vuL, h.vuR);
+    text(cr, "LVL", x + 30, kStripTop + 548, 7.0, 1, kLegendDim.r,
+         kLegendDim.g, kLegendDim.b);
   }
 }
 
@@ -1342,6 +1624,9 @@ bool Panel::pointerDown(Shared& shared, PanelState& state, double x, double y,
   if (editing_) closeEdit();
   layout(shared, state);
   state.fine = fine;
+  if (oscSettings_ && pointerDownOscSettings(shared, state, x, y)) {
+    return true;
+  }
   if (pickerOpen_) {
     const bool inside = x >= pickerX_ && x <= pickerX_ + pickerW_ &&
                         y >= pickerY_ && y <= pickerY_ + pickerH_;
@@ -1353,7 +1638,7 @@ bool Panel::pointerDown(Shared& shared, PanelState& state, double x, double y,
   for (const Widget& w : widgets_) {
     const bool hit =
         (w.kind == Kind::Knob || w.kind == Kind::Remote ||
-         w.kind == Kind::InsertKnob)
+         w.kind == Kind::InsertKnob || w.kind == Kind::OscKnob)
             ? ((x - w.x) * (x - w.x) + (y - w.y) * (y - w.y) <=
                w.r * w.r * 1.6)
             : (x >= w.x && x <= w.x + w.w && y >= w.y && y <= w.y + w.h);
@@ -1409,9 +1694,66 @@ bool Panel::pointerDown(Shared& shared, PanelState& state, double x, double y,
       case Kind::PickerCancel:
         return true;  // handled above
       case Kind::Transport:
+        flashAction_ = static_cast<int>(w.value);
+        flashUntil_ = steadyMs() + 180.0;
         if (state.transport) {
           state.transport(static_cast<int>(w.value));
         }
+        return true;
+      case Kind::OscHide:
+        oscHidden_ = !oscHidden_;
+        return true;
+      case Kind::OscSetup:
+        oscSettings_ = true;
+        editing_ = false;
+        editPortKind_ = -1;
+        return true;
+      case Kind::OscStrip:
+        if (state.hostSelect) state.hostSelect(w.index);
+        return true;
+      case Kind::OscPill: {
+        const int control = static_cast<int>(w.value);
+        if (control == kHostSelect) {
+          if (state.hostSelect) state.hostSelect(w.index);
+          return true;
+        }
+        if (state.hostControl && w.index >= 0 && w.index < kHostTracks) {
+          const HostTrack& h = state.host[w.index];
+          const bool on = control == kHostMute ? h.mute
+                          : control == kHostSolo ? h.solo
+                                                 : h.rec;
+          state.hostControl(w.index, control, on ? 0.0 : 1.0);
+        }
+        return true;
+      }
+      case Kind::OscFader: {
+        const double top = w.y;
+        const double bottom = w.y + w.h;
+        const double v = clamp01((bottom - y) / std::max(1.0, bottom - top));
+        dragging_ = true;
+        dragKind_ = 4;
+        dragIndex_ = w.index;
+        dragParam_ = -1;
+        dragPlus_ = -1;
+        dragY_ = y;
+        dragStart_ = v;
+        dragValue_ = v;
+        if (state.hostControl) {
+          state.hostControl(w.index, kHostVolume, v);
+        }
+        return true;
+      }
+      case Kind::OscKnob:
+        dragging_ = true;
+        dragKind_ = 5;
+        dragIndex_ = w.index;
+        dragParam_ = -1;
+        dragPlus_ = -1;
+        dragY_ = y;
+        dragStart_ = (w.index >= 0 && w.index < kHostTracks)
+                         ? state.host[w.index].pan
+                         : 0.5;
+        dragValue_ = dragStart_;
         return true;
       case Kind::InsertTab:
         insertSlot_ = static_cast<int>(w.value);
@@ -1440,6 +1782,12 @@ bool Panel::pointerDown(Shared& shared, PanelState& state, double x, double y,
         view_ = static_cast<int>(w.value);
         return true;
       case Kind::Scroll:
+        if (view_ == 5) {
+          if (state.hostBankChange) {
+            state.hostBankChange(static_cast<int>(w.value));
+          }
+          return true;
+        }
         scroll_ = std::clamp(scroll_ + static_cast<int>(w.value), 0,
                              maxScroll());
         return true;
@@ -1564,6 +1912,16 @@ bool Panel::pointerMove(Shared& shared, PanelState& state, double x, double y,
     writeInsert(dragIndex_, static_cast<uint32_t>(dragParam_), dragValue_);
     return true;
   }
+  if (dragKind_ == 4 || dragKind_ == 5) {
+    const double span = (fine || state.fine) ? 640.0 : 190.0;
+    const double v = clamp01(dragStart_ + (dragY_ - y) / span);
+    dragValue_ = v;
+    if (state.hostControl) {
+      state.hostControl(dragIndex_,
+                        dragKind_ == 4 ? kHostVolume : kHostPan, v);
+    }
+    return true;
+  }
   const double span = (fine || state.fine) ? 640.0 : 190.0;
   const double delta = (dragY_ - y) / span;
   const double v = clamp01(dragStart_ + delta);
@@ -1605,6 +1963,7 @@ void Panel::closeEdit() {
   editIndex_ = -1;
   editParam_ = -1;
   editPlus_ = -1;
+  editPortKind_ = -1;
 }
 
 bool Panel::beginTextEntry(Shared& shared, PanelState& state, double x,
@@ -1666,6 +2025,17 @@ void Panel::textKey(Shared& shared, PanelState& state, int code, unsigned ch) {
     } else if (editKind_ == 2) {
       const double v = parseRemoteValue(editPlus_, editText_.c_str());
       if (v >= 0.0) hub_.write(editIndex_, editPlus_, clamp01(v));
+    } else if (editKind_ == 3) {
+      const int port = std::atoi(editText_.c_str());
+      if (port >= 1024 && port <= 65535 && state.oscConfigure) {
+        if (editPortKind_ == 0) {
+          state.oscConfigure(port, editRecv_);
+          state.oscSendPort = port;
+        } else {
+          state.oscConfigure(editSend_, port);
+          state.oscRecvPort = port;
+        }
+      }
     }
     editing_ = false;
     editText_.clear();
@@ -1701,9 +2071,11 @@ void Panel::textKey(Shared& shared, PanelState& state, int code, unsigned ch) {
     editText_.clear();
     editKey_ = -1;
     editIndex_ = -1;
+    editPortKind_ = -1;
   } else if (code == kTextBackspace) {
     if (!editText_.empty()) editText_.pop_back();
-  } else if (ch >= 32 && ch < 127 && editText_.size() < 20) {
+  } else if (ch >= 32 && ch < 127 && editText_.size() < 8) {
+    if (editKind_ == 3 && (ch < '0' || ch > '9')) return;
     editText_.push_back(static_cast<char>(ch));
   }
 }
@@ -1947,7 +2319,16 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
                            std::chrono::steady_clock::now().time_since_epoch())
                            .count();
   char status[128];
-  if (captureCount_ >= 0 && nowMs < captureNoticeUntil_) {
+  if (view_ == 5) {
+    std::snprintf(status, sizeof(status), "BANK %d  \xc2\xb7  OSC %s",
+                  state.hostBank + 1, state.osc ? "ONLINE" : "OFFLINE");
+    if (state.osc) {
+      text(cr, status, kPanelWidth - 24, 40, 8.5, 2, kAccent.r, kAccent.g,
+           kAccent.b);
+    } else {
+      text(cr, status, kPanelWidth - 24, 40, 8.5, 2, 0.80, 0.45, 0.35);
+    }
+  } else if (captureCount_ >= 0 && nowMs < captureNoticeUntil_) {
     std::snprintf(status, sizeof(status), "CAPTURED %d CHANNEL%s TO BUS %s",
                   captureCount_, captureCount_ == 1 ? "" : "S",
                   kBusLabels[std::clamp(bus_, 0, 8)]);
@@ -1966,7 +2347,7 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
          kLegendDim.b);
   }
 
-  if (total == 0) {
+  if (view_ != 5 && total == 0) {
     const bool anyChannels = hub_.size() > 0;
     char line1[128];
     if (anyChannels) {
@@ -1998,10 +2379,12 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
     }
   }
 
+  if (view_ == 5) drawHostStrips(cr, state);
+
   // Strip plates.
   int shown = 0;
   int idx = 0;
-  for (int i = 0; i < hub_.size() && shown < kVisible; ++i) {
+  for (int i = 0; view_ != 5 && i < hub_.size() && shown < kVisible; ++i) {
     if (bus_ != 0 && static_cast<int>(hub_.bus(i)) != bus_) continue;
     if (idx++ < scroll_) continue;
     const double x = kStripX0 + shown * (kStripW + kStripGap);
@@ -2167,9 +2550,11 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
       }
       case Kind::Transport: {
         const int action = static_cast<int>(w.value);
-        const bool on =
+        const bool flash = action == flashAction_ && steadyMs() < flashUntil_;
+        const bool on = flash ||
             (action == kTransportPlay && state.playing) ||
-            (action == kTransportRecord && state.recording);
+            (action == kTransportRecord && state.recording) ||
+            (action == kTransportLoop && state.loop);
         roundRect(cr, w.x, w.y, w.w, w.h, 4);
         if (action == kTransportRecord && state.recording) {
           setRgb(cr, {0.60, 0.18, 0.18});
@@ -2194,6 +2579,10 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
           cairo_fill(cr);
         };
         switch (action) {
+          case kTransportLoop:
+            text(cr, "LOOP", cx, cy + 3.0, 7.5, 1, on ? 1.0 : kBtnText.r,
+                 on ? 1.0 : kBtnText.g, on ? 1.0 : kBtnText.b);
+            break;
           case kTransportPlay:
             cairo_move_to(cr, cx - 3.5, cy - 6.0);
             cairo_line_to(cr, cx - 3.5, cy + 6.0);
@@ -2222,6 +2611,149 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
         }
         break;
       }
+      case Kind::OscStrip: {
+        const HostTrack& h = state.host[static_cast<size_t>(w.index)];
+        roundRect(cr, w.x, w.y, w.w, w.h, 4);
+        setRgb(cr, h.valid ? Rgb{0.15, 0.18, 0.21} : Rgb{0.11, 0.12, 0.14});
+        cairo_fill(cr);
+        char name[40];
+        if (h.name[0]) {
+          std::snprintf(name, sizeof(name), "%s", h.name);
+        } else {
+          std::snprintf(name, sizeof(name), "TRACK %d",
+                        state.hostBank * kHostTracks + w.index + 1);
+        }
+        text(cr, name, w.x + w.w * 0.5, w.y + 17, 8.0, 1,
+             h.valid ? kLegend.r : kLegendDim.r,
+             h.valid ? kLegend.g : kLegendDim.g,
+             h.valid ? kLegend.b : kLegendDim.b);
+        break;
+      }
+      case Kind::OscKnob: {
+        const HostTrack& h = state.host[static_cast<size_t>(w.index)];
+        const bool live = dragging_ && dragKind_ == 5 &&
+                          w.index == dragIndex_;
+        const double v = live ? dragValue_ : h.pan;
+        char ro[16];
+        if (std::fabs(v - 0.5) < 0.01) {
+          std::snprintf(ro, sizeof(ro), "C");
+        } else if (v < 0.5) {
+          std::snprintf(ro, sizeof(ro), "L%d",
+                        static_cast<int>((0.5 - v) * 200.0));
+        } else {
+          std::snprintf(ro, sizeof(ro), "R%d",
+                        static_cast<int>((v - 0.5) * 200.0));
+        }
+        knob(cr, w, v, ro, 0);
+        break;
+      }
+      case Kind::OscFader: {
+        const HostTrack& h = state.host[static_cast<size_t>(w.index)];
+        const bool live = dragging_ && dragKind_ == 4 &&
+                          w.index == dragIndex_;
+        const double v = live ? dragValue_ : h.volume;
+        const double cx = w.x;
+        const double top = w.y;
+        roundRect(cr, cx - 7, top, 14, w.h, 5);
+        setRgb(cr, {0.06, 0.07, 0.08});
+        cairo_fill(cr);
+        cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.07);
+        cairo_set_line_width(cr, 1.0);
+        roundRect(cr, cx - 6.5, top + 0.5, 13, w.h - 1, 5);
+        cairo_stroke(cr);
+        const double capY = top + (1.0 - clamp01(v)) * (w.h - 20.0);
+        cairo_pattern_t* pat =
+            cairo_pattern_create_linear(0, capY, 0, capY + 20);
+        cairo_pattern_add_color_stop_rgb(pat, 0.0, 0.46, 0.48, 0.51);
+        cairo_pattern_add_color_stop_rgb(pat, 0.5, 0.30, 0.32, 0.35);
+        cairo_pattern_add_color_stop_rgb(pat, 1.0, 0.18, 0.19, 0.21);
+        roundRect(cr, cx - 26, capY, 52, 20, 4);
+        cairo_set_source(cr, pat);
+        cairo_fill(cr);
+        cairo_pattern_destroy(pat);
+        cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.35);
+        cairo_set_line_width(cr, 1.0);
+        roundRect(cr, cx - 25.5, capY + 0.5, 51, 19, 4);
+        cairo_stroke(cr);
+        cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.45);
+        cairo_move_to(cr, cx - 22, capY + 10.0);
+        cairo_line_to(cr, cx + 22, capY + 10.0);
+        cairo_stroke(cr);
+        break;
+      }
+      case Kind::OscPill: {
+        const int t = w.index;
+        const int control = static_cast<int>(w.value);
+        const HostTrack& h = state.host[static_cast<size_t>(t)];
+        bool on = false;
+        Rgb lit = kAccent;
+        if (control == kHostMute) {
+          on = h.mute;
+          lit = {0.78, 0.60, 0.22};
+        } else if (control == kHostSolo) {
+          on = h.solo;
+          lit = {0.30, 0.72, 0.52};
+        } else if (control == kHostRec) {
+          on = h.rec;
+          lit = {0.66, 0.20, 0.20};
+        } else if (control == kHostSelect) {
+          lit = {0.32, 0.46, 0.66};
+        }
+        roundRect(cr, w.x, w.y, w.w, w.h, 3);
+        setRgb(cr, on ? lit : kBtnOff);
+        cairo_fill(cr);
+        cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.30);
+        cairo_set_line_width(cr, 1.0);
+        roundRect(cr, w.x + 0.5, w.y + 0.5, w.w - 1, w.h - 1, 3);
+        cairo_stroke(cr);
+        text(cr, w.label, w.x + w.w * 0.5, w.y + 15.0, 7.0, 1,
+             on ? 1.0 : kBtnText.r, on ? 1.0 : kBtnText.g,
+             on ? 1.0 : kBtnText.b);
+        break;
+      }
+      case Kind::OscSetup: {
+        roundRect(cr, w.x, w.y, w.w, w.h, 3);
+        setRgb(cr, Rgb{0.10, 0.12, 0.14});
+        cairo_fill(cr);
+        cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.08);
+        cairo_set_line_width(cr, 1.0);
+        roundRect(cr, w.x + 0.5, w.y + 0.5, w.w - 1, w.h - 1, 3);
+        cairo_stroke(cr);
+        const double cy = w.y + w.h * 0.5;
+        cairo_arc(cr, w.x + 10.0, cy, 3.0, 0.0, 6.2831853);
+        setRgb(cr, state.osc ? Rgb{0.24, 0.76, 0.50} : Rgb{0.30, 0.32, 0.35});
+        cairo_fill(cr);
+        text(cr, "OSC", w.x + 17.0, cy + 3.0, 7.0, 0, kLegend.r, kLegend.g,
+             kLegend.b);
+        break;
+      }
+      case Kind::OscHide: {
+        roundRect(cr, w.x, w.y, w.w, w.h, 3);
+        setRgb(cr, kBtnOff);
+        cairo_fill(cr);
+        cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.06);
+        cairo_set_line_width(cr, 1.0);
+        roundRect(cr, w.x + 0.5, w.y + 0.5, w.w - 1, w.h - 1, 3);
+        cairo_stroke(cr);
+        const double cx = w.x + w.w * 0.5;
+        const double cy = w.y + w.h * 0.5;
+        if (transportChip_) {
+          cairo_arc(cr, w.x + 10.0, cy, 3.0, 0.0, 6.2831853);
+          setRgb(cr, state.osc ? Rgb{0.24, 0.76, 0.50}
+                               : Rgb{0.30, 0.32, 0.35});
+          cairo_fill(cr);
+          text(cr, "OSC", w.x + 18.0, cy + 3.0, 7.0, 0, kLegendDim.r,
+               kLegendDim.g, kLegendDim.b);
+        } else {
+          setRgb(cr, kBtnText);
+          cairo_set_line_width(cr, 1.2);
+          cairo_move_to(cr, cx - 3.5, cy - 1.5);
+          cairo_line_to(cr, cx, cy + 2.0);
+          cairo_line_to(cr, cx + 3.5, cy - 1.5);
+          cairo_stroke(cr);
+        }
+        break;
+      }
       case Kind::InsertTab:
       case Kind::InsertKnob:
       case Kind::InsertPill:
@@ -2235,20 +2767,24 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
 
   if (pickerOpen_) drawPicker(cr);
 
-  // OSC link indicator beside the transport row.
-  {
-    const double dotX = 656.0, dotY = 735.0;
-    cairo_arc(cr, dotX, dotY, 3.0, 0.0, 6.2831853);
-    setRgb(cr, state.osc ? Rgb{0.24, 0.76, 0.50} : Rgb{0.30, 0.32, 0.35});
+  // Time display and OSC indicator (the collapsed chip draws its own).
+  if (!transportChip_) {
+    roundRect(cr, timeX_, 724.0, timeW_, 22.0, 3);
+    setRgb(cr, {0.055, 0.062, 0.072});
     cairo_fill(cr);
-    text(cr, "OSC", dotX + 7.0, dotY + 3.0, 7.0, 0, kLegendDim.r,
-         kLegendDim.g, kLegendDim.b);
+    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.06);
+    cairo_set_line_width(cr, 1.0);
+    roundRect(cr, timeX_ + 0.5, 724.5, timeW_ - 1, 21, 3);
+    cairo_stroke(cr);
+    text(cr, state.time[0] ? state.time : "--:--.-",
+         timeX_ + timeW_ * 0.5, 739.0, 9.5, 1, kLegend.r, kLegend.g,
+         kLegend.b);
   }
 
   // Meters under the strip controls.
   shown = 0;
   idx = 0;
-  for (int i = 0; i < hub_.size() && shown < kVisible; ++i) {
+  for (int i = 0; view_ != 5 && i < hub_.size() && shown < kVisible; ++i) {
     if (bus_ != 0 && static_cast<int>(hub_.bus(i)) != bus_) continue;
     if (idx++ < scroll_) continue;
     const double x = kStripX0 + shown * (kStripW + kStripGap);
@@ -2273,6 +2809,8 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
     }
     ++shown;
   }
+
+  if (oscSettings_) drawOscSettings(cr, state);
 
   grMeter(cr, kBusX + 198, kPlateY + 60, 9, 168,
           shared.grDb.load(std::memory_order_relaxed), true);

@@ -13,6 +13,7 @@
 
 #include "params.hpp"
 #include "peer.hpp"
+#include "ui/transport.hpp"
 
 namespace suite {
 
@@ -32,12 +33,29 @@ constexpr int kBus = 38;
 constexpr int kCount = 39;
 } // namespace ch
 
-// Transport actions; the host glue maps these to OSC.
-constexpr int kTransportRewind = 0;
-constexpr int kTransportPlay = 1;
-constexpr int kTransportStop = 2;
-constexpr int kTransportRecord = 3;
-constexpr int kTransportForward = 4;
+// Controls in the OSC strip view.
+constexpr int kHostVolume = 0;
+constexpr int kHostPan = 1;
+constexpr int kHostMute = 2;
+constexpr int kHostSolo = 3;
+constexpr int kHostRec = 4;
+constexpr int kHostSelect = 5;
+
+constexpr int kHostTracks = 8;
+
+// One host track, filled by the OSC glue (REAPER or Ardour).
+struct HostTrack {
+  char name[40] = {};
+  char gain[16] = {};
+  double volume = 0.0;
+  double pan = 0.5;
+  bool mute = false;
+  bool solo = false;
+  bool rec = false;
+  bool valid = false;
+  float vuL = -120.0f;
+  float vuR = -120.0f;
+};
 
 struct PanelState {
   int selectedStrip = 0;
@@ -45,7 +63,21 @@ struct PanelState {
   std::function<void(int action)> transport;
   bool playing = false;
   bool recording = false;
+  bool loop = false;
   bool osc = false;
+  char time[16] = {};
+
+  // The OSC view mirrors the host's tracks; the glue keeps this current.
+  HostTrack host[kHostTracks];
+  int hostBank = 0;
+  int oscSendPort = 0;
+  int oscRecvPort = 0;
+  int oscProtocol = 0;  // 0 REAPER, 1 Ardour
+  std::function<void(int send, int recv)> oscConfigure;
+  std::function<void()> oscSync;
+  std::function<void(int index, int control, double value)> hostControl;
+  std::function<void(int index)> hostSelect;
+  std::function<void(int delta)> hostBankChange;
 };
 
 class Panel {
@@ -89,7 +121,7 @@ private:
     Knob, Remote, RemotePill, RemoteFader, Pill, Tab, Capture, Strip, Rename,
     Page, View, Scroll, Mute, Solo, RemoteButton,
     InsertCell, InsertTab, InsertKnob, InsertPill, PickerItem, PickerCancel,
-    Transport
+    Transport, OscStrip, OscKnob, OscFader, OscPill, OscHide, OscSetup
   };
 
 
@@ -130,6 +162,8 @@ private:
   void writeInsert(int entry, uint32_t param, double normalised);
   double insertNormalised(int entry, uint32_t param) const;
   void applyMuteSolo(Shared& shared);
+  void layoutHostStrips(const PanelState& state);
+  void drawHostStrips(cairo_t* cr, const PanelState& state);
   const Widget* hitTest(double x, double y) const;
   void resetWidget(Shared& shared, const Widget& w);
   bool sameEditTarget(const Widget& w) const;
@@ -157,7 +191,7 @@ private:
   peer::Hub hub_;
   int bus_ = 1;
   int page_ = 0;       // 0 = mix bus, 1 = selected channel
-  int view_ = 0;       // 0 mix, 1 input, 2 eq, 3 dynamics, 4 output
+  int view_ = 0;       // 0 mix, 1 input, 2 eq, 3 dynamics, 4 output, 5 OSC
   int scroll_ = 0;     // first visible strip
   int detail_ = -1;    // hub index for the channel page
   int insertSlot_ = 0; // 0 = CHANNEL tab, 1..4 = insert tab
@@ -190,6 +224,35 @@ private:
 
   double captureNoticeUntil_ = 0.0;
   int captureCount_ = -1;
+
+  // The OSC row can be collapsed to a small chip.
+  bool oscHidden_ = false;
+  int flashAction_ = -1;
+  double flashUntil_ = 0.0;
+  double transportX0_ = 0.0;
+  double transportRowW_ = 0.0;
+  bool transportChip_ = false;
+  double timeX_ = 0.0;
+  double timeW_ = 88.0;
+
+  struct Rect {
+    double x = 0.0, y = 0.0, w = 0.0, h = 0.0;
+    bool hit(double px, double py) const {
+      return px >= x && px <= x + w && py >= y && py <= y + h;
+    }
+  };
+  bool oscSettings_ = false;
+  Rect oscSendRect_;
+  Rect oscRecvRect_;
+  Rect oscSyncRect_;
+  Rect oscCloseRect_;
+  int editPortKind_ = -1;  // 0 send, 1 receive
+  int editSend_ = 0;
+  int editRecv_ = 0;
+  void oscSettingsGeometry();
+  void drawOscSettings(cairo_t* cr, const PanelState& state);
+  bool pointerDownOscSettings(Shared& shared, PanelState& state, double x,
+                              double y);
 
   FT_Library ft_ = nullptr;
   FT_Face ftFace_ = nullptr;
