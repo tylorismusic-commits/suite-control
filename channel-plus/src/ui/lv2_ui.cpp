@@ -237,6 +237,11 @@ struct Ui {
       // A control the user is turning right now wins until the plugin has
       // published it back.
       if (lastWriteMs[p] > 0.0 && nowMs() - lastWriteMs[p] < 400.0) continue;
+      // A click made since the last frame is still pending in the dirty flag:
+      // writing it to the host happens later in draw().  Copying the hub's
+      // stale value over it here would swallow the click (the bus pill was
+      // the visible case).
+      if (shared.isDirty(p)) continue;
       const double v = hub.value(peerEntry, static_cast<int>(p));
       if (std::fabs(v - shared.get(p)) > 1e-9) shared.set(p, v);
     }
