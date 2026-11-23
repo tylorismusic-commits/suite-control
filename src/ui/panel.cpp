@@ -861,7 +861,11 @@ const Panel::Widget* Panel::hitTest(double x, double y) const {
          w.kind == Kind::InsertKnob || w.kind == Kind::OscKnob)
             ? ((x - w.x) * (x - w.x) + (y - w.y) * (y - w.y) <=
                w.r * w.r * 1.6)
-            : (x >= w.x && x <= w.x + w.w && y >= w.y && y <= w.y + w.h);
+            : (w.kind == Kind::OscFader)
+                  ? (x >= w.x - 26.0 && x <= w.x + 26.0 && y >= w.y &&
+                     y <= w.y + w.h)
+                  : (x >= w.x && x <= w.x + w.w && y >= w.y &&
+                     y <= w.y + w.h);
     if (hit) return &w;
   }
   return nullptr;
@@ -1641,7 +1645,11 @@ bool Panel::pointerDown(Shared& shared, PanelState& state, double x, double y,
          w.kind == Kind::InsertKnob || w.kind == Kind::OscKnob)
             ? ((x - w.x) * (x - w.x) + (y - w.y) * (y - w.y) <=
                w.r * w.r * 1.6)
-            : (x >= w.x && x <= w.x + w.w && y >= w.y && y <= w.y + w.h);
+            : (w.kind == Kind::OscFader)
+                  ? (x >= w.x - 26.0 && x <= w.x + 26.0 && y >= w.y &&
+                     y <= w.y + w.h)
+                  : (x >= w.x && x <= w.x + w.w && y >= w.y &&
+                     y <= w.y + w.h);
     if (!hit) continue;
     if (pickerOpen_ && w.kind != Kind::PickerItem &&
         w.kind != Kind::PickerCancel) {

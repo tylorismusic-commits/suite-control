@@ -274,6 +274,22 @@ int main() {
     po.tick(st, pst);
     po.pointerDown(st, pst, 905.0, 92.0, false);  // OSC view pill
     po.pointerUp();
+    int faderIndex = -1, faderControl = -1;
+    double faderValue = -1.0;
+    pst.hostControl = [&](int index, int control, double value) {
+      faderIndex = index;
+      faderControl = control;
+      faderValue = value;
+    };
+    po.pointerDown(st, pst, 106.0, 300.0, false);  // track 1 fader
+    po.pointerUp();
+    check(faderIndex == 0 && faderControl == suite::kHostVolume &&
+              faderValue > 0.40 && faderValue < 0.50,
+          "OSC fader is clickable and sets the volume");
+    po.pointerDown(st, pst, 106.0, 300.0, false);
+    po.pointerMove(st, pst, 106.0, 250.0, false);
+    po.pointerUp();
+    check(faderValue > 0.60, "dragging the OSC fader raises the volume");
     po.draw(cairo_create(surface), st, pst);
     check(true, "OSC view draws host strips");
   }
