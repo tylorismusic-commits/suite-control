@@ -75,7 +75,8 @@ public:
 private:
   enum class Kind {
     Knob, Remote, RemotePill, RemoteFader, Pill, Tab, Capture, Strip, Rename,
-    Page, View, Scroll, Mute, Solo, RemoteButton
+    Page, View, Scroll, Mute, Solo, RemoteButton,
+    InsertCell, InsertTab, InsertKnob, InsertPill, PickerItem, PickerCancel
   };
 
 
@@ -103,6 +104,17 @@ private:
   int maxScroll() const;
   void stripLabel(int i, const Shared& shared, char* buf, size_t n) const;
   int nameKey(int i) const;
+  // 1-based position of a strip within its bus (the channel number).
+  int channelOf(int i) const;
+  // Hub entry of the insert assigned to (strip i, slot 1..4), or -1.
+  int linkedInsert(int i, int slot) const;
+  void openPicker(int strip, int slot);
+  void layoutPicker();
+  void layoutInsertPage();
+  void drawInsertPage(cairo_t* cr, const Shared& shared);
+  void drawPicker(cairo_t* cr);
+  void writeInsert(int entry, uint32_t param, double normalised);
+  double insertNormalised(int entry, uint32_t param) const;
   void applyMuteSolo(Shared& shared);
   const Widget* hitTest(double x, double y) const;
   void resetWidget(Shared& shared, const Widget& w);
@@ -120,6 +132,7 @@ private:
   int dragPlus_ = -1;
   double dragY_ = 0.0;
   double dragStart_ = 0.0;
+  double dragValue_ = 0.0;  // shown while dragging, before the peer publishes
 
   void drawBusPage(cairo_t* cr, const Shared& shared, const PanelState& state);
   void drawDetailPage(cairo_t* cr, const Shared& shared, const PanelState& state);
@@ -133,6 +146,20 @@ private:
   int view_ = 0;       // 0 mix, 1 input, 2 eq, 3 dynamics, 4 output
   int scroll_ = 0;     // first visible strip
   int detail_ = -1;    // hub index for the channel page
+  int insertSlot_ = 0; // 0 = CHANNEL tab, 1..4 = insert tab
+  bool pickerOpen_ = false;
+  int pickerBus_ = 0;
+  int pickerChannel_ = 0;
+  int pickerSlot_ = 0;
+  std::vector<int> pickerEntries_;
+  struct InsertHeader {
+    std::string text;
+    double x = 0.0;
+    double y = 0.0;
+  };
+  std::vector<InsertHeader> insertHeaders_;
+  double pickerX_ = 360.0, pickerY_ = 190.0;
+  double pickerW_ = 560.0, pickerH_ = 300.0;
   bool editing_ = false;
   int editKind_ = 0;   // 0 name, 1 local param, 2 remote param
   int editKey_ = -1;

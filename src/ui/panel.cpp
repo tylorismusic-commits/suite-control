@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <unistd.h>
 #include <cstdio>
 #include <cstring>
 
@@ -474,6 +475,210 @@ int Panel::visibleCount() const {
 
 int Panel::maxScroll() const { return std::max(0, visibleCount() - kVisible); }
 
+int Panel::channelOf(int i) const {
+  if (i < 0 || i >= hub_.size()) return 0;
+  const uint32_t bus = hub_.bus(i);
+  int ordinal = 0;
+  for (int k = 0; k <= i; ++k) {
+    if (hub_.bus(k) == bus) ++ordinal;
+  }
+  return ordinal;
+}
+
+int Panel::linkedInsert(int i, int slot) const {
+  if (i < 0 || i >= hub_.size() || slot < 1) return -1;
+  const uint32_t bus = hub_.bus(i);
+  const int channel = channelOf(i);
+  for (int k = 0; k < hub_.size(); ++k) {
+    if (hub_.kind(k) != peer::kKindInsert) continue;
+    const peer::LinkInfo link = hub_.link(k);
+    if (link.bus == bus && link.channel == channel && link.slot == slot) {
+      return k;
+    }
+  }
+  return -1;
+}
+
+namespace {
+std::string shortInsertName(const char* name) {
+  std::string out;
+  for (int i = 0; name && name[i] && out.size() < 4; ++i) {
+    const unsigned char c = static_cast<unsigned char>(name[i]);
+    if (c >= 'a' && c <= 'z') {
+      out.push_back(static_cast<char>(c - 'a' + 'A'));
+    } else if ((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) {
+      out.push_back(static_cast<char>(c));
+    }
+  }
+  return out;
+}
+
+void insertValueText(const suite::peer::ParamMeta& m, double v, char* out,
+                     size_t size) {
+  if (m.labelCount > 0) {
+    int index = static_cast<int>(v + 0.5);
+    index = std::clamp(index, 0, static_cast<int>(m.labelCount) - 1);
+    std::snprintf(out, size, "%s", m.label[index]);
+    return;
+  }
+  if (m.flags & suite::peer::kMetaToggle) {
+    std::snprintf(out, size, "%s", v > 0.5 ? "ON" : "OFF");
+    return;
+  }
+  const char* unit = m.unit[0] ? m.unit : "";
+  if (m.flags & suite::peer::kMetaStepped) {
+    std::snprintf(out, size, "%.0f%s", v, unit);
+  } else {
+    std::snprintf(out, size, "%.1f%s", v, unit);
+  }
+}
+} // namespace
+
+double Panel::insertNormalised(int entry, uint32_t param) const {
+  const peer::ParamMeta& m = hub_.meta(entry, static_cast<int>(param));
+  const double v = hub_.value(entry, static_cast<int>(param));
+  if ((m.flags & peer::kMetaLog) && m.min > 0.0 && m.max > m.min) {
+    return clamp01(std::log(v / m.min) / std::log(m.max / m.min));
+  }
+  if (m.max <= m.min) return 0.0;
+  return clamp01((v - m.min) / (m.max - m.min));
+}
+
+void Panel::writeInsert(int entry, uint32_t param, double normalised) {
+  const peer::ParamMeta& m = hub_.meta(entry, static_cast<int>(param));
+  double v = m.min + clamp01(normalised) * (m.max - m.min);
+  if ((m.flags & peer::kMetaLog) && m.min > 0.0 && m.max > m.min) {
+    v = m.min * std::pow(m.max / m.min, clamp01(normalised));
+  }
+  hub_.write(entry, static_cast<int>(param), v);
+}
+
+void Panel::layoutInsertPage() {
+  const int entry = linkedInsert(detail_, insertSlot_);
+  if (entry < 0) return;
+  const uint32_t count = hub_.paramCount(entry);
+
+  // Group the parameters by their module, keeping the order in which each
+  // group first appears.  The table order is not grouped (Output reappears
+  // after Limiter), and an unsorted page wastes rows and collides.
+  std::vector<uint32_t> order;
+  std::vector<std::string> groups;
+  for (uint32_t p = 0; p < count; ++p) {
+    const peer::ParamMeta& m = hub_.meta(entry, static_cast<int>(p));
+    if (m.flags & peer::kMetaHidden) continue;
+    const std::string group = m.group[0] ? m.group : "Parameters";
+    if (std::find(groups.begin(), groups.end(), group) == groups.end()) {
+      groups.push_back(group);
+    }
+    order.push_back(p);
+  }
+  auto groupIndex = [&](const peer::ParamMeta& m) {
+    const std::string group = m.group[0] ? m.group : "Parameters";
+    return static_cast<int>(
+        std::find(groups.begin(), groups.end(), group) - groups.begin());
+  };
+  std::stable_sort(order.begin(), order.end(),
+                   [&](uint32_t a, uint32_t b) {
+                     return groupIndex(hub_.meta(entry, static_cast<int>(a))) <
+                            groupIndex(hub_.meta(entry, static_cast<int>(b)));
+                   });
+
+  constexpr int kCols = 7;
+  const double x0 = 56.0, y0 = 150.0, rowH = 74.0;
+  const double headerW = 118.0, cellW = 142.0;
+  int row = -1;
+  int col = 0;
+  int palette = -1;
+  std::string current;
+  for (uint32_t p : order) {
+    const peer::ParamMeta& m = hub_.meta(entry, static_cast<int>(p));
+    const std::string group = m.group[0] ? m.group : "Parameters";
+    if (group != current) {
+      current = group;
+      ++row;
+      col = 0;
+      ++palette;
+      insertHeaders_.push_back({group, x0, y0 + row * rowH + 34.0});
+    } else if (col == kCols) {
+      ++row;
+      col = 0;
+    }
+    const double x = x0 + headerW + col * cellW;
+    const double y = y0 + row * rowH;
+    if (m.labelCount > 0 || (m.flags & peer::kMetaToggle)) {
+      Widget w;
+      w.kind = Kind::InsertPill;
+      w.index = entry;
+      w.plus = static_cast<int>(p);
+      w.x = x;
+      w.y = y + 20.0;
+      w.w = 110.0;
+      w.h = 22.0;
+      w.label = m.name;
+      w.palette = palette % 5;
+      widgets_.push_back(w);
+    } else {
+      Widget w;
+      w.kind = Kind::InsertKnob;
+      w.index = entry;
+      w.plus = static_cast<int>(p);
+      w.x = x + 52.0;
+      w.y = y + 32.0;
+      w.r = 18.0;
+      w.label = m.name;
+      w.palette = palette % 5;
+      widgets_.push_back(w);
+    }
+    ++col;
+  }
+}
+
+void Panel::openPicker(int strip, int slot) {
+  if (strip < 0 || strip >= hub_.size() || slot < 1 || slot > 4) return;
+  pickerOpen_ = true;
+  pickerBus_ = hub_.bus(strip);
+  pickerChannel_ = channelOf(strip);
+  pickerSlot_ = slot;
+}
+
+void Panel::layoutPicker() {
+  pickerEntries_.clear();
+  const int self = static_cast<int>(getpid());
+  // Prefer inserts running in this host process; sandboxed/other hosts' ones
+  // still appear, but after the ones the user is most likely to mean.
+  for (int pass = 0; pass < 2; ++pass) {
+    for (int k = 0; k < hub_.size(); ++k) {
+      if (hub_.kind(k) != peer::kKindInsert) continue;
+      if (!hub_.metaReady(k)) continue;
+      if (hub_.link(k).bus != 0) continue;  // already assigned somewhere
+      const bool local = hub_.ownerPid(k) == self;
+      if ((pass == 0) != local) continue;
+      pickerEntries_.push_back(k);
+    }
+  }
+  const int count = static_cast<int>(pickerEntries_.size());
+  pickerH_ = 96 + std::max(1, count) * 26 + 40;
+  for (int i = 0; i < count; ++i) {
+    Widget row;
+    row.kind = Kind::PickerItem;
+    row.index = i;
+    row.x = pickerX_ + 20;
+    row.y = pickerY_ + 74 + i * 26;
+    row.w = pickerW_ - 40;
+    row.h = 24;
+    row.label = hub_.name(pickerEntries_[i]);
+    widgets_.push_back(row);
+  }
+  Widget cancel;
+  cancel.kind = Kind::PickerCancel;
+  cancel.x = pickerX_ + pickerW_ - 112;
+  cancel.y = pickerY_ + pickerH_ - 38;
+  cancel.w = 92;
+  cancel.h = 24;
+  cancel.label = "CANCEL";
+  widgets_.push_back(cancel);
+}
+
 int Panel::nameKey(int i) const {
   if (i < 0 || i >= hub_.size()) return 0;
   const uint32_t bus = hub_.bus(i);
@@ -551,6 +756,7 @@ void Panel::tick(const Shared& shared, PanelState& state) {
 void Panel::wheel(Shared& shared, PanelState& state, double x, double y,
                   double d, bool fine) {
   layout(shared, state);
+  if (pickerOpen_) return;
   const Widget* w = hitTest(x, y);
   if (w) {
     const double step = (fine ? 0.002 : 0.02) * (d > 0 ? 1.0 : -1.0);
@@ -563,6 +769,26 @@ void Panel::wheel(Shared& shared, PanelState& state, double x, double y,
                  clamp01(hub_.value(w->index, w->plus) + step));
       return;
     }
+    if (w->kind == Kind::InsertKnob) {
+      writeInsert(w->index, static_cast<uint32_t>(w->plus),
+                  clamp01(insertNormalised(w->index,
+                                           static_cast<uint32_t>(w->plus)) +
+                          step));
+      return;
+    }
+    if (w->kind == Kind::InsertPill) {
+      const peer::ParamMeta& m = hub_.meta(w->index, w->plus);
+      const double v = hub_.value(w->index, w->plus);
+      if (m.labelCount > 0) {
+        int next = static_cast<int>(v + 0.5) + (d > 0 ? 1 : -1);
+        if (next < 0) next = static_cast<int>(m.labelCount) - 1;
+        if (next >= static_cast<int>(m.labelCount)) next = 0;
+        hub_.write(w->index, w->plus, static_cast<double>(next));
+      } else {
+        hub_.write(w->index, w->plus, d > 0 ? 1.0 : 0.0);
+      }
+      return;
+    }
   }
   if (page_ != 0) return;
   if (x > kBusX - 10 || y < kStripTop - 20) return;
@@ -572,7 +798,8 @@ void Panel::wheel(Shared& shared, PanelState& state, double x, double y,
 const Panel::Widget* Panel::hitTest(double x, double y) const {
   for (const Widget& w : widgets_) {
     const bool hit =
-        (w.kind == Kind::Knob || w.kind == Kind::Remote)
+        (w.kind == Kind::Knob || w.kind == Kind::Remote ||
+         w.kind == Kind::InsertKnob)
             ? ((x - w.x) * (x - w.x) + (y - w.y) * (y - w.y) <=
                w.r * w.r * 1.6)
             : (x >= w.x && x <= w.x + w.w && y >= w.y && y <= w.y + w.h);
@@ -793,19 +1020,30 @@ void Panel::layoutBus(const Shared& shared, const PanelState& state) {
         rpill(i, 27, x + 10, kStripTop + 294, 46, 22, "GATE");
         rpill(i, 25, x + 60, kStripTop + 294, 50, 22, "F.ATK");
         break;
-      default: {  // output fader
+      default: {  // output fader with the four insert slots above it
+        for (int slot = 1; slot <= 4; ++slot) {
+          Widget c;
+          c.kind = Kind::InsertCell;
+          c.index = i;
+          c.value = slot;
+          c.x = x + 6 + ((slot - 1) % 2) * 56;
+          c.y = kStripTop + 36 + ((slot - 1) / 2) * 22;
+          c.w = 52;
+          c.h = 18;
+          widgets_.push_back(c);
+        }
         Widget f;
         f.kind = Kind::RemoteFader;
         f.index = i;
         f.plus = ch::kOutput;
-        f.x = x + 40;
-        f.y = kStripTop + 70;
+        f.x = x + 34;
+        f.y = kStripTop + 96;
         f.w = 60.0;
-        f.h = 400.0;
+        f.h = 366.0;
         f.label = "OUTPUT";
         widgets_.push_back(f);
-        rpill(i, 37, x + 14, kStripTop + 500, 60, 22, "LIMIT");
-        rpill(i, 35, x + 78, kStripTop + 500, 32, 22, "OS");
+        rpill(i, 37, x + 14, kStripTop + 490, 60, 22, "LIMIT");
+        rpill(i, 35, x + 78, kStripTop + 490, 32, 22, "OS");
         break;
       }
     }
@@ -911,19 +1149,42 @@ void Panel::layoutDetail() {
     back.label = "< MIX BUS";
     widgets_.push_back(back);
   }
-  int shown = 0;
-  for (int i = 0; i < hub_.size() && shown < 8; ++i) {
-    if (bus_ != 0 && static_cast<int>(hub_.bus(i)) != bus_) continue;
+  // Tabs: the channel page plus one per insert assigned to this channel.
+  {
     Widget tab;
-    tab.kind = Kind::Page;
-    tab.value = 1.0;
-    tab.index = i;
-    tab.x = 156.0 + shown * 46.0;
+    tab.kind = Kind::InsertTab;
+    tab.value = 0;
+    tab.index = detail_;
+    tab.x = 156.0;
     tab.y = 80;
-    tab.w = 40;
+    tab.w = 70;
     tab.h = 26;
+    tab.label = "CHANNEL";
     widgets_.push_back(tab);
-    ++shown;
+  }
+  double tabX = 234.0;
+  for (int slot = 1; slot <= 4; ++slot) {
+    const int entry = linkedInsert(detail_, slot);
+    if (entry < 0) continue;
+    Widget tab;
+    tab.kind = Kind::InsertTab;
+    tab.value = slot;
+    tab.index = entry;
+    tab.x = tabX;
+    tab.y = 80;
+    tab.w = 66;
+    tab.h = 26;
+    tab.label = hub_.name(entry);
+    widgets_.push_back(tab);
+    tabX += 72.0;
+  }
+  if (insertSlot_ > 0) {
+    if (linkedInsert(detail_, insertSlot_) < 0) {
+      insertSlot_ = 0;
+    } else {
+      layoutInsertPage();
+      return;
+    }
   }
 
   // INPUT / COLOUR
@@ -992,11 +1253,13 @@ void Panel::layoutDetail() {
 
 void Panel::layout(const Shared& shared, const PanelState& state) {
   widgets_.clear();
+  insertHeaders_.clear();
   if (page_ == 0) {
     layoutBus(shared, state);
   } else {
     layoutDetail();
   }
+  if (pickerOpen_) layoutPicker();
 }
 
 bool Panel::pointerDown(Shared& shared, PanelState& state, double x, double y,
@@ -1004,13 +1267,49 @@ bool Panel::pointerDown(Shared& shared, PanelState& state, double x, double y,
   if (editing_) closeEdit();
   layout(shared, state);
   state.fine = fine;
+  if (pickerOpen_) {
+    const bool inside = x >= pickerX_ && x <= pickerX_ + pickerW_ &&
+                        y >= pickerY_ && y <= pickerY_ + pickerH_;
+    if (!inside) {
+      pickerOpen_ = false;
+      return true;
+    }
+  }
   for (const Widget& w : widgets_) {
     const bool hit =
-        (w.kind == Kind::Knob || w.kind == Kind::Remote)
+        (w.kind == Kind::Knob || w.kind == Kind::Remote ||
+         w.kind == Kind::InsertKnob)
             ? ((x - w.x) * (x - w.x) + (y - w.y) * (y - w.y) <=
                w.r * w.r * 1.6)
             : (x >= w.x && x <= w.x + w.w && y >= w.y && y <= w.y + w.h);
     if (!hit) continue;
+    if (pickerOpen_ && w.kind != Kind::PickerItem &&
+        w.kind != Kind::PickerCancel) {
+      continue;  // the picker is modal over the strips
+    }
+    if (w.kind == Kind::PickerItem) {
+      const int entry = pickerEntries_[static_cast<size_t>(w.index)];
+      hub_.setLink(entry, pickerBus_, pickerChannel_, pickerSlot_);
+      pickerOpen_ = false;
+      return true;
+    }
+    if (w.kind == Kind::PickerCancel) {
+      pickerOpen_ = false;
+      return true;
+    }
+    if (w.kind == Kind::InsertCell) {
+      const int entry = linkedInsert(w.index, static_cast<int>(w.value));
+      if (entry < 0) {
+        openPicker(w.index, static_cast<int>(w.value));
+        return true;
+      }
+      const int bypass = hub_.bypassParam(entry);
+      if (bypass >= 0) {
+        const bool on = hub_.value(entry, bypass) > 0.5;
+        hub_.write(entry, bypass, on ? 0.0 : 1.0);
+      }
+      return true;
+    }
     // Double-click resets the control to its default.
     uint64_t id = 0;
     if (w.kind == Kind::Knob) {
@@ -1030,6 +1329,33 @@ bool Panel::pointerDown(Shared& shared, PanelState& state, double x, double y,
     lastClickId_ = id;
     lastClickMs_ = now;
     switch (w.kind) {
+      case Kind::InsertCell:
+      case Kind::PickerItem:
+      case Kind::PickerCancel:
+        return true;  // handled above
+      case Kind::InsertTab:
+        insertSlot_ = static_cast<int>(w.value);
+        return true;
+      case Kind::InsertKnob:
+        dragging_ = true;
+        dragKind_ = 3;
+        dragIndex_ = w.index;
+        dragParam_ = w.plus;
+        dragStart_ = insertNormalised(w.index, static_cast<uint32_t>(w.plus));
+        dragY_ = y;
+        return true;
+      case Kind::InsertPill: {
+        const peer::ParamMeta& m = hub_.meta(w.index, w.plus);
+        const double v = hub_.value(w.index, w.plus);
+        if (m.labelCount > 0) {
+          int next = static_cast<int>(v + 0.5) + 1;
+          if (next >= static_cast<int>(m.labelCount)) next = 0;
+          hub_.write(w.index, w.plus, static_cast<double>(next));
+        } else {
+          hub_.write(w.index, w.plus, v > 0.5 ? 0.0 : 1.0);
+        }
+        return true;
+      }
       case Kind::View:
         view_ = static_cast<int>(w.value);
         return true;
@@ -1148,12 +1474,20 @@ bool Panel::pointerMove(Shared& shared, PanelState& state, double x, double y,
   if (dragKind_ == 2) {
     // Fader: full travel over ~380 px.
     const double delta = (dragY_ - y) / 380.0;
-    hub_.write(dragIndex_, dragPlus_, clamp01(dragStart_ + delta));
+    dragValue_ = clamp01(dragStart_ + delta);
+    hub_.write(dragIndex_, dragPlus_, dragValue_);
+    return true;
+  }
+  if (dragKind_ == 3) {
+    const double delta = (dragY_ - y) / 190.0;
+    dragValue_ = clamp01(dragStart_ + delta);
+    writeInsert(dragIndex_, static_cast<uint32_t>(dragParam_), dragValue_);
     return true;
   }
   const double span = (fine || state.fine) ? 640.0 : 190.0;
   const double delta = (dragY_ - y) / span;
   const double v = clamp01(dragStart_ + delta);
+  dragValue_ = v;
   if (dragKind_ == 0) {
     shared.set(static_cast<uint32_t>(dragParam_), v);
   } else if (dragKind_ == 1) {
@@ -1196,6 +1530,7 @@ void Panel::closeEdit() {
 bool Panel::beginTextEntry(Shared& shared, PanelState& state, double x,
                            double y) {
   layout(shared, state);
+  if (pickerOpen_) return false;
   const Widget* w = hitTest(x, y);
   // A second right-click on the same control, or a right-click on empty
   // space, closes the editor without applying.  A different control cancels
@@ -1667,7 +2002,9 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
         break;
       }
       case Kind::Remote: {
-        const double v = hub_.value(w.index, w.plus);
+        const bool live = dragging_ && dragKind_ == 1 &&
+                          w.index == dragIndex_ && w.plus == dragPlus_;
+        const double v = live ? dragValue_ : hub_.value(w.index, w.plus);
         char buf[40];
         const char* ro = remoteText(w.plus, v, buf, sizeof(buf));
         knob(cr, w, v, ro, w.palette);
@@ -1688,9 +2025,12 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
         pill(cr, w, w.label, on);
         break;
       }
-      case Kind::RemoteFader:
-        fader(cr, w, hub_.value(w.index, w.plus));
+      case Kind::RemoteFader: {
+        const bool live = dragging_ && dragKind_ == 2 &&
+                          w.index == dragIndex_ && w.plus == dragPlus_;
+        fader(cr, w, live ? dragValue_ : hub_.value(w.index, w.plus));
         break;
+      }
       case Kind::Pill: {
         bool on = shared.get(w.param) > 0.5;
         const char* label = w.label;
@@ -1701,10 +2041,57 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
         pill(cr, w, label, on);
         break;
       }
+      case Kind::InsertCell: {
+        const int entry = linkedInsert(w.index, static_cast<int>(w.value));
+        roundRect(cr, w.x, w.y, w.w, w.h, 3);
+        if (entry >= 0) {
+          const int bypass = hub_.bypassParam(entry);
+          const bool on = bypass < 0 || hub_.value(entry, bypass) > 0.5;
+          setRgb(cr, on ? Rgb{0.14, 0.23, 0.21} : Rgb{0.14, 0.15, 0.17});
+          cairo_fill(cr);
+          cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.10);
+          roundRect(cr, w.x + 0.5, w.y + 0.5, w.w - 1, w.h - 1, 3);
+          cairo_stroke(cr);
+          cairo_arc(cr, w.x + 7.0, w.y + w.h * 0.5, 2.6, 0.0, 6.2831853);
+          setRgb(cr, on ? kAccent : kLegendDim);
+          cairo_fill(cr);
+          char shortName[8] = {};
+          const char* source = hub_.name(entry);
+          int used = 0;
+          for (int k = 0; source[k] && used < 4; ++k) {
+            const unsigned char c = static_cast<unsigned char>(source[k]);
+            if (c >= 'a' && c <= 'z') {
+              shortName[used++] = static_cast<char>(c - 'a' + 'A');
+            } else if ((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) {
+              shortName[used++] = static_cast<char>(c);
+            }
+          }
+          text(cr, shortName, w.x + 14.0, w.y + w.h * 0.5 + 2.5, 6.5, 0,
+               on ? kLegend.r : kLegendDim.r, on ? kLegend.g : kLegendDim.g,
+               on ? kLegend.b : kLegendDim.b);
+        } else {
+          setRgb(cr, Rgb{0.09, 0.10, 0.12});
+          cairo_fill(cr);
+          cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.07);
+          roundRect(cr, w.x + 0.5, w.y + 0.5, w.w - 1, w.h - 1, 3);
+          cairo_stroke(cr);
+          text(cr, "+", w.x + w.w * 0.5, w.y + 13.0, 10.0, 1, kLegendDim.r,
+               kLegendDim.g, kLegendDim.b);
+        }
+        break;
+      }
+      case Kind::InsertTab:
+      case Kind::InsertKnob:
+      case Kind::InsertPill:
+      case Kind::PickerItem:
+      case Kind::PickerCancel:
+        break;  // drawn by their own pass
       case Kind::Page:
         break;
     }
   }
+
+  if (pickerOpen_) drawPicker(cr);
 
   // Meters under the strip controls.
   shown = 0;
@@ -1716,8 +2103,10 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
     float inL = 0, inR = 0, outL = 0, outR = 0, gr = 0;
     hub_.meter(i, &inL, &inR, &outL, &outR, &gr);
     if (view_ == 4) {
-      meter(cr, x + 92, kStripTop + 70, 16, 400, outL, outR);
-      text(cr, "OUT", x + 100, kStripTop + 484, 7.0, 1, kLegendDim.r,
+      text(cr, "INSERTS", x + 6, kStripTop + 30, 6.5, 0, kLegendDim.r,
+           kLegendDim.g, kLegendDim.b);
+      meter(cr, x + 96, kStripTop + 96, 16, 366, outL, outR);
+      text(cr, "OUT", x + 104, kStripTop + 478, 7.0, 1, kLegendDim.r,
            kLegendDim.g, kLegendDim.b);
     } else {
       meter(cr, x + 8, kStripTop + 336, 44, 160, inL, inR);
@@ -1744,6 +2133,77 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
        kLegendDim.g, kLegendDim.b);
 }
 
+void Panel::drawPicker(cairo_t* cr) {
+  cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.55);
+  cairo_paint(cr);
+  plate(cr, pickerX_, pickerY_, pickerW_, pickerH_, nullptr);
+  text(cr, "ADD INSERT", pickerX_ + 20, pickerY_ + 30, 14, 0, kLegend.r,
+       kLegend.g, kLegend.b);
+  char sub[64];
+  std::snprintf(sub, sizeof(sub), "BUS %s  CH %d  SLOT %d",
+                kBusLabels[std::clamp(pickerBus_, 0, 8)], pickerChannel_,
+                pickerSlot_);
+  text(cr, sub, pickerX_ + 20, pickerY_ + 52, 9, 0, kLegendDim.r,
+       kLegendDim.g, kLegendDim.b);
+
+  if (pickerEntries_.empty()) {
+    text(cr, "No unassigned Suite inserts are running in this process.",
+         pickerX_ + 20, pickerY_ + 94, 10, 0, kLegendDim.r, kLegendDim.g,
+         kLegendDim.b);
+    text(cr, "Insert Comp Suite, Space Suite or Common Sense EQ on a track.",
+         pickerX_ + 20, pickerY_ + 112, 9, 0, kLegendDim.r, kLegendDim.g,
+         kLegendDim.b);
+  }
+  for (const Widget& w : widgets_) {
+    if (w.kind != Kind::PickerItem) continue;
+    roundRect(cr, w.x, w.y, w.w, w.h, 4);
+    setRgb(cr, Rgb{0.13, 0.15, 0.18});
+    cairo_fill(cr);
+    text(cr, w.label, w.x + 12, w.y + 16, 10, 0, kLegend.r, kLegend.g,
+         kLegend.b);
+    text(cr, "+", w.x + w.w - 18, w.y + 17, 12, 1, kAccent.r, kAccent.g,
+         kAccent.b);
+  }
+  for (const Widget& w : widgets_) {
+    if (w.kind != Kind::PickerCancel) continue;
+    pill(cr, w, "CANCEL", false);
+  }
+}
+
+void Panel::drawInsertPage(cairo_t* cr, const Shared&) {
+  for (const InsertHeader& header : insertHeaders_) {
+    text(cr, header.text.c_str(), header.x, header.y, 9.0, 0, kLegendDim.r,
+         kLegendDim.g, kLegendDim.b);
+    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.06);
+    cairo_set_line_width(cr, 1.0);
+    cairo_move_to(cr, header.x, header.y + 7.0);
+    cairo_line_to(cr, header.x + 88.0, header.y + 7.0);
+    cairo_stroke(cr);
+  }
+  for (const Widget& w : widgets_) {
+    if (w.kind == Kind::InsertKnob) {
+      const peer::ParamMeta& m = hub_.meta(w.index, w.plus);
+      const bool live = dragging_ && dragKind_ == 3 &&
+                        w.index == dragIndex_ && w.plus == dragParam_;
+      const double normalised =
+          live ? dragValue_
+               : insertNormalised(w.index, static_cast<uint32_t>(w.plus));
+      char readout[32];
+      const double natural =
+          m.min + normalised * (m.max - m.min);
+      insertValueText(m, natural, readout, sizeof(readout));
+      knob(cr, w, normalised, readout, w.palette);
+    } else if (w.kind == Kind::InsertPill) {
+      const peer::ParamMeta& m = hub_.meta(w.index, w.plus);
+      char readout[32];
+      insertValueText(m, hub_.value(w.index, w.plus), readout, sizeof(readout));
+      text(cr, m.name, w.x + w.w * 0.5, w.y - 6.0, 8.0, 1, kLegend.r,
+           kLegend.g, kLegend.b);
+      pill(cr, w, readout, true);
+    }
+  }
+}
+
 void Panel::drawDetailPage(cairo_t* cr, const Shared& shared,
                            const PanelState& state) {
   if (detail_ < 0 || detail_ >= hub_.size()) {
@@ -1753,6 +2213,25 @@ void Panel::drawDetailPage(cairo_t* cr, const Shared& shared,
   char title[96];
   stripLabel(detail_, shared, title, sizeof(title));
   text(cr, title, 700, 99, 15, 1, kLegend.r, kLegend.g, kLegend.b);
+
+  for (const Widget& w : widgets_) {
+    if (w.kind != Kind::Page) continue;
+    if (w.value == 0.0) pill(cr, w, "< MIX BUS", false);
+  }
+  for (const Widget& w : widgets_) {
+    if (w.kind != Kind::InsertTab) continue;
+    const bool on = insertSlot_ == static_cast<int>(w.value);
+    if (w.value == 0) {
+      pill(cr, w, "CHANNEL", on);
+    } else {
+      const std::string name = shortInsertName(w.label);
+      pill(cr, w, name.c_str(), on);
+    }
+  }
+  if (insertSlot_ > 0) {
+    drawInsertPage(cr, shared);
+    return;
+  }
 
   // Same section grouping as Suite Channel, widened for the console.
   plate(cr, 20, 110, 280, 142, "INPUT / COLOUR");
@@ -1772,16 +2251,15 @@ void Panel::drawDetailPage(cairo_t* cr, const Shared& shared,
 
   for (const Widget& w : widgets_) {
     switch (w.kind) {
-      case Kind::Page: {
-        if (w.value == 0.0) {
-          pill(cr, w, "< MIX BUS", false);
-        } else {
-          char label[16];
-          std::snprintf(label, sizeof(label), "%d", w.index + 1);
-          pill(cr, w, label, w.index == detail_);
-        }
-        break;
-      }
+      case Kind::Page:
+      case Kind::InsertTab:
+      case Kind::InsertCell:
+      case Kind::InsertKnob:
+      case Kind::InsertPill:
+      case Kind::PickerItem:
+      case Kind::PickerCancel:
+        break;  // drawn by the tab pass or the insert page
+
       case Kind::RemoteButton: {
         const bool on = std::fabs(hub_.value(w.index, w.plus) - w.value) < 0.5;
         pill(cr, w, w.label, on);
@@ -1797,11 +2275,16 @@ void Panel::drawDetailPage(cairo_t* cr, const Shared& shared,
         }
         break;
       }
-      case Kind::RemoteFader:
-        fader(cr, w, hub_.value(w.index, w.plus));
+      case Kind::RemoteFader: {
+        const bool live = dragging_ && dragKind_ == 2 &&
+                          w.index == dragIndex_ && w.plus == dragPlus_;
+        fader(cr, w, live ? dragValue_ : hub_.value(w.index, w.plus));
         break;
+      }
       case Kind::Remote: {
-        const double v = hub_.value(w.index, w.plus);
+        const bool live = dragging_ && dragKind_ == 1 &&
+                          w.index == dragIndex_ && w.plus == dragPlus_;
+        const double v = live ? dragValue_ : hub_.value(w.index, w.plus);
         char buf[40];
         const char* ro = remoteText(w.plus, v, buf, sizeof(buf));
         knob(cr, w, v, ro, w.palette);

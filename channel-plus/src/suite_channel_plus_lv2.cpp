@@ -140,9 +140,11 @@ void connectPort(LV2_Handle handle, uint32_t port, void* data) {
 void activate(LV2_Handle handle) {
   auto* p = static_cast<Plugin*>(handle);
   p->engine.reset();
-  const int slot = p->peer.registerSlot(
-      static_cast<uint32_t>(p->shared.get(suite::P_BUS) + 0.5),
-      "Suite Channel Plus", suite::P_COUNT);
+  const int slot = p->peerRegistered
+                       ? -1
+                       : p->peer.registerSlot(
+                             static_cast<uint32_t>(p->shared.get(suite::P_BUS) + 0.5),
+                             "Suite Channel Plus", suite::P_COUNT);
   if (slot >= 0) {
     p->peerRegistered = true;
     p->slotIndex = slot;

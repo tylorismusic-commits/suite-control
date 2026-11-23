@@ -32,7 +32,7 @@ Acceptance met: names/mute/fader persist in REAPER 7.84 and Ardour 9.8, with
 the Ardour UI embedded via suil; the channel's LV2 state restores parameter
 values and ignores the host's stale control ports on load.
 
-## Phase 3 — Inserts, protocol v3, Comp Suite pilot
+## Phase 3 — Inserts, protocol v3, Comp Suite pilot (done)
 
 - Versioned peer protocol: stable instance id, parameter metadata, hidden
   LINK parameter, bypass/power index.
@@ -40,8 +40,10 @@ values and ignores the host's stale control ports on load.
 - Suite Control OUT view: four insert cells, `●` / `○` bypass, `+ ADD` picker,
   `CHANNEL | COMP | SPACE | EQ` tabs rendered from published metadata.
 
-Acceptance: add Comp from Suite Control, operate it from its tab, toggle
-bypass on the strip, four-slot cap, links restored after reload.
+Acceptance met in REAPER 7.84 (CLAP) and Ardour 9.8 (LV2 registration):
+picker assignment, `●`/`○` bypass, metadata-driven Comp page, remote parameter
+edits, links restored from the plug-in's saved state after a reload.  Four
+slots per channel; Rack Suite stays deferred.
 
 ## Phase 4 — Space Suite and Common Sense EQ inserts
 

@@ -175,6 +175,11 @@ add_dependencies(suite_control_host_test suite_control_bundle)
 add_test(NAME suite_control_host
   COMMAND suite_control_host_test "${CLAP_BUNDLE}")
 
+add_executable(suite_peer_v3_test test/peer_v3_test.cpp)
+target_include_directories(suite_peer_v3_test PRIVATE "${CMAKE_SOURCE_DIR}/src")
+target_compile_features(suite_peer_v3_test PRIVATE cxx_std_17)
+add_test(NAME suite_peer_v3 COMMAND suite_peer_v3_test)
+
 # End-to-end peer test against the installed Suite Channel Plus binary.
 set(PLUS_CLAP "$ENV{HOME}/.clap/SuiteChannelPlus.clap")
 add_executable(suite_peer_integration test/integration_test.cpp)

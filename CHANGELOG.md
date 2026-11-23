@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.6.0 — Inserts (Linux pilot)
+
+- Peer protocol v3: stable instance ids, published parameter metadata, slot
+  kind (strip/insert), bypass index and a LINK assignment that each insert
+  plug-in saves in its own host state.
+- Inserts live on the OUT strip: four cells per channel, `●` engaged /
+  `○` bypassed.  Clicking a linked cell toggles its power/bypass; an empty
+  cell opens the one-click picker of unassigned inserts (own host process
+  first).
+- Channel page tabs are `CHANNEL | <inserts>`; insert pages are generated
+  entirely from the published metadata (groups, knobs, toggles, enum pills),
+  with no per-plug-in UI code.  Dragging shows the requested value immediately
+  instead of waiting for the peer publish.
+- Remote values are now split into an owner-published value and a consumer
+  request, so a plug-in's own publish can no longer overwrite a pending edit
+  (this also removed the timer race that made strip controls feel jumpy).
+- Comp Suite is the pilot insert; Space Suite and Common Sense EQ follow.
+
 ## 0.5.0 — Suite bundle
 
 - First release of Suite Control and Suite Channel Plus as one distribution:

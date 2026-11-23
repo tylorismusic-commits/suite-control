@@ -89,8 +89,9 @@ int main() {
     suite::PanelState st4;
     suite::Panel p4;
     p4.tick(s4, st4);
+    // The surface writes requests; the plug-in publishes the value later.
     auto on = [&](int slot, suite::peer::Client& c) {
-      return c.raw()->slot[slot].param[suite::ch::kOutput].value.load() > 0.01;
+      return c.raw()->slot[slot].param[suite::ch::kOutput].request.load() > 0.01;
     };
     // Start both at a normal fader position.
     suite::peer::Client::writeRemote(c1.raw()->slot[a], suite::ch::kOutput, 0.75);
@@ -172,6 +173,60 @@ int main() {
     p3.pointerMove(s3, st3, 1059.0, 150.0, false);
     check(moved != before, "drag changes the value");
     check(s3.get(suite::P_COMP_THRESHOLD) == moved, "drag stops on release");
+  }
+
+  // ---------------------------------------------------------- inserts
+  // An insert plug-in publishes metadata; the OUT view cell opens the picker
+  // and assigns the LINK, then toggles bypass.
+  {
+    // The surface needs a strip on its bus before it lays out insert cells.
+    suite::peer::Client strip;
+    strip.registerSlot(8, "Suite Channel Plus", suite::ch::kCount);
+    suite::peer::Client insert;
+    const int slot = insert.registerSlot(8, "Comp Suite", 2,
+                                         suite::peer::kKindInsert, 1);
+    check(slot >= 0, "fake insert registers");
+    suite::peer::ParamMeta meta[2] = {};
+    std::snprintf(meta[0].symbol, sizeof(meta[0].symbol), "threshold");
+    std::snprintf(meta[0].name, sizeof(meta[0].name), "Threshold");
+    std::snprintf(meta[0].group, sizeof(meta[0].group), "Compressor");
+    meta[0].min = 0.0f;
+    meta[0].max = 1.0f;
+    meta[0].def = 0.5f;
+    std::snprintf(meta[1].symbol, sizeof(meta[1].symbol), "power");
+    std::snprintf(meta[1].name, sizeof(meta[1].name), "Power");
+    std::snprintf(meta[1].group, sizeof(meta[1].group), "Global");
+    meta[1].max = 1.0f;
+    meta[1].flags = suite::peer::kMetaToggle;
+    insert.publishMeta(meta, 2);
+    insert.publish(1, 1.0);  // engaged
+
+    suite::Shared si;
+    si.set(suite::P_BUS, 8.0);
+    suite::PanelState sti;
+    suite::Panel pi;
+    pi.tick(si, sti);
+    pi.pointerDown(si, sti, 890.0, 92.0, false);  // OUT view
+    pi.pointerUp();
+    pi.tick(si, sti);
+
+    pi.pointerDown(si, sti, 48.0, 155.0, false);  // first insert cell
+    pi.pointerUp();
+    pi.pointerDown(si, sti, 400.0, 276.0, false);  // first picker row
+    pi.pointerUp();
+    suite::peer::Slot& is = insert.raw()->slot[slot];
+    check(is.linkBus.load() == 8 && is.linkChannel.load() == 1 &&
+              is.linkSlot.load() == 1,
+          "picker assigns the insert to the channel slot");
+    check(pi.stripCount() >= 0 && is.linkBus.load() == 8,
+          "link lands on the peer slot");
+
+    pi.pointerDown(si, sti, 48.0, 155.0, false);  // toggle bypass
+    pi.pointerUp();
+    check(is.param[1].request.load() < 0.5, "cell click toggles bypass");
+
+    insert.unregisterSlot();
+    strip.unregisterSlot();
   }
 
   cairo_destroy(cr);

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Peer protocol v3: remote edits arrive as requests, separate from the value
+  this plug-in publishes, so a pending edit can never be overwritten by a
+  timer publish.
+- `activate()` no longer registers a second peer slot if a host activates the
+  plug-in twice without deactivating.
+
 - LV2 state keeps the plug-in's parameter values, so a move from Suite Control
   survives save/load even with the channel's window closed.  The first port
   poll after a restore takes the host's stale port values as a baseline

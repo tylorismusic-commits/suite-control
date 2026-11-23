@@ -56,12 +56,18 @@ int main() {
     check(a.takeRemote(2, &v), "publisher sees the remote write");
     check(v == 1.0, "remote value is correct");
 
-    // Our own publish is visible to the consumer side unchanged.  The caller
-    // ignores it when the value already matches its own state.
+    // Our own publish becomes the value consumers read.  It is not a request,
+    // so takeRemote must not hand it back to us.
     a.publish(3, 0.5);
+    check(s.param[3].value.load() == 0.5, "own publish is readable back");
     double echo = 0.0;
-    check(a.takeRemote(3, &echo), "own publish is readable back");
-    check(echo == 0.5, "own publish keeps its value");
+    check(!a.takeRemote(3, &echo), "own publish is not a remote request");
+
+    // A consumer request that arrives before our next publish must survive it.
+    suite::peer::Client::writeRemote(s, 4, 0.9);
+    a.publish(4, 0.5);
+    check(a.takeRemote(4, &echo) && echo == 0.9,
+          "pending request survives a stale publish");
 
     // Capture-style bus reassignment.
     suite::peer::Client::writeRemote(s, 7, 5.0);

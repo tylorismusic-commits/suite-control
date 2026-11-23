@@ -881,7 +881,8 @@ bool pluginActivate(const clap_plugin_t* p, double sampleRate, uint32_t,
   s->engine.prepare(static_cast<float>(sampleRate),
                     static_cast<float>(s->shared.get(P_OVERSAMPLE)));
   s->active.store(true, std::memory_order_relaxed);
-  if (s->peer.registerSlot(static_cast<uint32_t>(s->shared.get(P_BUS) + 0.5),
+  if (!s->peerRegistered &&
+      s->peer.registerSlot(static_cast<uint32_t>(s->shared.get(P_BUS) + 0.5),
                            kPluginName, P_COUNT) >= 0) {
     s->peerRegistered = true;
   }
