@@ -151,6 +151,7 @@ private:
   int insertScroll_ = 0;
   int insertMaxScroll_ = 0;
   bool insertCurve_ = false;
+  bool insertGr_ = false;
   bool pickerOpen_ = false;
   int pickerBus_ = 0;
   int pickerChannel_ = 0;

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.0
+
+- Insert pages show gain reduction when the insert publishes it; Comp Suite's
+  page has a live `GR` bar with the reduction in dB.
+- The CLAP editor can be resized, keeping the 1280:760 aspect (0.5x–2.5x).
+  It still opens at the fit-to-screen size, and the host's size is honoured
+  through `set_size`; the LV2 UI already advertised `ui:resize`.
+- Peer protocol v6 also carries a gain-reduction flag.
+
 ## 0.8.0
 
 - Insert short names are published by the plug-ins (`COMP`, `SPAC`, `CSEQ`)

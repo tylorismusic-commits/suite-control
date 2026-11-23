@@ -601,6 +601,7 @@ void Panel::layoutInsertPage() {
                    });
 
   insertCurve_ = hub_.curveCount(entry) > 0;
+  insertGr_ = hub_.hasGr(entry);
   constexpr int kCols = 7;
   const int visibleRows = insertCurve_ ? 6 : 8;
   const double x0 = 56.0;
@@ -2320,6 +2321,28 @@ void Panel::drawInsertCurve(cairo_t* cr, int entry) {
 void Panel::drawInsertPage(cairo_t* cr, const Shared&) {
   const int entry = linkedInsert(detail_, insertSlot_);
   if (insertCurve_ && entry >= 0) drawInsertCurve(cr, entry);
+  if (insertGr_ && entry >= 0) {
+    float inL = 0, inR = 0, outL = 0, outR = 0, gr = 0;
+    hub_.meter(entry, &inL, &inR, &outL, &outR, &gr);
+    char buf[24];
+    std::snprintf(buf, sizeof(buf), "%.1f dB", -static_cast<double>(gr));
+    text(cr, "GR", 800, 143, 8.0, 0, kLegendDim.r, kLegendDim.g, kLegendDim.b);
+    text(cr, buf, 900, 143, 8.0, 2, kLegend.r, kLegend.g, kLegend.b);
+    const double bx = 912, by = 134, bw = 312, bh = 10;
+    roundRect(cr, bx, by, bw, bh, 4);
+    setRgb(cr, {0.07, 0.08, 0.09});
+    cairo_fill(cr);
+    const double t = std::clamp(static_cast<double>(gr) / 24.0, 0.0, 1.0);
+    if (t > 0.001) {
+      roundRect(cr, bx, by, std::max(4.0, bw * t), bh, 4);
+      setRgb(cr, {0.86, 0.48, 0.22});
+      cairo_fill(cr);
+    }
+    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.08);
+    cairo_set_line_width(cr, 1.0);
+    roundRect(cr, bx + 0.5, by + 0.5, bw - 1, bh - 1, 4);
+    cairo_stroke(cr);
+  }
   for (const InsertHeader& header : insertHeaders_) {
     text(cr, header.text.c_str(), header.x, header.y, 9.0, 0, kLegendDim.r,
          kLegendDim.g, kLegendDim.b);

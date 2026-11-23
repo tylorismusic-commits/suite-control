@@ -22,6 +22,7 @@
 
 #include "dsp/engine.hpp"
 #include "params.hpp"
+#include "ui/geometry.hpp"
 #include "ui/panel.hpp"
 
 namespace {
@@ -48,11 +49,37 @@ std::string bundleResourceDir() {
 // ---------------------------------------------------------------------------
 class Editor {
 public:
-  explicit Editor(suite::Shared& shared) : shared_(shared) {}
+  explicit Editor(suite::Shared& shared) : shared_(shared) {
+    resize(initialScale());
+  }
   ~Editor() { close(); }
 
   std::function<void()> requestFlush;
-  double scale() const { return 1.0; }
+
+  static double initialScale() {
+    double scale = 1.0;
+    if (Display* dpy = XOpenDisplay(nullptr)) {
+      const int screenH = DisplayHeight(dpy, DefaultScreen(dpy));
+      scale = suite::clampScale(std::min(
+          1.0, std::max(suite::kMinUiScale,
+                        (screenH - 140.0) / suite::kPanelHeight)));
+      XCloseDisplay(dpy);
+    }
+    return scale;
+  }
+
+  double scale() const { return scale_.load(std::memory_order_relaxed); }
+  suite::UiSize size() const {
+    return {width_.load(std::memory_order_relaxed),
+            height_.load(std::memory_order_relaxed)};
+  }
+
+  void resize(double requested) {
+    const suite::UiSize size = suite::sizeForScale(suite::clampScale(requested));
+    width_.store(size.width, std::memory_order_relaxed);
+    height_.store(size.height, std::memory_order_relaxed);
+    scale_.store(suite::clampScale(requested), std::memory_order_relaxed);
+  }
 
   bool open(void* parent) {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -83,8 +110,8 @@ private:
     }
     const int screen = DefaultScreen(dpy);
     const Window parent = parentWindow_ ? parentWindow_ : RootWindow(dpy, screen);
-    const int w = suite::kPanelWidth;
-    const int h = suite::kPanelHeight;
+    uint32_t w = width_.load(std::memory_order_relaxed);
+    uint32_t h = height_.load(std::memory_order_relaxed);
     XSetWindowAttributes attrs{};
     attrs.event_mask = ExposureMask | ButtonPressMask | ButtonReleaseMask |
                        PointerMotionMask | Button1MotionMask | ButtonMotionMask |
@@ -92,10 +119,19 @@ private:
     const Window win = XCreateWindow(dpy, parent, 0, 0, w, h, 0,
                                      CopyFromParent, InputOutput, CopyFromParent,
                                      CWEventMask, &attrs);
+    const suite::UiSize minSize =
+        suite::sizeForScale(suite::kMinUiScale);
+    const suite::UiSize maxSize =
+        suite::sizeForScale(suite::kMaxUiScale);
     XSizeHints hints{};
-    hints.flags = PMinSize | PMaxSize;
-    hints.min_width = hints.max_width = w;
-    hints.min_height = hints.max_height = h;
+    hints.flags = PMinSize | PMaxSize | PBaseSize | PWinGravity;
+    hints.min_width = static_cast<int>(minSize.width);
+    hints.min_height = static_cast<int>(minSize.height);
+    hints.max_width = static_cast<int>(maxSize.width);
+    hints.max_height = static_cast<int>(maxSize.height);
+    hints.base_width = suite::kPanelWidth;
+    hints.base_height = suite::kPanelHeight;
+    hints.win_gravity = NorthWestGravity;
     XSetWMNormalHints(dpy, win, &hints);
     XStoreName(dpy, win, kPluginName);
     XMapRaised(dpy, win);
@@ -117,13 +153,37 @@ private:
         std::lock_guard<std::mutex> lock(mutex_);
         if (quitting_) break;
       }
+      const uint32_t wantW = width_.load(std::memory_order_relaxed);
+      const uint32_t wantH = height_.load(std::memory_order_relaxed);
+      if (wantW != w || wantH != h) {
+        w = wantW;
+        h = wantH;
+        XResizeWindow(dpy, win, w, h);
+        cairo_xlib_surface_set_size(windowSurface, w, h);
+        cairo_destroy(cr);
+        cairo_surface_destroy(backing);
+        backing = cairo_image_surface_create(fmt, w, h);
+        cr = cairo_create(backing);
+      }
       while (XPending(dpy) > 0) {
         XEvent ev;
         XNextEvent(dpy, &ev);
         handleEvent(ev, state_);
       }
+      viewScale_ = std::min(static_cast<double>(w) / suite::kPanelWidth,
+                            static_cast<double>(h) / suite::kPanelHeight);
+      viewOx_ = (static_cast<double>(w) - suite::kPanelWidth * viewScale_) * 0.5;
+      viewOy_ = (static_cast<double>(h) - suite::kPanelHeight * viewScale_) * 0.5;
       panel_.tick(shared_, state_);
+      cairo_save(cr);
+      cairo_set_source_rgb(cr, 0.043, 0.047, 0.051);
+      cairo_paint(cr);
+      cairo_translate(cr, viewOx_, viewOy_);
+      cairo_scale(cr, viewScale_, viewScale_);
+      cairo_rectangle(cr, 0, 0, suite::kPanelWidth, suite::kPanelHeight);
+      cairo_clip(cr);
       panel_.draw(cr, shared_, state_);
+      cairo_restore(cr);
       cairo_surface_flush(backing);
       cairo_t* xcr = cairo_create(windowSurface);
       cairo_set_source_surface(xcr, backing, 0, 0);
@@ -142,6 +202,13 @@ private:
     XCloseDisplay(dpy);
   }
 
+  double logicalX(int x) const {
+    return (x - viewOx_) / (viewScale_ > 0.0 ? viewScale_ : 1.0);
+  }
+  double logicalY(int y) const {
+    return (y - viewOy_) / (viewScale_ > 0.0 ? viewScale_ : 1.0);
+  }
+
   void handleEvent(const XEvent& ev, suite::PanelState& state) {
     switch (ev.type) {
       case ButtonPress:
@@ -149,23 +216,28 @@ private:
         XSetInputFocus(ev.xbutton.display, ev.xbutton.window, RevertToParent,
                        CurrentTime);
         if (ev.xbutton.button == Button1) {
-          panel_.pointerDown(shared_, state, ev.xbutton.x, ev.xbutton.y,
+          panel_.pointerDown(shared_, state, logicalX(ev.xbutton.x),
+                             logicalY(ev.xbutton.y),
                              (ev.xbutton.state & ShiftMask) != 0);
         } else if (ev.xbutton.button == Button4) {
-          panel_.wheel(shared_, state, ev.xbutton.x, ev.xbutton.y, 1.0,
+          panel_.wheel(shared_, state, logicalX(ev.xbutton.x),
+                       logicalY(ev.xbutton.y), 1.0,
                        (ev.xbutton.state & ShiftMask) != 0);
         } else if (ev.xbutton.button == Button5) {
-          panel_.wheel(shared_, state, ev.xbutton.x, ev.xbutton.y, -1.0,
+          panel_.wheel(shared_, state, logicalX(ev.xbutton.x),
+                       logicalY(ev.xbutton.y), -1.0,
                        (ev.xbutton.state & ShiftMask) != 0);
         } else if (ev.xbutton.button == Button3) {
-          panel_.beginTextEntry(shared_, state, ev.xbutton.x, ev.xbutton.y);
+          panel_.beginTextEntry(shared_, state, logicalX(ev.xbutton.x),
+                                logicalY(ev.xbutton.y));
         }
         break;
       case ButtonRelease:
         panel_.pointerUp();
         break;
       case MotionNotify:
-        panel_.pointerMove(shared_, state, ev.xmotion.x, ev.xmotion.y,
+        panel_.pointerMove(shared_, state, logicalX(ev.xmotion.x),
+                           logicalY(ev.xmotion.y),
                            (ev.xmotion.state & ShiftMask) != 0);
         break;
       case KeyPress: {
@@ -215,6 +287,12 @@ private:
   }
 
   suite::Shared& shared_;
+  std::atomic<uint32_t> width_{suite::kPanelWidth};
+  std::atomic<uint32_t> height_{suite::kPanelHeight};
+  std::atomic<double> scale_{1.0};
+  double viewScale_ = 1.0;
+  double viewOx_ = 0.0;
+  double viewOy_ = 0.0;
   suite::PanelState state_;
   suite::Panel panel_;
   std::mutex mutex_;
@@ -475,17 +553,34 @@ bool guiCreate(const clap_plugin_t*, const char* api, bool isFloating) {
 }
 void guiDestroy(const clap_plugin_t* p) { self(p)->editor.close(); }
 bool guiSetScale(const clap_plugin_t*, double) { return false; }
-bool guiGetSize(const clap_plugin_t*, uint32_t* w, uint32_t* h) {
-  *w = suite::kPanelWidth;
-  *h = suite::kPanelHeight;
+bool guiGetSize(const clap_plugin_t* p, uint32_t* w, uint32_t* h) {
+  const suite::UiSize size = self(p)->editor.size();
+  *w = size.width;
+  *h = size.height;
   return true;
 }
-bool guiCanResize(const clap_plugin_t*) { return false; }
-bool guiGetResizeHints(const clap_plugin_t*, clap_gui_resize_hints_t*) {
-  return false;
+bool guiCanResize(const clap_plugin_t*) { return true; }
+
+bool guiGetResizeHints(const clap_plugin_t*, clap_gui_resize_hints_t* hints) {
+  hints->can_resize_horizontally = true;
+  hints->can_resize_vertically = true;
+  hints->preserve_aspect_ratio = true;
+  hints->aspect_ratio_width = suite::kPanelWidth;
+  hints->aspect_ratio_height = suite::kPanelHeight;
+  return true;
 }
-bool guiAdjustSize(const clap_plugin_t*, uint32_t*, uint32_t*) { return false; }
-bool guiSetSize(const clap_plugin_t*, uint32_t, uint32_t) { return false; }
+
+bool guiAdjustSize(const clap_plugin_t*, uint32_t* width, uint32_t* height) {
+  const suite::UiSize size = suite::snapSize(*width, *height);
+  *width = size.width;
+  *height = size.height;
+  return true;
+}
+
+bool guiSetSize(const clap_plugin_t* p, uint32_t width, uint32_t height) {
+  self(p)->editor.resize(suite::scaleForRequest(width, height));
+  return true;
+}
 bool guiSetParent(const clap_plugin_t* p, const clap_window_t* window) {
   return self(p)->editor.open(reinterpret_cast<void*>(window->x11));
 }

@@ -82,6 +82,30 @@ int main(int argc, char** argv) {
   if (!check(params != nullptr, "params extension")) return 1;
   check(params->count(plugin) == suite::P_COUNT, "parameter count");
 
+  // The editor resizes from its fit-to-screen size, preserving 1280:760.
+  {
+    const auto* gui = static_cast<const clap_plugin_gui_t*>(
+        plugin->get_extension(plugin, CLAP_EXT_GUI));
+    check(gui != nullptr, "gui extension");
+    if (gui) {
+      check(gui->can_resize(plugin), "gui can resize");
+      clap_gui_resize_hints_t hints{};
+      check(gui->get_resize_hints(plugin, &hints) &&
+                hints.preserve_aspect_ratio &&
+                hints.aspect_ratio_width == 1280 &&
+                hints.aspect_ratio_height == 760,
+            "gui preserves the 1280:760 aspect");
+      uint32_t w = 1600, h = 800;
+      check(gui->adjust_size(plugin, &w, &h), "gui adjust_size");
+      check(w * 760 == h * 1280,
+            "adjusted size keeps the aspect");
+      check(gui->set_size(plugin, 1600, 950), "gui set_size");
+      uint32_t nw = 0, nh = 0;
+      check(gui->get_size(plugin, &nw, &nh) && nw == 1600 && nh == 950,
+            "get_size reports the new size");
+    }
+  }
+
   const auto* state = static_cast<const clap_plugin_state_t*>(
       plugin->get_extension(plugin, CLAP_EXT_STATE));
   if (!check(state != nullptr, "state extension")) return 1;

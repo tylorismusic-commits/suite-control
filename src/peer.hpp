@@ -128,6 +128,8 @@ struct Slot {
   std::atomic<uint32_t> curveSeq{0};
   std::atomic<uint32_t> curveCount{0};
   float curve[kMaxCurve] = {};
+  // The plug-in publishes a meaningful gain-reduction value.
+  std::atomic<uint32_t> hasGr{0};
   ParamMeta meta[kMaxParams];
   Param param[kMaxParams];
   std::atomic<float> inPeakL{-120.0f};
@@ -285,6 +287,11 @@ public:
   }
 
   // Publishes the plug-in's response curve (dB, log-spaced 20 Hz..20 kHz).
+  void setHasGr(bool on = true) noexcept {
+    if (!seg_ || slot_ < 0) return;
+    seg_->slot[slot_].hasGr.store(on ? 1u : 0u, std::memory_order_relaxed);
+  }
+
   void publishCurve(const float* db, uint32_t count) noexcept {
     if (!seg_ || slot_ < 0 || !db || count == 0) return;
     Slot& s = seg_->slot[slot_];
@@ -661,6 +668,10 @@ public:
     const Entry& e = entries_[static_cast<size_t>(i)];
     return e.seg->slot[e.slot].shortName;
   }
+  bool hasGr(int i) const noexcept {
+    const Entry& e = entries_[static_cast<size_t>(i)];
+    return e.seg->slot[e.slot].hasGr.load(std::memory_order_relaxed) != 0;
+  }
   uint32_t curveCount(int i) const noexcept {
     const Entry& e = entries_[static_cast<size_t>(i)];
     return e.seg->slot[e.slot].curveCount.load(std::memory_order_acquire);
@@ -726,6 +737,7 @@ public:
   void publishText(int, const char*) noexcept {}
   void setShortName(const char*) noexcept {}
   void publishCurve(const float*, uint32_t) noexcept {}
+  void setHasGr(bool = true) noexcept {}
   uint64_t id() const noexcept { return 0; }
   void publishLink(uint32_t, uint32_t, uint32_t) noexcept {}
   bool takeRemoteLink(LinkInfo*) noexcept { return false; }
@@ -787,6 +799,7 @@ public:
   const char* name(int) const noexcept { return ""; }
   const char* shortName(int) const noexcept { return ""; }
   uint32_t curveCount(int) const noexcept { return 0; }
+  bool hasGr(int) const noexcept { return false; }
   uint32_t curve(int, float* out, uint32_t capacity) const noexcept {
     (void)out;
     (void)capacity;
