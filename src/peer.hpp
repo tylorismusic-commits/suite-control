@@ -36,13 +36,14 @@
 namespace suite::peer {
 
 constexpr uint32_t kMagic = 0x53505231u;  // "SPR1"
-constexpr uint32_t kVersion = 5;
+constexpr uint32_t kVersion = 6;
 constexpr int kSlots = 64;
 constexpr int kMaxParams = 128;
 constexpr int kNameBytes = 32;
 constexpr int kBusCount = 8;
 constexpr int kInsertSlots = 4;
 constexpr int kMaxLabels = 12;
+constexpr int kMaxCurve = 96;
 constexpr int kLabelBytes = 12;
 constexpr int kDisplayBytes = 20;
 constexpr int64_t kStaleMs = 700;
@@ -122,6 +123,11 @@ struct Slot {
   std::atomic<uint32_t> linkSlot{0};
   std::atomic<uint32_t> linkStamp{0};
   char name[kNameBytes] = {};
+  char shortName[8] = {};
+  // Optional response curve for the insert page (log-spaced 20 Hz..20 kHz).
+  std::atomic<uint32_t> curveSeq{0};
+  std::atomic<uint32_t> curveCount{0};
+  float curve[kMaxCurve] = {};
   ParamMeta meta[kMaxParams];
   Param param[kMaxParams];
   std::atomic<float> inPeakL{-120.0f};
@@ -143,7 +149,7 @@ struct Segment {
 
 inline std::string segmentName() noexcept {
   char buf[64];
-  std::snprintf(buf, sizeof(buf), "/suitepeer-v5-%ld",
+  std::snprintf(buf, sizeof(buf), "/suitepeer-v6-%ld",
                 static_cast<long>(getpid()));
   return buf;
 }
@@ -152,7 +158,7 @@ inline std::string segmentName() noexcept {
 inline void reapStale() noexcept {
   DIR* dir = opendir("/dev/shm");
   if (!dir) return;
-  const std::string prefix = "suitepeer-v5-";
+  const std::string prefix = "suitepeer-v6-";
   while (dirent* e = readdir(dir)) {
     const char* n = e->d_name;
     if (std::strncmp(n, prefix.c_str(), prefix.size()) != 0) continue;
@@ -253,6 +259,9 @@ public:
         s.linkStamp.store(0, std::memory_order_relaxed);
         std::strncpy(s.name, name ? name : "", kNameBytes - 1);
         s.name[kNameBytes - 1] = '\0';
+        s.shortName[0] = '\0';
+        s.curveCount.store(0, std::memory_order_relaxed);
+        s.curveSeq.store(0, std::memory_order_relaxed);
         for (uint32_t p = 0; p < paramCount; ++p) {
           s.param[p].gen.store(0, std::memory_order_relaxed);
           s.param[p].requestGen.store(0, std::memory_order_relaxed);
@@ -268,6 +277,25 @@ public:
 
   // Copies the parameter metadata for this instance.  Call after
   // registerSlot and before the first publish.
+  void setShortName(const char* text) noexcept {
+    if (!seg_ || slot_ < 0 || !text) return;
+    std::strncpy(seg_->slot[slot_].shortName, text,
+                 sizeof(seg_->slot[slot_].shortName) - 1);
+    seg_->slot[slot_].shortName[sizeof(seg_->slot[slot_].shortName) - 1] = '\0';
+  }
+
+  // Publishes the plug-in's response curve (dB, log-spaced 20 Hz..20 kHz).
+  void publishCurve(const float* db, uint32_t count) noexcept {
+    if (!seg_ || slot_ < 0 || !db || count == 0) return;
+    Slot& s = seg_->slot[slot_];
+    const uint32_t n = std::min<uint32_t>(count, kMaxCurve);
+    const uint32_t seq = s.curveSeq.load(std::memory_order_relaxed);
+    s.curveSeq.store(seq + 1, std::memory_order_release);
+    for (uint32_t i = 0; i < n; ++i) s.curve[i] = db[i];
+    s.curveCount.store(n, std::memory_order_release);
+    s.curveSeq.store(seq + 2, std::memory_order_release);
+  }
+
   void publishMeta(const ParamMeta* meta, uint32_t count) noexcept {
     if (!seg_ || slot_ < 0 || !meta) return;
     Slot& s = seg_->slot[slot_];
@@ -475,7 +503,7 @@ public:
     DIR* dir = opendir("/dev/shm");
     std::vector<std::string> names;
     if (dir) {
-      const std::string prefix = "suitepeer-v5-";
+      const std::string prefix = "suitepeer-v6-";
       while (dirent* e = readdir(dir)) {
         if (std::strncmp(e->d_name, prefix.c_str(), prefix.size()) == 0) {
           names.push_back(std::string("/dev/shm/") + e->d_name);
@@ -629,6 +657,30 @@ public:
     const Entry& e = entries_[static_cast<size_t>(i)];
     return Client::writeRemote(e.seg->slot[e.slot], param, v);
   }
+  const char* shortName(int i) const noexcept {
+    const Entry& e = entries_[static_cast<size_t>(i)];
+    return e.seg->slot[e.slot].shortName;
+  }
+  uint32_t curveCount(int i) const noexcept {
+    const Entry& e = entries_[static_cast<size_t>(i)];
+    return e.seg->slot[e.slot].curveCount.load(std::memory_order_acquire);
+  }
+  // Seqlock copy of the response curve; returns the number of points copied.
+  uint32_t curve(int i, float* out, uint32_t capacity) const noexcept {
+    if (!out || capacity == 0) return 0;
+    const Entry& e = entries_[static_cast<size_t>(i)];
+    const Slot& s = e.seg->slot[e.slot];
+    for (int attempt = 0; attempt < 8; ++attempt) {
+      const uint32_t before = s.curveSeq.load(std::memory_order_acquire);
+      if (before & 1u) continue;
+      const uint32_t count =
+          std::min(s.curveCount.load(std::memory_order_relaxed), capacity);
+      for (uint32_t p = 0; p < count; ++p) out[p] = s.curve[p];
+      std::atomic_thread_fence(std::memory_order_acquire);
+      if (s.curveSeq.load(std::memory_order_acquire) == before) return count;
+    }
+    return 0;
+  }
   const char* name(int i) const noexcept {
     const Entry& e = entries_[static_cast<size_t>(i)];
     return e.seg->slot[e.slot].name;
@@ -672,6 +724,8 @@ public:
   }
   void publishMeta(const ParamMeta*, uint32_t) noexcept {}
   void publishText(int, const char*) noexcept {}
+  void setShortName(const char*) noexcept {}
+  void publishCurve(const float*, uint32_t) noexcept {}
   uint64_t id() const noexcept { return 0; }
   void publishLink(uint32_t, uint32_t, uint32_t) noexcept {}
   bool takeRemoteLink(LinkInfo*) noexcept { return false; }
@@ -731,6 +785,13 @@ public:
     if (gr) *gr = 0.0f;
   }
   const char* name(int) const noexcept { return ""; }
+  const char* shortName(int) const noexcept { return ""; }
+  uint32_t curveCount(int) const noexcept { return 0; }
+  uint32_t curve(int, float* out, uint32_t capacity) const noexcept {
+    (void)out;
+    (void)capacity;
+    return 0;
+  }
   void setName(int, const char*) noexcept {}
 };
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.0
+
+- Insert short names are published by the plug-ins (`COMP`, `SPAC`, `CSEQ`)
+  instead of being derived from the long name, so Common Sense EQ shows
+  `CSEQ` in its cell and tab.
+- Inserts can publish a response curve.  The EQ page draws it above the
+  controls — grid, filled response, live update while dragging — and the
+  parameter grid scrolls beneath it.  Comp and Space pages are unchanged.
+- Protocol v6: slot short name and up to 96 curve points.
+
 ## 0.7.0 — Inserts, all three plug-ins
 
 - Space Suite and Common Sense EQ join Comp Suite as inserts.  Assigning one

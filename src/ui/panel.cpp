@@ -600,9 +600,12 @@ void Panel::layoutInsertPage() {
                             groupIndex(hub_.meta(entry, static_cast<int>(b)));
                    });
 
+  insertCurve_ = hub_.curveCount(entry) > 0;
   constexpr int kCols = 7;
-  constexpr int kVisibleRows = 8;
-  const double x0 = 56.0, y0 = 150.0, rowH = 74.0;
+  const int visibleRows = insertCurve_ ? 6 : 8;
+  const double x0 = 56.0;
+  const double y0 = insertCurve_ ? 300.0 : 150.0;
+  const double rowH = 74.0;
   const double headerW = 118.0, cellW = 142.0;
 
   struct Placement {
@@ -639,17 +642,17 @@ void Panel::layoutInsertPage() {
     ++col;
   }
 
-  insertMaxScroll_ = std::max(0, row + 1 - kVisibleRows);
+  insertMaxScroll_ = std::max(0, row + 1 - visibleRows);
   insertScroll_ = std::clamp(insertScroll_, 0, insertMaxScroll_);
 
   for (const Header& h : headers) {
     const int visible = h.row - insertScroll_;
-    if (visible < 0 || visible >= kVisibleRows) continue;
+    if (visible < 0 || visible >= visibleRows) continue;
     insertHeaders_.push_back({h.text, x0, y0 + visible * rowH + 34.0});
   }
   for (const Placement& pl : places) {
     const int visible = pl.row - insertScroll_;
-    if (visible < 0 || visible >= kVisibleRows) continue;
+    if (visible < 0 || visible >= visibleRows) continue;
     const peer::ParamMeta& m = hub_.meta(entry, static_cast<int>(pl.param));
     const double x = x0 + headerW + pl.col * cellW;
     const double y = y0 + visible * rowH;
@@ -2111,14 +2114,19 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
           setRgb(cr, on ? kAccent : kLegendDim);
           cairo_fill(cr);
           char shortName[8] = {};
-          const char* source = hub_.name(entry);
-          int used = 0;
-          for (int k = 0; source[k] && used < 4; ++k) {
-            const unsigned char c = static_cast<unsigned char>(source[k]);
-            if (c >= 'a' && c <= 'z') {
-              shortName[used++] = static_cast<char>(c - 'a' + 'A');
-            } else if ((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) {
-              shortName[used++] = static_cast<char>(c);
+          const char* custom = hub_.shortName(entry);
+          if (custom[0]) {
+            std::snprintf(shortName, sizeof(shortName), "%s", custom);
+          } else {
+            const char* source = hub_.name(entry);
+            int used = 0;
+            for (int k = 0; source[k] && used < 4; ++k) {
+              const unsigned char c = static_cast<unsigned char>(source[k]);
+              if (c >= 'a' && c <= 'z') {
+                shortName[used++] = static_cast<char>(c - 'a' + 'A');
+              } else if ((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) {
+                shortName[used++] = static_cast<char>(c);
+              }
             }
           }
           text(cr, shortName, w.x + 14.0, w.y + w.h * 0.5 + 2.5, 6.5, 0,
@@ -2225,7 +2233,93 @@ void Panel::drawPicker(cairo_t* cr) {
   }
 }
 
+void Panel::drawInsertCurve(cairo_t* cr, int entry) {
+  float db[suite::peer::kMaxCurve] = {};
+  const uint32_t count = hub_.curve(entry, db, suite::peer::kMaxCurve);
+  if (count < 2) return;
+  const double left = 56.0, right = 1224.0;
+  const double top = 130.0, bottom = 276.0;
+  const double centre = (top + bottom) * 0.5;
+  const double half = (bottom - top) * 0.5 - 8.0;
+  auto yFor = [&](double value) {
+    return centre - std::clamp(value, -18.0, 18.0) / 18.0 * half;
+  };
+  auto xFor = [&](double freq) {
+    return left + std::log10(freq / 20.0) / std::log10(1000.0) *
+                      (right - left);
+  };
+  plate(cr, left, top, right - left, bottom - top, nullptr);
+  cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.06);
+  cairo_set_line_width(cr, 1.0);
+  for (double f : {100.0, 1000.0, 10000.0}) {
+    cairo_move_to(cr, xFor(f), top + 6);
+    cairo_line_to(cr, xFor(f), bottom - 6);
+    cairo_stroke(cr);
+  }
+  for (double d : {-12.0, 0.0, 12.0}) {
+    cairo_move_to(cr, left + 6, yFor(d));
+    cairo_line_to(cr, right - 6, yFor(d));
+    cairo_stroke(cr);
+  }
+  char label[16];
+  std::snprintf(label, sizeof(label), "100");
+  text(cr, label, xFor(100.0) + 4, bottom - 8, 7.0, 0, kLegendDim.r,
+       kLegendDim.g, kLegendDim.b);
+  std::snprintf(label, sizeof(label), "1k");
+  text(cr, label, xFor(1000.0) + 4, bottom - 8, 7.0, 0, kLegendDim.r,
+       kLegendDim.g, kLegendDim.b);
+  std::snprintf(label, sizeof(label), "10k");
+  text(cr, label, xFor(10000.0) + 4, bottom - 8, 7.0, 0, kLegendDim.r,
+       kLegendDim.g, kLegendDim.b);
+  std::snprintf(label, sizeof(label), "+12");
+  text(cr, label, left + 8, yFor(12.0) - 3, 7.0, 0, kLegendDim.r,
+       kLegendDim.g, kLegendDim.b);
+  std::snprintf(label, sizeof(label), "-12");
+  text(cr, label, left + 8, yFor(-12.0) + 8, 7.0, 0, kLegendDim.r,
+       kLegendDim.g, kLegendDim.b);
+
+  cairo_new_path(cr);
+  for (uint32_t i = 0; i < count; ++i) {
+    const double f = 20.0 * std::pow(1000.0, i / (count - 1.0));
+    const double x = xFor(f);
+    const double y = yFor(db[i]);
+    if (i == 0) {
+      cairo_move_to(cr, x, y);
+    } else {
+      cairo_line_to(cr, x, y);
+    }
+  }
+  cairo_set_source_rgba(cr, kAccent.r, kAccent.g, kAccent.b, 0.16);
+  cairo_line_to(cr, right, centre);
+  cairo_line_to(cr, left, centre);
+  cairo_close_path(cr);
+  cairo_fill(cr);
+
+  cairo_new_path(cr);
+  for (uint32_t i = 0; i < count; ++i) {
+    const double f = 20.0 * std::pow(1000.0, i / (count - 1.0));
+    const double x = xFor(f);
+    const double y = yFor(db[i]);
+    if (i == 0) {
+      cairo_move_to(cr, x, y);
+    } else {
+      cairo_line_to(cr, x, y);
+    }
+  }
+  cairo_set_source_rgb(cr, kAccent.r, kAccent.g, kAccent.b);
+  cairo_set_line_width(cr, 1.6);
+  cairo_stroke(cr);
+
+  cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.14);
+  cairo_set_line_width(cr, 1.0);
+  cairo_move_to(cr, left + 6, yFor(0.0));
+  cairo_line_to(cr, right - 6, yFor(0.0));
+  cairo_stroke(cr);
+}
+
 void Panel::drawInsertPage(cairo_t* cr, const Shared&) {
+  const int entry = linkedInsert(detail_, insertSlot_);
+  if (insertCurve_ && entry >= 0) drawInsertCurve(cr, entry);
   for (const InsertHeader& header : insertHeaders_) {
     text(cr, header.text.c_str(), header.x, header.y, 9.0, 0, kLegendDim.r,
          kLegendDim.g, kLegendDim.b);
@@ -2285,7 +2379,9 @@ void Panel::drawDetailPage(cairo_t* cr, const Shared& shared,
     if (w.value == 0) {
       pill(cr, w, "CHANNEL", on);
     } else {
-      const std::string name = shortInsertName(w.label);
+      const char* custom = hub_.shortName(w.index);
+      const std::string name =
+          custom[0] ? std::string(custom) : shortInsertName(w.label);
       pill(cr, w, name.c_str(), on);
     }
   }

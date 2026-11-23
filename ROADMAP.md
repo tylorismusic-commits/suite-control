@@ -54,6 +54,8 @@ slots per channel; Rack Suite stays deferred.
   code in Suite Control. Rack Suite stays deferred.
 - Verified in REAPER: three insert cells, tabs, bypass, scrolling EQ page,
   model/label-accurate readouts and remote edits.
+- Insert pages also honour plug-in short names and an optional response curve
+  (the EQ draws its curve above the controls).
 
 ## Phase 5 — macOS
 

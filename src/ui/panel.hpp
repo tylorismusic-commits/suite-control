@@ -112,6 +112,7 @@ private:
   void layoutPicker();
   void layoutInsertPage();
   void drawInsertPage(cairo_t* cr, const Shared& shared);
+  void drawInsertCurve(cairo_t* cr, int entry);
   void drawPicker(cairo_t* cr);
   void writeInsert(int entry, uint32_t param, double normalised);
   double insertNormalised(int entry, uint32_t param) const;
@@ -149,6 +150,7 @@ private:
   int insertSlot_ = 0; // 0 = CHANNEL tab, 1..4 = insert tab
   int insertScroll_ = 0;
   int insertMaxScroll_ = 0;
+  bool insertCurve_ = false;
   bool pickerOpen_ = false;
   int pickerBus_ = 0;
   int pickerChannel_ = 0;

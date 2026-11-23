@@ -87,6 +87,17 @@ int main() {
             link.slot == 0,
         "link can be cleared");
 
+  // Short name and response curve are published by the plug-in.
+  insert.setShortName("CSEQ");
+  check(std::strcmp(hub.shortName(entry), "CSEQ") == 0,
+        "short name round-trips");
+  const float curveIn[3] = {0.0f, 3.0f, -6.0f};
+  insert.publishCurve(curveIn, 3);
+  float curveOut[8] = {};
+  check(hub.curve(entry, curveOut, 8) == 3 &&
+            std::fabs(curveOut[1] - 3.0f) < 1e-6f,
+        "response curve round-trips");
+
   // Formatted readouts travel with the values; the surface shows the plug-in's
   // own text (dB, ms, model-dependent ratio) rather than the raw step.
   insert.publishText(0, "-11.6 dB");
