@@ -175,6 +175,33 @@ int main() {
     check(s3.get(suite::P_COMP_THRESHOLD) == moved, "drag stops on release");
   }
 
+  // -------------------------------------------------------- transport
+  {
+    suite::Shared st;
+    suite::PanelState pst;
+    suite::Panel pp;
+    std::vector<int> actions;
+    pst.transport = [&](int action) { actions.push_back(action); };
+    pp.tick(st, pst);
+    const double x0 = 20.0 + (980.0 - (5 * 46.0 + 4 * 8.0)) * 0.5;
+    for (int i = 0; i < 5; ++i) {
+      pp.pointerDown(st, pst, x0 + i * 54.0 + 23.0, 735.0, false);
+      pp.pointerUp();
+    }
+    check(actions.size() == 5 && actions[0] == suite::kTransportRewind &&
+              actions[1] == suite::kTransportPlay &&
+              actions[2] == suite::kTransportStop &&
+              actions[3] == suite::kTransportRecord &&
+              actions[4] == suite::kTransportForward,
+          "transport buttons send their actions");
+
+    // Play/record lights follow the host feedback.
+    pst.playing = true;
+    pst.recording = true;
+    pp.draw(cairo_create(surface), st, pst);
+    check(true, "transport row draws with feedback state");
+  }
+
   // ---------------------------------------------------------- inserts
   // An insert plug-in publishes metadata; the OUT view cell opens the picker
   // and assigns the LINK, then toggles bypass.

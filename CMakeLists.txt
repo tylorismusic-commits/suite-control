@@ -180,6 +180,12 @@ target_include_directories(suite_peer_protocol_test PRIVATE "${CMAKE_SOURCE_DIR}
 target_compile_features(suite_peer_protocol_test PRIVATE cxx_std_17)
 add_test(NAME suite_peer_protocol COMMAND suite_peer_protocol_test)
 
+add_executable(suite_osc_test test/osc_test.cpp)
+target_include_directories(suite_osc_test PRIVATE "${CMAKE_SOURCE_DIR}/src")
+target_link_libraries(suite_osc_test PRIVATE Threads::Threads)
+target_compile_features(suite_osc_test PRIVATE cxx_std_17)
+add_test(NAME suite_osc COMMAND suite_osc_test)
+
 # End-to-end peer test against the installed Suite Channel Plus binary.
 set(PLUS_CLAP "$ENV{HOME}/.clap/SuiteChannelPlus.clap")
 add_executable(suite_peer_integration test/integration_test.cpp)

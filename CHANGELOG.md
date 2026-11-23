@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.0
+
+- Optional OSC transport: play, stop, record, go to start and go to end in the
+  strip under the bus meters, with a green dot when REAPER feedback is live.
+  Localhost UDP only; ports via `SUITE_OSC_SEND_PORT` / `SUITE_OSC_RECV_PORT`
+  (defaults 8000 / 9000).  Feedback is read from REAPER's OSC bundles.
+- Play/stop/record are sent both as `/play` and the LogicTouch `/1/play`
+  spellings, so either shipped REAPER pattern config works.
+
 ## 0.9.0
 
 - Insert pages show gain reduction when the insert publishes it; Comp Suite's

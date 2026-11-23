@@ -27,6 +27,7 @@
 #include "console_state.hpp"
 #include "params.hpp"
 #include "ui/geometry.hpp"
+#include "ui/osc.hpp"
 #include "ui/panel.hpp"
 
 namespace {
@@ -48,6 +49,7 @@ struct Ui {
   // Console names/mute state is edited here but saved by the plug-in, so both
   // sides meet in a tiny per-process segment.
   suite::ConsoleBridge console;
+  suite::OscLink osc;
   uint32_t consoleSeq = 0;
   bool consoleDirty = false;
 
@@ -296,6 +298,9 @@ struct Ui {
 
   void draw() {
     if (!cr || !windowSurface || width < 8 || height < 8) return;
+    state.playing = osc.playing();
+    state.recording = osc.recording();
+    state.osc = osc.valid() ? osc.online() : false;
     if (consoleDirty) {
       publishConsole();
       consoleDirty = false;
@@ -478,6 +483,17 @@ LV2UI_Handle uiInstantiate(const LV2UI_Descriptor*, const char*,
   }
 
   ui->console.open();
+  ui->osc.open();
+  ui->state.transport = [ui](int action) {
+    switch (action) {
+      case suite::kTransportRewind: ui->osc.action(40042); break;
+      case suite::kTransportPlay: ui->osc.trigger("/play"); break;
+      case suite::kTransportStop: ui->osc.trigger("/stop"); break;
+      case suite::kTransportRecord: ui->osc.trigger("/record"); break;
+      case suite::kTransportForward: ui->osc.action(40043); break;
+      default: break;
+    }
+  };
   ui->adoptConsole();
   ui->panel.tick(ui->shared, ui->state);
   ui->draw();
@@ -493,6 +509,7 @@ LV2UI_Handle uiInstantiate(const LV2UI_Descriptor*, const char*,
 
 void uiCleanup(LV2UI_Handle handle) {
   auto* ui = static_cast<Ui*>(handle);
+  ui->osc.close();
   ui->running.store(false, std::memory_order_relaxed);
   if (ui->thread.joinable()) ui->thread.join();
   ui->logf_("cleanup idles=%ld draws=%ld exposes=%ld maps=%ld reparents=%ld",

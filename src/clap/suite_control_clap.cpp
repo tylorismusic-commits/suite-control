@@ -23,6 +23,7 @@
 #include "dsp/engine.hpp"
 #include "params.hpp"
 #include "ui/geometry.hpp"
+#include "ui/osc.hpp"
 #include "ui/panel.hpp"
 
 namespace {
@@ -88,6 +89,17 @@ public:
     quitting_ = false;
     openFailed_ = false;
     opened_ = true;
+    osc_.open();
+    state_.transport = [this](int action) {
+      switch (action) {
+        case suite::kTransportRewind: osc_.action(40042); break;
+        case suite::kTransportPlay: osc_.trigger("/play"); break;
+        case suite::kTransportStop: osc_.trigger("/stop"); break;
+        case suite::kTransportRecord: osc_.trigger("/record"); break;
+        case suite::kTransportForward: osc_.action(40043); break;
+        default: break;
+      }
+    };
     thread_ = std::thread([this] { run(); });
     return true;
   }
@@ -98,6 +110,7 @@ public:
       quitting_ = true;
     }
     if (thread_.joinable()) thread_.join();
+    osc_.close();
     opened_ = false;
   }
 
@@ -174,6 +187,9 @@ private:
                             static_cast<double>(h) / suite::kPanelHeight);
       viewOx_ = (static_cast<double>(w) - suite::kPanelWidth * viewScale_) * 0.5;
       viewOy_ = (static_cast<double>(h) - suite::kPanelHeight * viewScale_) * 0.5;
+      state_.playing = osc_.playing();
+      state_.recording = osc_.recording();
+      state_.osc = osc_.valid() ? osc_.online() : false;
       panel_.tick(shared_, state_);
       cairo_save(cr);
       cairo_set_source_rgb(cr, 0.043, 0.047, 0.051);
@@ -294,6 +310,7 @@ private:
   double viewOx_ = 0.0;
   double viewOy_ = 0.0;
   suite::PanelState state_;
+  suite::OscLink osc_;
   suite::Panel panel_;
   std::mutex mutex_;
   Display* display_ = nullptr;

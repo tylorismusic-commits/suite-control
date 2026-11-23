@@ -1152,6 +1152,22 @@ void Panel::layoutBus(const Shared& shared, const PanelState& state) {
   pill(P_LIMITER, bx + 8, 676, 60, 20, "LIMIT");
   knob(P_INPUT, bx + 110, 700, 17, "IN", 0);
   knob(P_OUTPUT, bx + 172, 700, 19, "OUT", 0);
+
+  // Transport row between the bottom corner screws.
+  constexpr double kTransportW = 46.0;
+  constexpr double kTransportGap = 8.0;
+  const double cluster = 5 * kTransportW + 4 * kTransportGap;
+  const double transportX = 20.0 + (1000.0 - 20.0 - cluster) * 0.5;
+  for (int i = 0; i < 5; ++i) {
+    Widget t;
+    t.kind = Kind::Transport;
+    t.value = static_cast<double>(i);
+    t.x = transportX + i * (kTransportW + kTransportGap);
+    t.y = 724.0;
+    t.w = kTransportW;
+    t.h = 22.0;
+    widgets_.push_back(t);
+  }
 }
 
 void Panel::layoutDetail() {
@@ -1392,6 +1408,11 @@ bool Panel::pointerDown(Shared& shared, PanelState& state, double x, double y,
       case Kind::PickerItem:
       case Kind::PickerCancel:
         return true;  // handled above
+      case Kind::Transport:
+        if (state.transport) {
+          state.transport(static_cast<int>(w.value));
+        }
+        return true;
       case Kind::InsertTab:
         insertSlot_ = static_cast<int>(w.value);
         return true;
@@ -2144,6 +2165,63 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
         }
         break;
       }
+      case Kind::Transport: {
+        const int action = static_cast<int>(w.value);
+        const bool on =
+            (action == kTransportPlay && state.playing) ||
+            (action == kTransportRecord && state.recording);
+        roundRect(cr, w.x, w.y, w.w, w.h, 4);
+        if (action == kTransportRecord && state.recording) {
+          setRgb(cr, {0.60, 0.18, 0.18});
+        } else if (on) {
+          setRgb(cr, kAccent);
+        } else {
+          setRgb(cr, kBtnOff);
+        }
+        cairo_fill(cr);
+        cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 0.35);
+        cairo_set_line_width(cr, 1.0);
+        roundRect(cr, w.x + 0.5, w.y + 0.5, w.w - 1, w.h - 1, 4);
+        cairo_stroke(cr);
+        const double cx = w.x + w.w * 0.5;
+        const double cy = w.y + w.h * 0.5;
+        setRgb(cr, on ? Rgb{1, 1, 1} : kBtnText);
+        auto triangle = [&](double base, double dir) {
+          cairo_move_to(cr, base, cy - 5.5);
+          cairo_line_to(cr, base, cy + 5.5);
+          cairo_line_to(cr, base + 7.0 * dir, cy);
+          cairo_close_path(cr);
+          cairo_fill(cr);
+        };
+        switch (action) {
+          case kTransportPlay:
+            cairo_move_to(cr, cx - 3.5, cy - 6.0);
+            cairo_line_to(cr, cx - 3.5, cy + 6.0);
+            cairo_line_to(cr, cx + 6.5, cy);
+            cairo_close_path(cr);
+            cairo_fill(cr);
+            break;
+          case kTransportStop:
+            cairo_rectangle(cr, cx - 5.0, cy - 5.0, 10.0, 10.0);
+            cairo_fill(cr);
+            break;
+          case kTransportRecord:
+            cairo_arc(cr, cx, cy, 5.5, 0.0, 6.2831853);
+            cairo_fill(cr);
+            break;
+          case kTransportRewind:
+            triangle(cx + 8.0, -1.0);
+            triangle(cx + 1.0, -1.0);
+            break;
+          case kTransportForward:
+            triangle(cx - 8.0, 1.0);
+            triangle(cx - 1.0, 1.0);
+            break;
+          default:
+            break;
+        }
+        break;
+      }
       case Kind::InsertTab:
       case Kind::InsertKnob:
       case Kind::InsertPill:
@@ -2156,6 +2234,16 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
   }
 
   if (pickerOpen_) drawPicker(cr);
+
+  // OSC link indicator beside the transport row.
+  {
+    const double dotX = 656.0, dotY = 735.0;
+    cairo_arc(cr, dotX, dotY, 3.0, 0.0, 6.2831853);
+    setRgb(cr, state.osc ? Rgb{0.24, 0.76, 0.50} : Rgb{0.30, 0.32, 0.35});
+    cairo_fill(cr);
+    text(cr, "OSC", dotX + 7.0, dotY + 3.0, 7.0, 0, kLegendDim.r,
+         kLegendDim.g, kLegendDim.b);
+  }
 
   // Meters under the strip controls.
   shown = 0;

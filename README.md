@@ -1,6 +1,6 @@
 # Suite Control
 
-**Suite 0.4.0** · GPL-3.0-or-later · CLAP + LV2 · Linux
+**Suite 0.10.0** · GPL-3.0-or-later · CLAP + LV2 · Linux
 
 Suite Control lives on a folder or group track. It does two jobs:
 
@@ -36,7 +36,7 @@ cmake -S . -B build && cmake --build build -j
 ## Peer link
 
 Suite Channel Plus and Suite Control talk through a per-host-process POSIX
-shared-memory registry (`/suitepeer-v1-<pid>`), so there is nothing to configure.
+shared-memory registry (`/dev/shm/suitepeer-v6-<pid>`), so there is nothing to configure.
 Only Suite Channel Plus registers - plain Suite Channel is never affected.
 
 If the host runs plug-ins in separate processes the registry cannot be shared;
@@ -44,11 +44,28 @@ Suite Control then still works as a mix bus but shows no strips.
 
 ## LV2
 
-The LV2 bundle is `build/lv2/suite-control.lv2` (plugin + X11 UI).  Install it
-to `~/.lv2/suite-control.lv2` and rescan.  Parameter state is saved by the host
-through the control ports.  The channel **name table and mute states** are
-CLAP-only for now: LV2 has no place to store them without a custom state
-property, so in LV2 they last for the session.
+One bundle, `~/.lv2/suite.lv2`, containing both plug-ins and the shared
+resources.  Both UIs are X11 and save state (parameters, channel names and
+mutes, insert links) through the LV2 state interface.
+
+## OSC transport (optional)
+
+The row along the bottom of the bus page sends transport commands to REAPER over
+localhost UDP; nothing needs configuring in the plug-in.  In REAPER, add an OSC
+control surface (Preferences → Control/OSC/web) with mode **Local port**, local
+listen port **8000** and pattern config **Default.ReaperOSC**.  A `Local port`
+device replies to the sender, so the feedback comes back to the plug-in without
+setting a device port.
+
+- Play/stop/record go out as `/play`, `/stop`, `/record` *and* the LogicTouch
+  spellings `/1/play`, `/1/stop`, `/1/record`, so either shipped pattern config
+  drives them.  Start/end use `/action/40042` and `/action/40043`, which needs
+  `ACTION` patterns (present in Default.ReaperOSC, disabled in LogicTouch).
+- Ports default to send 8000 / receive 9000.  Override them in the host's
+  environment with `SUITE_OSC_SEND_PORT` / `SUITE_OSC_RECV_PORT`; with a second
+  OSC device on 8001/9001 only `SUITE_OSC_SEND_PORT=8001` is needed.
+- The dot beside the row turns green when REAPER feedback is arriving.
+- The row is tuned to REAPER's OSC patterns; Ardour's address space differs.
 
 ## Requirements
 

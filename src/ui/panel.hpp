@@ -7,6 +7,7 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -31,9 +32,20 @@ constexpr int kBus = 38;
 constexpr int kCount = 39;
 } // namespace ch
 
+// Transport actions; the host glue maps these to OSC.
+constexpr int kTransportRewind = 0;
+constexpr int kTransportPlay = 1;
+constexpr int kTransportStop = 2;
+constexpr int kTransportRecord = 3;
+constexpr int kTransportForward = 4;
+
 struct PanelState {
   int selectedStrip = 0;
   bool fine = false;
+  std::function<void(int action)> transport;
+  bool playing = false;
+  bool recording = false;
+  bool osc = false;
 };
 
 class Panel {
@@ -76,7 +88,8 @@ private:
   enum class Kind {
     Knob, Remote, RemotePill, RemoteFader, Pill, Tab, Capture, Strip, Rename,
     Page, View, Scroll, Mute, Solo, RemoteButton,
-    InsertCell, InsertTab, InsertKnob, InsertPill, PickerItem, PickerCancel
+    InsertCell, InsertTab, InsertKnob, InsertPill, PickerItem, PickerCancel,
+    Transport
   };
 
 
