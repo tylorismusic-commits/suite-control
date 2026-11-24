@@ -1397,9 +1397,15 @@ bool Panel::pointerDownOscSettings(Shared& shared, PanelState& state,
     return true;
   }
   if (oscSyncRect_.hit(x, y)) {
-    for (int i = 0; i < kHostTracks; ++i) oscLocalValid_[i] = false;
-    // The host answers asynchronously: keep adopting its levels for a moment
-    // so the faders land on the values it actually reports, then lock again.
+    // Jump straight to the DAW's current positions, then keep adopting its
+    // levels while the fresh state arrives so the jump lands on the values it
+    // actually reports.  After that the faders lock (non-motorized).
+    for (int i = 0; i < kHostTracks; ++i) {
+      oscLocalValid_[i] = state.host[i].valid;
+      oscLocalVolume_[i] = state.host[i].volume;
+      oscGrab_[i] = true;
+    }
+    oscLocalBank_ = state.hostBank;
     oscSyncUntil_ = steadyMs() + 1500.0;
     if (state.oscSync) state.oscSync();
     return true;
