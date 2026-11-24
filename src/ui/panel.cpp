@@ -1398,6 +1398,9 @@ bool Panel::pointerDownOscSettings(Shared& shared, PanelState& state,
   }
   if (oscSyncRect_.hit(x, y)) {
     for (int i = 0; i < kHostTracks; ++i) oscLocalValid_[i] = false;
+    // The host answers asynchronously: keep adopting its levels for a moment
+    // so the faders land on the values it actually reports, then lock again.
+    oscSyncUntil_ = steadyMs() + 1500.0;
     if (state.oscSync) state.oscSync();
     return true;
   }
@@ -2682,7 +2685,10 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
             for (int i = 0; i < kHostTracks; ++i) oscLocalValid_[i] = false;
             oscLocalBank_ = state.hostBank;
           }
-          if (!oscLocalValid_[w.index] && h.valid) {
+          if (steadyMs() < oscSyncUntil_ && h.valid) {
+            oscLocalVolume_[w.index] = h.volume;
+            oscLocalValid_[w.index] = true;
+          } else if (!oscLocalValid_[w.index] && h.valid) {
             oscLocalVolume_[w.index] = h.volume;
             oscLocalValid_[w.index] = true;
           }

@@ -257,7 +257,9 @@ private:
   // only moves when the hand moves it.  SYNC re-reads the host.
   double oscLocalVolume_[kHostTracks] = {};
   bool oscLocalValid_[kHostTracks] = {};
+  bool oscGrab_[kHostTracks] = {};
   int oscLocalBank_ = -1;
+  double oscSyncUntil_ = 0.0;
   int editSend_ = 0;
   int editRecv_ = 0;
   void oscSettingsGeometry();
