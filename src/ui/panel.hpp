@@ -253,6 +253,11 @@ private:
   double oscHoldPan_[kHostTracks] = {};
   double oscHoldVolumeUntil_[kHostTracks] = {};
   double oscHoldPanUntil_[kHostTracks] = {};
+  // Non-motorized faders: the host value is adopted once, then the strip
+  // only moves when the hand moves it.  SYNC re-reads the host.
+  double oscLocalVolume_[kHostTracks] = {};
+  bool oscLocalValid_[kHostTracks] = {};
+  int oscLocalBank_ = -1;
   int editSend_ = 0;
   int editRecv_ = 0;
   void oscSettingsGeometry();

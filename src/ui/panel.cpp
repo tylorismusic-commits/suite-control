@@ -1397,6 +1397,7 @@ bool Panel::pointerDownOscSettings(Shared& shared, PanelState& state,
     return true;
   }
   if (oscSyncRect_.hit(x, y)) {
+    for (int i = 0; i < kHostTracks; ++i) oscLocalValid_[i] = false;
     if (state.oscSync) state.oscSync();
     return true;
   }
@@ -2673,11 +2674,19 @@ void Panel::drawBusPage(cairo_t* cr, const Shared& shared,
         const HostTrack& h = state.host[static_cast<size_t>(w.index)];
         const bool live = dragging_ && dragKind_ == 4 &&
                           w.index == dragIndex_;
-        const double now = steadyMs();
-        double v = live ? dragValue_ : h.volume;
-        if (!live && oscHoldVolumeUntil_[w.index] > now &&
-            std::fabs(h.volume - oscHoldVolume_[w.index]) > 0.004) {
-          v = oscHoldVolume_[w.index];
+        double v;
+        if (live) {
+          v = dragValue_;
+        } else {
+          if (oscLocalBank_ != state.hostBank) {
+            for (int i = 0; i < kHostTracks; ++i) oscLocalValid_[i] = false;
+            oscLocalBank_ = state.hostBank;
+          }
+          if (!oscLocalValid_[w.index] && h.valid) {
+            oscLocalVolume_[w.index] = h.volume;
+            oscLocalValid_[w.index] = true;
+          }
+          v = oscLocalValid_[w.index] ? oscLocalVolume_[w.index] : h.volume;
         }
         const double cx = w.x;
         const double top = w.y;
