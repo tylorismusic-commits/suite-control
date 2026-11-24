@@ -1739,7 +1739,7 @@ bool Panel::pointerDown(Shared& shared, PanelState& state, double x, double y,
         const double bottom = w.y + w.h;
         const double v = clamp01((bottom - y) / std::max(1.0, bottom - top));
         oscHoldVolume_[w.index] = v;
-        oscHoldVolumeUntil_[w.index] = steadyMs() + 600.0;
+        oscHoldVolumeUntil_[w.index] = steadyMs() + 2500.0;
         dragging_ = true;
         dragKind_ = 4;
         dragIndex_ = w.index;
@@ -1928,10 +1928,10 @@ bool Panel::pointerMove(Shared& shared, PanelState& state, double x, double y,
     dragValue_ = v;
     if (dragKind_ == 4) {
       oscHoldVolume_[dragIndex_] = v;
-      oscHoldVolumeUntil_[dragIndex_] = steadyMs() + 600.0;
+      oscHoldVolumeUntil_[dragIndex_] = steadyMs() + 2500.0;
     } else {
       oscHoldPan_[dragIndex_] = v;
-      oscHoldPanUntil_[dragIndex_] = steadyMs() + 600.0;
+      oscHoldPanUntil_[dragIndex_] = steadyMs() + 2500.0;
     }
     if (state.hostControl) {
       state.hostControl(dragIndex_,
